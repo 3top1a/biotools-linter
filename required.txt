@@ -1,0 +1,6 @@
+argparse
+requests
+re
+logging
+concurrent
+colorlog

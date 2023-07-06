@@ -9,8 +9,12 @@ class Session:
     page = 1
     json = []
 
-    def __init__(self):
-        pass
+    def __init__(self, page=1, json=[]):
+        self.page = page
+        self.json = json
+
+    def to_dict(self):
+        return {'page': self.page, 'json': self.json}
 
     def search_api(self, name, page=1):
         """
@@ -73,12 +77,12 @@ class Session:
 
     def next_page_exists(self):
         if 'next' in self.json:
-            return self.json['next']
+            return self.json['next'] != None
         return False
 
     def previous_page_exists(self):
         if 'previous' in self.json:
-            return self.json['previous']
+            return self.json['previous'] != None
         return False
 
 # Utils

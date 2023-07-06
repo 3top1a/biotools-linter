@@ -3,9 +3,12 @@ This is a rule-based checker for the [bio.tools](https://bio.tools/) database. T
 
 ## Instalation
 1) Clone this git repository
+    ```sh
+    $ git clone https://github.com/3top1a/biotools-linter.git
+    ```
 
 2) Install dependencies
-    ```
+    ```sh
     $ pip install -r required.txt
     ```
 
@@ -14,7 +17,7 @@ Run the CLI python script.
 Web version coming later.
 
 ```sh
-$ python main.py "MetExplore" -p 1
+$ python cli.py "MetExplore" -p 1
 Search returned 1 results
 Starting to lint MetExplore
 https://metexplore.toulouse.inra.fr/metexplore-webservice-documentation/ in /documentation/2/url doesn't returns 200 (HTTP_OK)

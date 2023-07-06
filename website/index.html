@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biotools linter</title>
+    <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
+    <style>
+        .center {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 24px 5px 24px;
+        }
+    </style>
+</head>
+
+<body class="navigation-with-keyboard">
+
+    <div class="header">
+        <input id="search_data" type="text" class="pure-input-rounded" placeholder="Search tool" />
+        <button id="search_input" type="submit" class="pure-button">Search</button>
+        <script>
+            $(document).ready(function() {
+                page = 1
+
+                function refresh() {
+                    data = JSON.stringify({
+                        q: $("#search_data").val(),
+                        page: page
+                    })
+
+                    $.ajax({
+                        url: "/search",
+                        type: "POST",
+                        data: data,
+                        contentType: "application/json", // Set the Content-Type header to JSON
+                        success: function(response) {
+                            // Handle the response from the API
+                            $('#count').text("Found " + response.len + " results")
+                            $('#listing').html(response.o)
+
+                            $('#page_p').prop('disabled', !response.previous);
+                            $('#page_c').text("Page " + response.page)
+                            $('#page_n').prop('disabled', !response.next);
+                        },
+                        error: function(xhr, status, error) {
+                            // Handle errors
+                            $('#listing').empty()
+                            $('#count').text("Request error, please report on GitHub and refresh this page (it will no longer work)")
+                        }
+                    });
+                }
+
+                $('#search_input').click(function() {
+                    page = 1
+                    refresh()
+                });
+
+                $('#page_p').click(function() {
+                    page -= 1
+                    refresh()
+                });
+
+                $('#page_n').click(function() {
+                    page += 1
+                    refresh()
+                });
+            });
+        </script>
+    </div>
+
+    </div>
+    <section class="content">
+        <p id="count"></p>
+        <article id="listing"></article>
+        <div class="center">
+            <button id="page_p" disabled style="float:left">Previous</button>
+            <p id="page_c">Page 0</p>
+            <button id="page_n" disabled style="float:right">Next</button>
+        </div>
+    </section>
+</body>
+
+</html>

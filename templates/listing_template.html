@@ -1,4 +1,39 @@
 <div class="listing notice center">
     <a href="{{link}}" id="name">{{name}}</a>
-    <button style="float:right">Check</button>
+    <button id="{{id}}_lint" style="float:right">Check</button>
+
+    <script>
+        $(document).ready(function() {
+            $('#{{id}}_lint').click(function() {
+                window.$('#search_section').hide();
+                window.$('#lint_section').hide();
+                window.$('#loading').show();
+                $('#lint_section').empty();
+
+                scrollTo(window);
+
+                data = JSON.stringify({
+                    project: "{{name}}"
+                });
+
+                $.ajax({
+                    url: "/lint",
+                    type: "POST",
+                    data: data,
+                    contentType: "application/json", // Set the Content-Type header to JSON
+                    success: function(response) {},
+                    error: function(xhr, status, error) {
+                        // Handle errors
+                        $('#listing').empty();
+                        $('#search_section').show();
+                        $('#lint_section').hide();
+                        $('#loading').hide();
+                        $('#count').text("Request error, please report on GitHub and refresh this page (it will no longer work)");
+                        console.error(status)
+                        console.error(error)
+                    }
+                });
+            });
+        });
+    </script>
 </div>

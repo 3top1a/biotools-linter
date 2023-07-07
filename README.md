@@ -14,13 +14,18 @@ This is a rule-based checker for the [bio.tools](https://bio.tools/) database. T
 
 ## Usage
 Run the CLI python script.
-Web version coming later.
 
 ```sh
 $ python cli.py "MetExplore" -p 1
 Search returned 1 results
 Starting to lint MetExplore
 https://metexplore.toulouse.inra.fr/metexplore-webservice-documentation/ in /documentation/2/url doesn't returns 200 (HTTP_OK)
+```
+
+Or run the WebUI.
+
+```sh
+$ python web.py
 ```
 
 ## Architecture

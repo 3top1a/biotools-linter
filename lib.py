@@ -2,6 +2,7 @@ import requests
 import logging
 from concurrent.futures import ThreadPoolExecutor
 from rules import delegate_filter, reset_cache
+import queue
 
 REPORT = 15
 
@@ -47,7 +48,7 @@ class Session:
         else:
             return [self.json]
 
-    def lint_specific_project(self, data_json):
+    def lint_specific_project(self, data_json:str, return_q: queue.Queue | None = None):
         if len(data_json) == 0:
             logging.critical("Recieved empty JSON!")
             return
@@ -60,7 +61,7 @@ class Session:
         dictionary = flatten_json_to_single_dict(data_json, parent_key=name)
 
         executor = ThreadPoolExecutor()
-        futures = [executor.submit(delegate_filter, key, value)
+        futures = [executor.submit(delegate_filter, key, value, return_q)
                 for key, value in dictionary.items()]
 
         for f in futures:
@@ -69,11 +70,14 @@ class Session:
             except Exception as e:
                 logging.critical(f"Error while executing future: {e}")
         
+        if return_q != None:
+            return_q.put("Finished linting")
+
         reset_cache()
 
-    def lint_all_projects(self):
+    def lint_all_projects(self, return_q: queue.Queue | None = None):
         for project in self.return_project_list():
-            self.lint_specific_project(project)
+            self.lint_specific_project(project, return_q)
 
     def next_page_exists(self):
         if 'next' in self.json:

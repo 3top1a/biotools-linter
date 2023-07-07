@@ -6,10 +6,13 @@
 import argparse
 import logging
 import sys
+
 import colorlog
+
 from lib import Session
 
 REPORT = 15
+
 
 def main(arguments):
     # Configure parser
@@ -47,7 +50,6 @@ def main(arguments):
     root_logger.removeHandler(root_logger.handlers[0])
     root_logger.addHandler(console_handler)
 
-    # AAAA
     session = Session()
     session.search_api(tool_name)
     session.lint_all_projects()

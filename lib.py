@@ -1,8 +1,10 @@
-import requests
 import logging
-from concurrent.futures import ThreadPoolExecutor
-from rules import delegate_filter, reset_cache
 import queue
+from concurrent.futures import ThreadPoolExecutor
+
+import requests
+
+from rules import delegate_filter, reset_cache
 
 REPORT = 15
 

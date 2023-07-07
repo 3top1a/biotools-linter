@@ -49,7 +49,7 @@ socketio = SocketIO(app)
 
 @app.route("/search", methods=['POST'])
 def search():
-    if not 's' in session:
+    if 's' not in session:
         session['s'] = Session()
 
     s: Session = Session(session['s']['page'], session['s']['json'])
@@ -85,7 +85,7 @@ def lint():
     """
         Assumes project exists
     """
-    if not 's' in session:
+    if 's' not in session:
         session['s'] = Session()
 
     s: Session = Session(**session['s'])
@@ -148,7 +148,7 @@ def handle_disconnect():
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
 def catch_all(path):
-    if not 's' in session:
+    if 's' not in session:
         session['s'] = Session()
     return app.send_static_file("index.html")
 

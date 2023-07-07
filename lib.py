@@ -70,7 +70,7 @@ class Session:
             except Exception as e:
                 logging.critical(f"Error while executing future: {e}")
         
-        if return_q != None:
+        if return_q is not None:
             return_q.put("Finished linting")
 
         reset_cache()
@@ -81,12 +81,12 @@ class Session:
 
     def next_page_exists(self):
         if 'next' in self.json:
-            return self.json['next'] != None
+            return self.json['next'] is not None
         return False
 
     def previous_page_exists(self):
         if 'previous' in self.json:
-            return self.json['previous'] != None
+            return self.json['previous'] is not None
         return False
 
 # Utils

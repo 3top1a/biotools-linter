@@ -44,7 +44,7 @@ def filter_none(key: str, value: str, return_q: queue.Queue | None = None):
     for ik in IMPORTANT_KEYS:
         if key.endswith(ik):
             logging.log(REPORT, f"Important key {key} is null/empty")
-            if return_q != None:
+            if return_q is not None:
                 return_q.put(f"Important key {key} is null/empty")
 
 
@@ -55,7 +55,7 @@ def filter_url(key: str, value: str, return_q: queue.Queue | None = None):
     if key in urls_already_checked:
         if urls_already_checked[key] is not None:
             logging.log(REPORT, urls_already_checked[key])
-            if return_q != None:
+            if return_q is not None:
                 return_q.put(urls_already_checked[key])
 
     # Return if does not match URL or key doesnt end with url/uri
@@ -68,7 +68,7 @@ def filter_url(key: str, value: str, return_q: queue.Queue | None = None):
         urls_already_checked[key] = None
         logging.log(
             REPORT, f"URL {value} in entry at {key} does not match a URL")
-        if return_q != None:
+        if return_q is not None:
             return_q.put(f"URL {value} in entry at {key} does not match a URL")
 
     logging.debug("Checking URL: " + value)
@@ -89,7 +89,7 @@ def filter_url(key: str, value: str, return_q: queue.Queue | None = None):
             logging.log(REPORT,
                         f"{value} in {key} doesn't returns 200 (HTTP_OK)")
             urls_already_checked[key] = f"{value} in {key} doesn't returns 200 (HTTP_OK)"
-            if return_q != None:
+            if return_q is not None:
                 return_q.put(f"{value} in {key} doesn't returns 200 (HTTP_OK)")
             return
 
@@ -98,7 +98,7 @@ def filter_url(key: str, value: str, return_q: queue.Queue | None = None):
         logging.log(REPORT,
                     f"{value} in {key} timeouted in 5 seconds")
         urls_already_checked[key] = f"{value} in {key} timeouted in 5 seconds"
-        if return_q != None:
+        if return_q is not None:
             return_q.put(f"{value} in {key} timeouted in 5 seconds")
         return
 
@@ -107,7 +107,7 @@ def filter_url(key: str, value: str, return_q: queue.Queue | None = None):
         logging.log(REPORT,
                     f"{value} at {key} returned an SSL error")
         urls_already_checked[key] = f"{value} at {key} returned an SSL error"
-        if return_q != None:
+        if return_q is not None:
             return_q.put(f"{value} at {key} returned an SSL error")
         return
 
@@ -115,7 +115,7 @@ def filter_url(key: str, value: str, return_q: queue.Queue | None = None):
         # Generic request error
         logging.log(REPORT, f"Error while making URL request to {value} - {e}")
         urls_already_checked[key] = f"Error while making URL request to {value} - {e}"
-        if return_q != None:
+        if return_q is not None:
             return_q.put(f"Error while making URL request to {value} - {e}")
         return
 

@@ -89,7 +89,7 @@ def filter_url(key: str, value: str, return_q: queue.Queue | None = None):
         if response.status_code != 200:
             logging.log(REPORT,
                         f"{value} in {key} doesn't returns 200 (HTTP_OK)")
-            urls_already_checked[key] = f"{value} in {key} doesn't returns 200 (HTTP_OK)"
+            urls_already_checked[key] = f"{value} in {key} didn't return 200 (HTTP_OK)"
             if return_q is not None:
                 return_q.put(f"{value} in {key} doesn't returns 200 (HTTP_OK)")
             return
@@ -98,7 +98,7 @@ def filter_url(key: str, value: str, return_q: queue.Queue | None = None):
         # Timeout error
         logging.log(REPORT,
                     f"{value} in {key} timeouted in 5 seconds")
-        urls_already_checked[key] = f"{value} in {key} timeouted in 5 seconds"
+        urls_already_checked[key] = f"{value} in {key} timed out in 5 seconds"
         if return_q is not None:
             return_q.put(f"{value} in {key} timeouted in 5 seconds")
         return

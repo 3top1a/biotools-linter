@@ -8,18 +8,16 @@ from rules import delegate_filter, reset_cache
 
 REPORT = 15
 
-class Session:
-    page = 1
-    json = []
 
-    def __init__(self, page=1, json=[]):
+class Session:
+    page: int = 1
+    json: dict = {}
+
+    def __init__(self, page: int = 1, json: dict = {}):
         self.page = page
         self.json = json
 
-    def to_dict(self):
-        return {'page': self.page, 'json': self.json}
-
-    def search_api(self, name, page=1):
+    def search_api(self, name: str, page: int = 1):
         """
         Get JSON from biotools API
         """
@@ -42,7 +40,7 @@ class Session:
 
         logging.critical("Could not search the API")
 
-    def return_project_list(self):
+    def return_project_list_json(self):
         if 'next' in self.json.keys():
             logging.info(f"Search returned {len(self.json['list'])} results")
 
@@ -50,49 +48,52 @@ class Session:
         else:
             return [self.json]
 
-    def lint_specific_project(self, data_json:str, return_q: queue.Queue | None = None):
+    def lint_specific_project(self, data_json: str, return_q: queue.Queue | None = None):
         if len(data_json) == 0:
             logging.critical("Recieved empty JSON!")
             return
-        
+
         name = data_json['name']
 
-        logging.info(f"Linting {name} at https://bio.tools/{data_json['biotoolsID']}")
+        logging.info(
+            f"Linting {name} at https://bio.tools/{data_json['biotoolsID']}")
         logging.debug(f"Project JSON returned {len(data_json)} keys")
 
         dictionary = flatten_json_to_single_dict(data_json, parent_key=name)
 
         executor = ThreadPoolExecutor()
         futures = [executor.submit(delegate_filter, key, value, return_q)
-                for key, value in dictionary.items()]
+                   for key, value in dictionary.items()]
 
         for f in futures:
             try:
                 f.result()
             except Exception as e:
                 logging.critical(f"Error while executing future: {e}")
-        
+
         if return_q is not None:
             return_q.put("Finished linting")
 
         reset_cache()
 
     def lint_all_projects(self, return_q: queue.Queue | None = None):
-        for project in self.return_project_list():
+        for project in self.return_project_list_json():
             self.lint_specific_project(project, return_q)
 
-    def next_page_exists(self):
+    def next_page_exists(self) -> bool:
         if 'next' in self.json:
             return self.json['next'] is not None
         return False
 
-    def previous_page_exists(self):
+    def previous_page_exists(self) -> bool:
         if 'previous' in self.json:
             return self.json['previous'] is not None
         return False
 
 # Utils
-def flatten_json_to_single_dict(json_data, parent_key='', separator='.'):
+
+
+def flatten_json_to_single_dict(json_data, parent_key='', separator='.') -> dict:
     """
     Recursively extract values from JSON
 

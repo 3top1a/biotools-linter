@@ -92,7 +92,7 @@ def search():
 
         s.search_api(query, page=page)
 
-        list = s.return_project_list()
+        list = s.return_project_list_json()
 
         t = 'single' if len(list) == 1 else 'list'
 

@@ -13,13 +13,30 @@ from lib import Session
 REPORT = 15
 
 
-def main(arguments):
+def main(arguments: dict) -> None:
+    """Execute the main functionality of the tool.
+
+    Attributes
+    ----------
+        arguments (dict): A dictionary containing command-line arguments.
+
+    Returns
+    -------
+        None
+
+    Raises
+    ------
+        None
+
+    """
     # Configure parser
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("name", help="Tool name")
-    parser.add_argument("--log-level", "-l", choices=["DEBUG", "INFO", "REPORT", "WARNING", "ERROR"], default="REPORT",
+    parser.add_argument("--log-level", "-l",
+                        choices=["DEBUG", "INFO", "REPORT", "WARNING", "ERROR"],
+                        default="REPORT",
                         help="Set the logging level (default: INFO)")
     parser.add_argument("--page", "-p", default=1, type=int,
                         help="Sets the page of the search")

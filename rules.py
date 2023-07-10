@@ -5,6 +5,9 @@ import re
 import requests
 
 REPORT = 15
+URL_REGEX = r"(http[s]?|ftp)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+IMPORTANT_KEYS = ["name", "description",
+                  "homepage", "biotoolsID", "biotoolsCURIE"]
 
 urls_already_checked = {}
 
@@ -19,12 +22,37 @@ req_session.mount("https://", adapter)
 req_session.headers.update({"User-Agent": user_agent})
 
 
-def reset_cache():
+def reset_cache() -> None:
+    """Resets the cache of checked URLs.
+
+    Returns
+    -------
+        None
+
+    Raises
+    ------
+        None
+    """
     urls_already_checked.clear()
 
 
-def delegate_filter(key: str, value: str, return_q: queue.Queue | None = None):
-    """Delegates to seperate filter functions."""
+def delegate_filter(key: str, value: str, return_q: queue.Queue | None = None) -> None:
+    """Delegates to separate filter functions based on the key and value.
+
+    Attributes
+    ----------
+        key (str): The key to filter.
+        value (str): The value to filter.
+        return_q (queue.Queue | None): The queue to store filter results (default: None).
+
+    Returns
+    -------
+        None
+
+    Raises
+    ------
+        None
+    """
     logging.debug(f"Checking {key}: {value!s}")
 
     if value is None or value == [] or value == "":
@@ -34,9 +62,23 @@ def delegate_filter(key: str, value: str, return_q: queue.Queue | None = None):
     filter_url(key, value, return_q)
 
 
-def filter_none(key: str, value: str, return_q: queue.Queue | None = None):
-    IMPORTANT_KEYS = ["name", "description",
-                      "homepage", "biotoolsID", "biotoolsCURIE"]
+def filter_none(key: str, value: str, return_q: queue.Queue | None = None) -> None:
+    """Filters the key-value pair if the value is None or empty.
+
+    Attributes
+    ----------
+        key (str): The key to filter.
+        value (str): The value to filter.
+        return_q (queue.Queue | None): The queue to store filter results (default: None).
+
+    Returns
+    -------
+        None
+
+    Raises
+    ------
+        None
+    """
     logging.debug(f"{key} returned null")
 
     for ik in IMPORTANT_KEYS:
@@ -46,9 +88,23 @@ def filter_none(key: str, value: str, return_q: queue.Queue | None = None):
                 return_q.put(f"Important key {key} is null/empty")
 
 
-def filter_url(key: str, value: str, return_q: queue.Queue | None = None):
-    URL_REGEX = r"(http[s]?|ftp)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+def filter_url(key: str, value: str, return_q: queue.Queue | None = None) -> None:
+    """Filters the URL based on various conditions.
 
+    Attributes
+    ----------
+        key (str): The key to filter.
+        value (str): The value to filter.
+        return_q (queue.Queue | None): The queue to store filter results (default: None).
+
+    Returns
+    -------
+        None
+
+    Raises
+    ------
+        None
+    """
     # Check for cached duplicates
     if key in urls_already_checked and urls_already_checked[key] is not None:
         logging.log(REPORT, urls_already_checked[key])
@@ -61,19 +117,19 @@ def filter_url(key: str, value: str, return_q: queue.Queue | None = None):
         return
 
     # If the URL doesn't match the regex but is in a url/uri entry, throw an error
-    elif not re.match(URL_REGEX, value) and (key.endswith(("url", "uri"))):
+    if not re.match(URL_REGEX, value) and (key.endswith(("url", "uri"))):
         urls_already_checked[key] = None
         logging.log(
             REPORT, f"URL {value} in entry at {key} does not match a URL")
         if return_q is not None:
             return_q.put(f"URL {value} in entry at {key} does not match a URL")
 
-    logging.debug("Checking URL: " + value)
+    logging.debug(f"Checking URL: {value}")
 
     # Special check for edamontology
     if "://edamontology.org/" in value:
-        # TODO Special edamontology checks
-        logging.debug("Checking edamontology: " + value)
+        # TODO(3top1a): Special edamontology checks
+        logging.debug(f"Checking edamontology: {value}")
         urls_already_checked[key] = None
         return
 

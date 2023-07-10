@@ -3,60 +3,50 @@
 """A rule-based checker for bio.tools tools."""
 
 import argparse
-import json
 import logging
 import os
 import queue
 import sys
 import threading
 from datetime import datetime, timezone
+from typing import Any
 
 import colorlog
-from flask import Flask, jsonify, render_template, request, session
+from flask import Flask, Response, jsonify, render_template, request, session
 from flask_socketio import SocketIO
 
 from lib import Session
-
-
-class Encoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, Session):
-            return vars(obj)
-
-        # default, if not Delivery object. Caller's problem if this is not serialziable.
-        return json.JSONEncoder.default(self, obj)
-
 
 # Configure app
 app = Flask(__name__, static_folder="website")
 app.secret_key = os.urandom(24)  # Random secret key
 socketio = SocketIO(app)
 
+MAX_INPUT_LENGTH = 100
 
-def validate_input(func):
+def validate_input(func: Any) -> Any:
     def wrapper(*args, **kwargs):
-        if "bioid" in request.args:
-            bioid = request.args.get("bioid")
-            if not bioid:
-                return "BioID parameter is missing.", 400
-            elif not isinstance(bioid, str):
-                return "Invalid data type for name parameter.", 400
-            elif len(bioid) > 100:
-                return "BioID parameter exceeds the maximum length limit of 100 characters.", 400
-
-        if "q" in request.args:
-            q = request.args.get("q")
-            if not q:
-                return "query (q) parameter is missing.", 400
-            elif not isinstance(q, str):
-                return "Invalid data type for query parameter.", 400
-            elif len(q) > 100:
-                return "q parameter exceeds the maximum length limit of 100 characters.", 400
-
-        if "page" in request.args:
-            page = request.args.get("page")
-            if not isinstance(page, int):
-                return "Invalid data type for page parameter.", 400
+        match request.args:
+            case "bioid":
+                bioid = request.args.get("bioid")
+                if not bioid:
+                    return "BioID parameter is missing.", 400
+                if not isinstance(bioid, str):
+                    return "Invalid data type for name parameter.", 400
+                if len(bioid) > MAX_INPUT_LENGTH:
+                    return f"BioID parameter exceeds the maximum length limit of {MAX_INPUT_LENGTH} characters.", 400
+            case "q":
+                q = request.args.get("q")
+                if not q:
+                    return "query (q) parameter is missing.", 400
+                if not isinstance(q, str):
+                    return "Invalid data type for query parameter.", 400
+                if len(q) > MAX_INPUT_LENGTH:
+                    return f"q parameter exceeds the maximum length limit of {MAX_INPUT_LENGTH} characters.", 400
+            case "page":
+                page = request.args.get("page")
+                if not isinstance(page, int):
+                    return "Invalid data type for page parameter.", 400
 
         return func(*args, **kwargs)
     return wrapper
@@ -64,7 +54,7 @@ def validate_input(func):
 
 @app.route("/search", methods=["POST"])
 @validate_input
-def search():
+def search() -> Response:
     """Route: /search
     Method: POST.
 
@@ -82,9 +72,9 @@ def search():
     try:
 
         if "s" not in session:
-            session["s"] = Encoder().encode(Session())
+            session["s"] = vars(Session())
 
-        s: Session = Session(**json.loads(session["s"]))
+        s: Session = Session(**session["s"])
 
         query = request.json["q"]
         page = request.json["page"]
@@ -117,7 +107,7 @@ def search():
 
 
 @app.route("/lint", methods=["POST"])
-def lint_project():
+def lint_project() -> Response:
     """Route: /lint
     Method: POST.
 
@@ -134,9 +124,9 @@ def lint_project():
     """
     try:
         if "s" not in session:
-            session["s"] = Encoder().encode(Session())
+            session["s"] = vars(Session())
 
-        s: Session = Session(**json.loads(session["s"]))
+        s: Session = Session(session["s"])
 
         bioid = request.json["bioid"]
 
@@ -154,8 +144,8 @@ def lint_project():
             "level": "debug",
         })
 
-        # Setup queue callback
-        def message_receiver(message_channel):
+    # Setup queue callback
+        def message_receiver(message_channel: queue.Queue):
             while True:
                 message = message_channel.get()  # Blocks until a new message is received
 
@@ -185,14 +175,16 @@ def lint_project():
 
         return jsonify({"status": "success"})
     except Exception as e:
-        logging.error(e)
+        logging.exception()
         return f"Error: {e}", 400
 
 
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
-def catch_all(path):
-    """Route: / or any path not previously defined
+def catch_all() -> Response:
+    """Catchall.
+
+    Route: / or any path not previously defined
     Method: GET.
 
     Catch-all route for serving static files or fallback to index.html.
@@ -206,7 +198,7 @@ def catch_all(path):
     - Always returns the content of index.html
     """
     if "s" not in session:
-        session["s"] = Encoder().encode(Session())
+        session["s"] = vars(Session())
     return app.send_static_file("index.html")
 
 

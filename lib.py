@@ -1,3 +1,5 @@
+"""Contains main classes and functions for linting."""
+
 import logging
 import queue
 from concurrent.futures import ThreadPoolExecutor
@@ -10,42 +12,122 @@ REPORT = 15
 
 
 class Session:
+
+    """Session for interacting with the biotools API and performing data processing.
+
+    Attributes
+    ----------
+        page (int): The current page number.
+        json (dict): The JSON data retrieved from the API.
+
+    Methods
+    -------
+        __init__(self, page: int = 1, json: dict = {}) -> None:
+            Initializes a new Session instance.
+        search_api(self, name: str, page: int = 1):
+            Retrieves JSON data from the biotools API.
+        return_project_list_json(self):
+            Returns the project list from the JSON data.
+        lint_specific_project(self, data_json: str, return_q: queue.Queue | None = None):
+            Performs linting on a specific project.
+        lint_all_projects(self, return_q: queue.Queue | None = None):
+            Performs linting on all projects in the JSON data.
+        next_page_exists(self) -> bool:
+            Checks if the next page exists in the JSON data.
+        previous_page_exists(self) -> bool:
+            Checks if the previous page exists in the JSON data.
+    """
+
     page: int = 1
     json: dict = {}
 
-    def __init__(self, page: int = 1, json: dict = {}) -> None:
+    def __init__(self: "Session", page: int = 1, json: dict = {}) -> None:
+        """Initializes a new Session instance.
+
+        Attributes
+        ----------
+            page (int): The current page number.
+            json (dict): The JSON data retrieved from the API.
+
+        Returns
+        -------
+            None
+
+        Raises
+        ------
+            None
+        """
         self.page = page
         self.json = json
 
-    def search_api(self, name: str, page: int = 1):
-        """Get JSON from biotools API."""
+    def search_api(self: "Session", name: str, page: int = 1) -> None:
+        """Retrieves JSON data from the biotools API.
+
+        Attributes
+        ----------
+            name (str): The name to search for.
+            page (int): The page number to retrieve (default: 1).
+
+        Returns
+        -------
+            None
+
+        Raises
+        ------
+            None
+        """
         logging.debug(f"Searching API for {name}")
 
         # Search as if it's an exact match
         url = f"https://bio.tools/api/t/{name}?format=json"
         response = requests.get(url)
-        if response.status_code == 200:
+        if response.ok:
             self.json = response.json()
             return
 
         # Search
         url = f"https://bio.tools/api/t/?q={name}&format=json&page={page!s}"
         response = requests.get(url)
-        if response.status_code == 200:
+        if response.ok:
             self.json = response.json()
             return
 
         logging.critical("Could not search the API")
 
-    def return_project_list_json(self):
+    def return_project_list_json(self: "Session") -> list:
+        """Returns the project list from the JSON data.
+
+        Returns
+        -------
+            list: The project list.
+
+        Raises
+        ------
+            None
+        """
         if "next" in self.json:
             logging.info(f"Search returned {len(self.json['list'])} results")
 
             return self.json["list"]
-        else:
-            return [self.json]
 
-    def lint_specific_project(self, data_json: str, return_q: queue.Queue | None = None):
+        return [self.json]
+
+    def lint_specific_project(self: "Session", data_json: str, return_q: queue.Queue | None = None) -> None:
+        """Performs linting on a specific project.
+
+        Attributes
+        ----------
+            data_json (str): The JSON data of the project.
+            return_q (queue.Queue | None): The queue to store linting results (default: None).
+
+        Returns
+        -------
+            None
+
+        Raises
+        ------
+            None
+        """
         if len(data_json) == 0:
             logging.critical("Recieved empty JSON!")
             return
@@ -73,24 +155,56 @@ class Session:
 
         reset_cache()
 
-    def lint_all_projects(self, return_q: queue.Queue | None = None):
+    def lint_all_projects(self: "Session", return_q: queue.Queue | None = None) -> None:
+        """Performs linting on all projects in the JSON data.
+
+        Attributes
+        ----------
+            return_q (queue.Queue | None): The queue to store linting results (default: None).
+
+        Returns
+        -------
+            None
+
+        Raises
+        ------
+            None
+        """
         for project in self.return_project_list_json():
             self.lint_specific_project(project, return_q)
 
-    def next_page_exists(self) -> bool:
+    def next_page_exists(self: "Session") -> bool:
+        """Checks if the next page exists in the JSON data.
+
+        Returns
+        -------
+            bool: True if the next page exists, False otherwise.
+
+        Raises
+        ------
+            None
+        """
         if "next" in self.json:
             return self.json["next"] is not None
         return False
 
-    def previous_page_exists(self) -> bool:
+    def previous_page_exists(self: "Session") -> bool:
+        """Checks if the previous page exists in the JSON data.
+
+        Returns
+        -------
+            bool: True if the previous page exists, False otherwise.
+
+        Raises
+        ------
+            None
+        """
         if "previous" in self.json:
             return self.json["previous"] is not None
         return False
 
-# Utils
 
-
-def flatten_json_to_single_dict(json_data, parent_key="", separator=".") -> dict:
+def flatten_json_to_single_dict(json_data: dict, parent_key: str = "", separator: str = "/") -> dict:
     """Recursively extract values from JSON.
 
     For example,
@@ -108,12 +222,25 @@ def flatten_json_to_single_dict(json_data, parent_key="", separator=".") -> dict
 
     ```
     {
-        'a': 1,
-        'b.alpha': 1,
-        'b.beta': 2
+        'parent.a': 1,
+        'parent.b.alpha': 1,
+        'parent.b.beta': 2
     }
     ```
 
+    Attributes
+    ----------
+        json_data (dict): Input json
+        parent_key (str): Default key
+        separator (str): separator between values
+
+    Returns
+    -------
+        Output dict
+
+    Raises
+    ------
+        None
 
     """
     out = {}
@@ -122,11 +249,12 @@ def flatten_json_to_single_dict(json_data, parent_key="", separator=".") -> dict
         for x in json_data:
             index = json_data.index(x)
 
-            out.update(flatten_json_to_single_dict(x, f"{parent_key}/{index}"))
+            out.update(flatten_json_to_single_dict(
+                x, f"{parent_key}{separator}{index}"))
     elif isinstance(json_data, dict):
         for key, value in json_data.items():
             out.update(flatten_json_to_single_dict(
-                value, f"{parent_key}/{key}"))
+                value, f"{parent_key}{separator}{key}"))
     else:
         json_data = str(json_data)
         if json_data == "None":

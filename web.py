@@ -24,6 +24,7 @@ socketio = SocketIO(app)
 
 MAX_INPUT_LENGTH = 100
 
+
 def validate_input(func: Any) -> Any:
     def wrapper(*args, **kwargs):
         match request.args:
@@ -55,10 +56,9 @@ def validate_input(func: Any) -> Any:
 @app.route("/search", methods=["POST"])
 @validate_input
 def search() -> Response:
-    """Route: /search
+    """Endpoint for performing a search.
+    Route: /search
     Method: POST.
-
-    Endpoint for performing a search.
 
     Parameters
     ----------
@@ -82,19 +82,19 @@ def search() -> Response:
 
         s.search_api(query, page=page)
 
-        list = s.return_project_list_json()
+        project_list = s.return_project_list_json()
 
-        t = "single" if len(list) == 1 else "list"
+        t = "single" if len(project_list) == 1 else "list"
 
         output = ""
-        for p in list:
+        for p in project_list:
             link = f"https://bio.tools/{p['biotoolsID']}"
             output += render_template("listing_template.html",
                                       name=p["name"], link=link, id=p["biotoolsID"])
 
         output = {
             "type": t,  # `single` - one project; `list` - multiple
-            "len": len(list),
+            "len": len(project_list),
             "next": s.next_page_exists(),
             "previous": s.previous_page_exists(),
             "page": s.page,
@@ -145,7 +145,7 @@ def lint_project() -> Response:
         })
 
     # Setup queue callback
-        def message_receiver(message_channel: queue.Queue):
+        def message_receiver(message_channel: queue.Queue) -> None:
             while True:
                 message = message_channel.get()  # Blocks until a new message is received
 

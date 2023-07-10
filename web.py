@@ -4,13 +4,13 @@
 """
 
 import argparse
+import json
 import logging
 import os
 import queue
 import sys
 import threading
 from datetime import datetime, timezone
-from json import JSONEncoder
 
 import colorlog
 from flask import Flask, jsonify, render_template, request, session
@@ -19,23 +19,18 @@ from flask_socketio import SocketIO
 from lib import Session
 
 
-class SessionJSONEncoder(JSONEncoder):
-    """
-    Custom JSONEncoder for encoding Session objects.
-    """
-
+class Encoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Session):
-            # Serialize your custom session object here
-            # For example, you can convert it to a dictionary
-            return obj.to_dict()
-        return super().default(obj)
+            return vars(obj)
+
+        # default, if not Delivery object. Caller's problem if this is not serialziable.
+        return json.JSONEncoder.default(self, obj)
 
 
 # Configure app
 app = Flask(__name__, static_folder='website')
 app.secret_key = os.urandom(24)  # Random secret key
-app.json_encoder = SessionJSONEncoder  # Use the custom JSONEncoder
 socketio = SocketIO(app)
 
 
@@ -87,9 +82,9 @@ def search():
     try:
 
         if 's' not in session:
-            session['s'] = Session()
+            session['s'] = Encoder().encode(Session())
 
-        s: Session = Session(session['s']['page'], session['s']['json'])
+        s: Session = Session(**json.loads(session['s']))
 
         query = request.json['q']
         page = request.json['page']
@@ -138,9 +133,9 @@ def lint_project():
     """
     try:
         if 's' not in session:
-            session['s'] = Session()
+            session['s'] = Encoder().encode(Session())
 
-        s: Session = Session(**session['s'])
+        s: Session = Session(**json.loads(session['s']))
 
         bioid = request.json['bioid']
 
@@ -210,7 +205,7 @@ def catch_all(path):
     - Always returns the content of index.html
     """
     if 's' not in session:
-        session['s'] = Session()
+        session['s'] = Encoder().encode(Session())
     return app.send_static_file("index.html")
 
 

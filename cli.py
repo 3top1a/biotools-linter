@@ -5,6 +5,7 @@
 import argparse
 import logging
 import sys
+from collections.abc import Sequence
 
 import colorlog
 
@@ -13,7 +14,7 @@ from lib import Session
 REPORT = 15
 
 
-def main(arguments: dict) -> None:
+def main(arguments: Sequence[str]) -> None:
     """Execute the main functionality of the tool.
 
     Attributes

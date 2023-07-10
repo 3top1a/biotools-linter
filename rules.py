@@ -3,6 +3,7 @@ import queue
 import re
 
 import requests
+from requests.adapters import HTTPAdapter
 
 REPORT = 15
 URL_REGEX = r"(http[s]?|ftp)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
@@ -15,7 +16,7 @@ urls_already_checked = {}
 # Initialize (here so it inits once)
 user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
 req_session = requests.Session()
-adapter = requests.adapters.HTTPAdapter(
+adapter = HTTPAdapter(
     pool_connections=100, pool_maxsize=100)
 req_session.mount("http://", adapter)
 req_session.mount("https://", adapter)

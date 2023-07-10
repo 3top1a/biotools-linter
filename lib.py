@@ -255,9 +255,9 @@ def flatten_json_to_single_dict(json_data: dict, parent_key: str = "", separator
             out.update(flatten_json_to_single_dict(
                 value, f"{parent_key}{separator}{key}"))
     else:
-        json_data = str(json_data)
-        if json_data == "None":
-            json_data = None
-        out.update({parent_key: json_data})
+        value = str(json_data)
+        if value == "None":
+            value = None
+        out.update({parent_key: value})
 
     return out

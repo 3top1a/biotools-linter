@@ -70,7 +70,7 @@ def validate_input(func: Callable[..., Any]) -> Callable[..., Any]:
 
 @app.route("/search", methods=["POST"])
 @validate_input
-def search() -> Response:
+def search() -> Response | tuple[str, int] | tuple[Response, int]:
     """Endpoint for performing a search.
 
     Route: /search
@@ -118,12 +118,12 @@ def search() -> Response:
         }
         return jsonify(output)
     except Exception as e:
-        logging.exception()
+        logging.exception(e)
         return f"Error: {e}", 400
 
 
 @app.route("/lint", methods=["POST"])
-def lint_project() -> Response:
+def lint_project() -> Response | tuple[str, int] | tuple[Response, int]:
     """Endpoint for linting a specific project.
 
     Route: /lint
@@ -191,7 +191,7 @@ def lint_project() -> Response:
 
         return jsonify({"status": "success"})
     except Exception as e:
-        logging.exception()
+        logging.exception(e)
         return f"Error: {e}", 400
 
 

@@ -8,8 +8,8 @@ import requests
 
 from rules import delegate_filter, reset_cache
 
-REPORT = 15
-
+REPORT: int = 15
+TIMEOUT = 10
 
 class Session:
 
@@ -24,13 +24,13 @@ class Session:
     -------
         __init__(self, page: int = 1, json: dict = {}) -> None:
             Initializes a new Session instance.
-        search_api(self, name: str, page: int = 1):
+        search_api(self, name: str, page: int = 1) -> None:
             Retrieves JSON data from the biotools API.
-        return_project_list_json(self):
+        return_project_list_json(self) -> list:
             Returns the project list from the JSON data.
-        lint_specific_project(self, data_json: str, return_q: queue.Queue | None = None):
+        lint_specific_project(self, data_json: dict, return_q: typing.Optional[queue.Queue] = None) -> None:
             Performs linting on a specific project.
-        lint_all_projects(self, return_q: queue.Queue | None = None):
+        lint_all_projects(self, return_q: typing.Optional[queue.Queue] = None) -> None:
             Performs linting on all projects in the JSON data.
         next_page_exists(self) -> bool:
             Checks if the next page exists in the JSON data.
@@ -42,7 +42,7 @@ class Session:
     json: dict = {}
 
     def __init__(self: "Session", page: int = 1, json: dict = {}) -> None:
-        """Initializes a new Session instance.
+        """Initialize a new Session instance.
 
         Attributes
         ----------
@@ -61,7 +61,7 @@ class Session:
         self.json = json
 
     def search_api(self: "Session", name: str, page: int = 1) -> None:
-        """Retrieves JSON data from the biotools API.
+        """Retrieve JSON data from the biotools API.
 
         Attributes
         ----------
@@ -80,14 +80,14 @@ class Session:
 
         # Search as if it's an exact match
         url = f"https://bio.tools/api/t/{name}?format=json"
-        response = requests.get(url)
+        response = requests.get(url, timeout=TIMEOUT)
         if response.ok:
             self.json = response.json()
             return
 
         # Search
         url = f"https://bio.tools/api/t/?q={name}&format=json&page={page!s}"
-        response = requests.get(url)
+        response = requests.get(url, timeout=TIMEOUT)
         if response.ok:
             self.json = response.json()
             return
@@ -95,7 +95,7 @@ class Session:
         logging.critical("Could not search the API")
 
     def return_project_list_json(self: "Session") -> list:
-        """Returns the project list from the JSON data.
+        """Return the project list from the JSON data.
 
         Returns
         -------
@@ -112,13 +112,13 @@ class Session:
 
         return [self.json]
 
-    def lint_specific_project(self: "Session", data_json: str, return_q: queue.Queue | None = None) -> None:
-        """Performs linting on a specific project.
+    def lint_specific_project(self: "Session", data_json: dict, return_q: queue.Queue | None = None) -> None:
+        """Perform linting on a specific project.
 
         Attributes
         ----------
-            data_json (str): The JSON data of the project.
-            return_q (queue.Queue | None): The queue to store linting results (default: None).
+            data_json (dict): The JSON data of the project.
+            return_q (typing.Optional[queue.Queue]): The queue to store linting results (default: None).
 
         Returns
         -------
@@ -129,7 +129,7 @@ class Session:
             None
         """
         if len(data_json) == 0:
-            logging.critical("Recieved empty JSON!")
+            logging.critical("Received empty JSON!")
             return
 
         name = data_json["name"]
@@ -156,11 +156,11 @@ class Session:
         reset_cache()
 
     def lint_all_projects(self: "Session", return_q: queue.Queue | None = None) -> None:
-        """Performs linting on all projects in the JSON data.
+        """Perform linting on all projects in the JSON data.
 
         Attributes
         ----------
-            return_q (queue.Queue | None): The queue to store linting results (default: None).
+            return_q (typing.Optional[queue.Queue]): The queue to store linting results (default: None).
 
         Returns
         -------
@@ -174,7 +174,7 @@ class Session:
             self.lint_specific_project(project, return_q)
 
     def next_page_exists(self: "Session") -> bool:
-        """Checks if the next page exists in the JSON data.
+        """Check if the next page exists in the JSON data.
 
         Returns
         -------
@@ -189,7 +189,7 @@ class Session:
         return False
 
     def previous_page_exists(self: "Session") -> bool:
-        """Checks if the previous page exists in the JSON data.
+        """Check if the previous page exists in the JSON data.
 
         Returns
         -------
@@ -230,18 +230,17 @@ def flatten_json_to_single_dict(json_data: dict, parent_key: str = "", separator
 
     Attributes
     ----------
-        json_data (dict): Input json
-        parent_key (str): Default key
-        separator (str): separator between values
+        json_data (dict): Input JSON.
+        parent_key (str): Default key.
+        separator (str): Separator between values.
 
     Returns
     -------
-        Output dict
+        dict: Output dict.
 
     Raises
     ------
         None
-
     """
     out = {}
 

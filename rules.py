@@ -8,6 +8,7 @@ REPORT = 15
 URL_REGEX = r"(http[s]?|ftp)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
 IMPORTANT_KEYS = ["name", "description",
                   "homepage", "biotoolsID", "biotoolsCURIE"]
+TIMEOUT = 25
 
 urls_already_checked = {}
 
@@ -23,7 +24,7 @@ req_session.headers.update({"User-Agent": user_agent})
 
 
 def reset_cache() -> None:
-    """Resets the cache of checked URLs.
+    """Reset the cache of checked URLs.
 
     Returns
     -------
@@ -37,7 +38,7 @@ def reset_cache() -> None:
 
 
 def delegate_filter(key: str, value: str, return_q: queue.Queue | None = None) -> None:
-    """Delegates to separate filter functions based on the key and value.
+    """Delegate to separate filter functions based on the key and value.
 
     Attributes
     ----------
@@ -62,8 +63,8 @@ def delegate_filter(key: str, value: str, return_q: queue.Queue | None = None) -
     filter_url(key, value, return_q)
 
 
-def filter_none(key: str, value: str, return_q: queue.Queue | None = None) -> None:
-    """Filters the key-value pair if the value is None or empty.
+def filter_none(key: str, _value: str, return_q: queue.Queue | None = None) -> None:
+    """Filter the key-value pair if the value is None or empty.
 
     Attributes
     ----------
@@ -135,10 +136,10 @@ def filter_url(key: str, value: str, return_q: queue.Queue | None = None) -> Non
 
     # Make a request
     try:
-        response = req_session.get(value, timeout=5)
+        response = req_session.get(value, timeout=TIMEOUT)
 
         # Status is not HTTP_OK
-        if response.status_code != 200:
+        if not response.ok:
             logging.log(REPORT,
                         f"{value} in {key} doesn't returns 200 (HTTP_OK)")
             urls_already_checked[key] = f"{value} in {key} didn't return 200 (HTTP_OK)"
@@ -149,10 +150,10 @@ def filter_url(key: str, value: str, return_q: queue.Queue | None = None) -> Non
     except requests.Timeout:
         # Timeout error
         logging.log(REPORT,
-                    f"{value} in {key} timeouted in 5 seconds")
+                    f"{value} in {key} timeouted in {TIMEOUT} seconds")
         urls_already_checked[key] = f"{value} in {key} timed out in 5 seconds"
         if return_q is not None:
-            return_q.put(f"{value} in {key} timeouted in 5 seconds")
+            return_q.put(f"{value} in {key} timeouted in {TIMEOUT} seconds")
         return
 
     except requests.exceptions.SSLError:

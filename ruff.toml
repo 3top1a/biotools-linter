@@ -2,4 +2,4 @@ select = ["ALL"]
 
 # no-blank-line-before-c, multi-line-summary-second-line, 
 # logging-statement-f-string, line-too-long
-ignore = ["D211", "D213", "G004", "E501"]
+ignore = ["D211", "D213", "G004", "E501", "ANN401"]

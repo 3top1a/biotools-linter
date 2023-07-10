@@ -8,6 +8,7 @@ import os
 import queue
 import sys
 import threading
+from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any
 
@@ -25,8 +26,22 @@ socketio = SocketIO(app)
 MAX_INPUT_LENGTH = 100
 
 
-def validate_input(func: Any) -> Any:
-    def wrapper(*args, **kwargs):
+def validate_input(func: Callable[..., Any]) -> Callable[..., Any]:
+    """Validate input parameters for the wrapped function.
+
+    Attributes
+    ----------
+        func (Callable): The function to be wrapped.
+
+    Returns
+    -------
+        Callable: The wrapped function.
+
+    Raises
+    ------
+        None
+    """
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         match request.args:
             case "bioid":
                 bioid = request.args.get("bioid")
@@ -57,6 +72,7 @@ def validate_input(func: Any) -> Any:
 @validate_input
 def search() -> Response:
     """Endpoint for performing a search.
+
     Route: /search
     Method: POST.
 
@@ -102,16 +118,16 @@ def search() -> Response:
         }
         return jsonify(output)
     except Exception as e:
-        logging.error(e)
+        logging.exception()
         return f"Error: {e}", 400
 
 
 @app.route("/lint", methods=["POST"])
 def lint_project() -> Response:
-    """Route: /lint
-    Method: POST.
+    """Endpoint for linting a specific project.
 
-    Endpoint for linting a specific project.
+    Route: /lint
+    Method: POST.
     Assumes requested project exists
 
     Parameters

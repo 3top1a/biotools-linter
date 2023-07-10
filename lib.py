@@ -13,15 +13,12 @@ class Session:
     page: int = 1
     json: dict = {}
 
-    def __init__(self, page: int = 1, json: dict = {}):
+    def __init__(self, page: int = 1, json: dict = {}) -> None:
         self.page = page
         self.json = json
 
     def search_api(self, name: str, page: int = 1):
-        """
-        Get JSON from biotools API
-        """
-
+        """Get JSON from biotools API."""
         logging.debug(f"Searching API for {name}")
 
         # Search as if it's an exact match
@@ -32,7 +29,7 @@ class Session:
             return
 
         # Search
-        url = f"https://bio.tools/api/t/?q={name}&format=json&page={str(page)}"
+        url = f"https://bio.tools/api/t/?q={name}&format=json&page={page!s}"
         response = requests.get(url)
         if response.status_code == 200:
             self.json = response.json()
@@ -41,10 +38,10 @@ class Session:
         logging.critical("Could not search the API")
 
     def return_project_list_json(self):
-        if 'next' in self.json.keys():
+        if "next" in self.json:
             logging.info(f"Search returned {len(self.json['list'])} results")
 
-            return self.json['list']
+            return self.json["list"]
         else:
             return [self.json]
 
@@ -53,7 +50,7 @@ class Session:
             logging.critical("Recieved empty JSON!")
             return
 
-        name = data_json['name']
+        name = data_json["name"]
 
         logging.info(
             f"Linting {name} at https://bio.tools/{data_json['biotoolsID']}")
@@ -81,23 +78,22 @@ class Session:
             self.lint_specific_project(project, return_q)
 
     def next_page_exists(self) -> bool:
-        if 'next' in self.json:
-            return self.json['next'] is not None
+        if "next" in self.json:
+            return self.json["next"] is not None
         return False
 
     def previous_page_exists(self) -> bool:
-        if 'previous' in self.json:
-            return self.json['previous'] is not None
+        if "previous" in self.json:
+            return self.json["previous"] is not None
         return False
 
 # Utils
 
 
-def flatten_json_to_single_dict(json_data, parent_key='', separator='.') -> dict:
-    """
-    Recursively extract values from JSON
+def flatten_json_to_single_dict(json_data, parent_key="", separator=".") -> dict:
+    """Recursively extract values from JSON.
 
-    For example, 
+    For example,
     ```json
     {
         "a": "1",
@@ -120,7 +116,6 @@ def flatten_json_to_single_dict(json_data, parent_key='', separator='.') -> dict
 
 
     """
-
     out = {}
 
     if isinstance(json_data, list):

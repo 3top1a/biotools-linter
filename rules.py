@@ -13,10 +13,10 @@ user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 req_session = requests.Session()
 adapter = requests.adapters.HTTPAdapter(
     pool_connections=100, pool_maxsize=100)
-req_session.mount('http://', adapter)
-req_session.mount('https://', adapter)
+req_session.mount("http://", adapter)
+req_session.mount("https://", adapter)
 # Change the UA so it doesn't get rate limited
-req_session.headers.update({'User-Agent': user_agent})
+req_session.headers.update({"User-Agent": user_agent})
 
 
 def reset_cache():
@@ -24,11 +24,8 @@ def reset_cache():
 
 
 def delegate_filter(key: str, value: str, return_q: queue.Queue | None = None):
-    """
-    Delegates to seperate filter functions
-    """
-
-    logging.debug(f"Checking {key}: {str(value)}")
+    """Delegates to seperate filter functions."""
+    logging.debug(f"Checking {key}: {value!s}")
 
     if value is None or value == [] or value == "":
         filter_none(key, value, return_q)
@@ -38,8 +35,8 @@ def delegate_filter(key: str, value: str, return_q: queue.Queue | None = None):
 
 
 def filter_none(key: str, value: str, return_q: queue.Queue | None = None):
-    IMPORTANT_KEYS = ['name', 'description',
-                      'homepage', 'biotoolsID', 'biotoolsCURIE']
+    IMPORTANT_KEYS = ["name", "description",
+                      "homepage", "biotoolsID", "biotoolsCURIE"]
     logging.debug(f"{key} returned null")
 
     for ik in IMPORTANT_KEYS:
@@ -50,22 +47,21 @@ def filter_none(key: str, value: str, return_q: queue.Queue | None = None):
 
 
 def filter_url(key: str, value: str, return_q: queue.Queue | None = None):
-    URL_REGEX = r'(http[s]?|ftp)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+    URL_REGEX = r"(http[s]?|ftp)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
 
     # Check for cached duplicates
-    if key in urls_already_checked:
-        if urls_already_checked[key] is not None:
-            logging.log(REPORT, urls_already_checked[key])
-            if return_q is not None:
-                return_q.put(urls_already_checked[key])
+    if key in urls_already_checked and urls_already_checked[key] is not None:
+        logging.log(REPORT, urls_already_checked[key])
+        if return_q is not None:
+            return_q.put(urls_already_checked[key])
 
     # Return if does not match URL or key doesnt end with url/uri
-    if not re.match(URL_REGEX, value) and not key.endswith('url') and not key.endswith('uri'):
+    if not re.match(URL_REGEX, value) and not key.endswith("url") and not key.endswith("uri"):
         urls_already_checked[key] = None
         return
 
     # If the URL doesn't match the regex but is in a url/uri entry, throw an error
-    elif not re.match(URL_REGEX, value) and (key.endswith('url') or key.endswith('uri')):
+    elif not re.match(URL_REGEX, value) and (key.endswith(("url", "uri"))):
         urls_already_checked[key] = None
         logging.log(
             REPORT, f"URL {value} in entry at {key} does not match a URL")

@@ -1,27 +1,14 @@
 import logging
-import queue
-import re
 
-import requests
-from requests.adapters import HTTPAdapter
+from url import filter_url
 
-REPORT = 15
+from message import Message
+
 URL_REGEX = r"(http[s]?|ftp)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
 IMPORTANT_KEYS = ["name", "description",
                   "homepage", "biotoolsID", "biotoolsCURIE"]
-TIMEOUT = 25
 
 urls_already_checked = {}
-
-# Initialize (here so it inits once)
-user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-req_session = requests.Session()
-adapter = HTTPAdapter(
-    pool_connections=100, pool_maxsize=100)
-req_session.mount("http://", adapter)
-req_session.mount("https://", adapter)
-# Change the UA so it doesn't get rate limited
-req_session.headers.update({"User-Agent": user_agent})
 
 
 def reset_cache() -> None:
@@ -38,7 +25,7 @@ def reset_cache() -> None:
     urls_already_checked.clear()
 
 
-def delegate_filter(key: str, value: str, return_q: queue.Queue | None = None) -> None:
+def delegate_filter(key: str, value: str) -> Message | None:
     """Delegate to separate filter functions based on the key and value.
 
     Attributes
@@ -57,14 +44,20 @@ def delegate_filter(key: str, value: str, return_q: queue.Queue | None = None) -
     """
     logging.debug(f"Checking {key}: {value!s}")
 
+    output = []
+
     if value is None or value == [] or value == "":
-        filter_none(key, value, return_q)
-        return
+        output.append(filter_none(key, value))
+        return output
 
-    filter_url(key, value, return_q)
+    output.append(filter_url(key, value))
+
+    if output is []:
+        return None
+    return output
 
 
-def filter_none(key: str, _value: str, return_q: queue.Queue | None = None) -> None:
+def filter_none(key: str, _value: str) -> Message | None:
     """Filter the key-value pair if the value is None or empty.
 
     Attributes
@@ -85,93 +78,7 @@ def filter_none(key: str, _value: str, return_q: queue.Queue | None = None) -> N
 
     for ik in IMPORTANT_KEYS:
         if key.endswith(ik):
-            logging.log(REPORT, f"Important key {key} is null/empty")
-            if return_q is not None:
-                return_q.put(f"Important key {key} is null/empty")
+            return Message("TEXT001", f"Important key {key} is null/empty")
 
+    return None
 
-def filter_url(key: str, value: str, return_q: queue.Queue | None = None) -> None:
-    """Filters the URL based on various conditions.
-
-    Attributes
-    ----------
-        key (str): The key to filter.
-        value (str): The value to filter.
-        return_q (queue.Queue | None): The queue to store filter results (default: None).
-
-    Returns
-    -------
-        None
-
-    Raises
-    ------
-        None
-    """
-    # Check for cached duplicates
-    if key in urls_already_checked and urls_already_checked[key] is not None:
-        logging.log(REPORT, urls_already_checked[key])
-        if return_q is not None:
-            return_q.put(urls_already_checked[key])
-
-    # Return if does not match URL or key doesnt end with url/uri
-    if not re.match(URL_REGEX, value) and not key.endswith("url") and not key.endswith("uri"):
-        urls_already_checked[key] = None
-        return
-
-    # If the URL doesn't match the regex but is in a url/uri entry, throw an error
-    if not re.match(URL_REGEX, value) and (key.endswith(("url", "uri"))):
-        urls_already_checked[key] = None
-        logging.log(
-            REPORT, f"URL {value} in entry at {key} does not match a URL")
-        if return_q is not None:
-            return_q.put(f"URL {value} in entry at {key} does not match a URL")
-
-    logging.debug(f"Checking URL: {value}")
-
-    # Special check for edamontology
-    if "://edamontology.org/" in value:
-        # TODO(3top1a): Special edamontology checks
-        logging.debug(f"Checking edamontology: {value}")
-        urls_already_checked[key] = None
-        return
-
-    # Make a request
-    try:
-        response = req_session.get(value, timeout=TIMEOUT)
-
-        # Status is not HTTP_OK
-        if not response.ok:
-            logging.log(REPORT,
-                        f"{value} in {key} doesn't returns 200 (HTTP_OK)")
-            urls_already_checked[key] = f"{value} in {key} didn't return 200 (HTTP_OK)"
-            if return_q is not None:
-                return_q.put(f"{value} in {key} doesn't returns 200 (HTTP_OK)")
-            return
-
-    except requests.Timeout:
-        # Timeout error
-        logging.log(REPORT,
-                    f"{value} in {key} timeouted in {TIMEOUT} seconds")
-        urls_already_checked[key] = f"{value} in {key} timed out in 5 seconds"
-        if return_q is not None:
-            return_q.put(f"{value} in {key} timeouted in {TIMEOUT} seconds")
-        return
-
-    except requests.exceptions.SSLError:
-        # SSL error
-        logging.log(REPORT,
-                    f"{value} at {key} returned an SSL error")
-        urls_already_checked[key] = f"{value} at {key} returned an SSL error"
-        if return_q is not None:
-            return_q.put(f"{value} at {key} returned an SSL error")
-        return
-
-    except requests.RequestException as e:
-        # Generic request error
-        logging.log(REPORT, f"Error while making URL request to {value} - {e}")
-        urls_already_checked[key] = f"Error while making URL request to {value} - {e}"
-        if return_q is not None:
-            return_q.put(f"Error while making URL request to {value} - {e}")
-        return
-
-    urls_already_checked[key] = None

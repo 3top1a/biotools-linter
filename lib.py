@@ -3,6 +3,7 @@
 import logging
 import queue
 from concurrent.futures import ThreadPoolExecutor
+from typing import ClassVar
 
 import requests
 
@@ -39,9 +40,9 @@ class Session:
     """
 
     page: int = 1
-    json: dict = {}
+    json: dict = ClassVar[dict]
 
-    def __init__(self: "Session", page: int = 1, json: dict = {}) -> None:
+    def __init__(self: "Session", page: int = 1, json: dict | None = None) -> None:
         """Initialize a new Session instance.
 
         Attributes
@@ -57,6 +58,9 @@ class Session:
         ------
             None
         """
+        if json is None:
+            json = {}
+
         self.page = page
         self.json = json
 
@@ -141,14 +145,15 @@ class Session:
         dictionary = flatten_json_to_single_dict(data_json, parent_key=name)
 
         executor = ThreadPoolExecutor()
-        futures = [executor.submit(delegate_filter, key, value, return_q)
+        futures = [executor.submit(delegate_filter, key, value)
                    for key, value in dictionary.items()]
 
         for f in futures:
-            try:
-                f.result()
-            except Exception as e:
-                logging.critical(f"Error while executing future: {e}")
+            output = f.result()
+            for x in output:
+                if x is None:
+                    continue
+                x.print_message(return_q)
 
         if return_q is not None:
             return_q.put("Finished linting")

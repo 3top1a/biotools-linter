@@ -197,7 +197,7 @@ def lint_project() -> Response | tuple[str, int] | tuple[Response, int]:
 
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
-def catch_all() -> Response:
+def catch_all(path: str) -> Response:
     """Catchall.
 
     Route: / or any path not previously defined
@@ -205,7 +205,7 @@ def catch_all() -> Response:
 
     Catch-all route for serving static files or fallback to index.html.
 
-    Parameters
+    Attributes
     ----------
     - path: The requested path, not used
 
@@ -215,6 +215,7 @@ def catch_all() -> Response:
     """
     if "s" not in session:
         session["s"] = vars(Session())
+    logging.debug(f"Requested site {path}")
     return app.send_static_file("index.html")
 
 

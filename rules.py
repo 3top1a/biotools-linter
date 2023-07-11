@@ -1,6 +1,6 @@
 import logging
 
-from url import filter_url
+from rule.url import filter_url
 
 from message import Message
 
@@ -50,7 +50,9 @@ def delegate_filter(key: str, value: str) -> Message | None:
         output.append(filter_none(key, value))
         return output
 
-    output.append(filter_url(key, value))
+    url = filter_url(key, value)
+    if url is not None:
+        output.extend(url)
 
     if output is []:
         return None

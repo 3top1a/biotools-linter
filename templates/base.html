@@ -5,11 +5,10 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Biotools linter</title>
+    <title>{% block title %}{% endblock %}</title>
     <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
     <script src="https://cdn.socket.io/4.7.0/socket.io.min.js"></script>
-    <script src="/script.js"></script>
 
     <style>
         .center {
@@ -40,47 +39,18 @@
             fill: currentColor;
         }
         
-        #loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .lds-dual-ring:after {
-            content: " ";
-            display: block;
-            width: 64px;
-            height: 64px;
-            margin: 8px;
-            border-radius: 50%;
-            border: 6px solid #fff;
-            border-color: #fff transparent #fff transparent;
-            animation: lds-dual-ring 1.2s linear infinite;
-        }
-        
         .secondary {
             color: #6c757d;
         }
-        
-        .error {
-            color: #dc3545;
-        }
-        
-        @keyframes lds-dual-ring {
-            0% {
-                transform: rotate(0deg);
-            }
-            100% {
-                transform: rotate(360deg);
-            }
-        }
     </style>
+
+    {% block extrahead %}{% endblock %}
 </head>
 
 <body class="navigation-with-keyboard">
     <header class="header">
         <nav>
-            <a href="/#" onclick="window.location.reload()">Home</a>
+            <a href="/">Home</a>
             <a href="https://bio.tools/">BioTools</a>
             <a href="https://github.com/kevquirk/simple.css"><svg class="icon" viewBox="0 0 32 32">
                     <path
@@ -88,25 +58,18 @@
                     </path>
                 </svg>Github</a>
         </nav>
-        <input id="search_data" type="search" class="pure-input-rounded" placeholder="Search tool" />
+        <input id="search_data" type="search" class="pure-input-rounded" placeholder="Search tool, eg. MetExplore" value="{{name}}" />
         <button id="search_input" type="submit" class="pure-button">Search</button>
+        <script>
+            $('#search_input').click(function() {
+                query = $("#search_data").val();
+                window.location.href = "/search/" + query;
+            });
+        </script>
     </header>
 
     <div class="content">
-        <div id="search_section">
-            <p id="count"></p>
-            <article id="listing"></article>
-            <div class="center">
-                <button id="page_p" disabled style="float:left">Previous</button>
-                <p id="page_c">Page 0</p>
-                <button id="page_n" disabled style="float:right">Next</button>
-            </div>
-        </div>
-        <div style="display: grid" id="lint_section">
-        </div>
-        <div id="loading">
-            <div class="lds-dual-ring"></div>
-        </div>
+        {% block content %}{% endblock %}
     </div>
 </body>
 

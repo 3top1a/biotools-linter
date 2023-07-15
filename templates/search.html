@@ -1,0 +1,17 @@
+{% extends 'base.html' %} {% block title %}Biotools linter - search{% endblock %} {% block content %}
+<p id="count">Found {{count}} projects</p>
+<article id="listing">
+    {{output_html | safe}}
+</article>
+<div class="center">
+    {% if can_previous %}
+    <button id="page_p" style="float:left">Previous</button> {% else %}
+    <button id="page_p" disabled style="float:left">Previous</button> {% endif %}
+
+    <p id="page_c">Page {{page}}</p>
+
+    {% if can_next %}
+    <button id="page_n" style="float:right">Next</button> {% else %}
+    <button id="page_n" disabled style="float:right">Next</button> {% endif %}
+</div>
+{% endblock %}

@@ -7,6 +7,7 @@ from typing import ClassVar
 
 import requests
 
+from message import Level, Message
 from rules import delegate_filter, reset_cache
 
 REPORT: int = 15
@@ -151,12 +152,14 @@ class Session:
         for f in futures:
             output = f.result()
             for x in output:
-                if x is None:
-                    continue
-                x.print_message(return_q)
+                if type(x) == Message:
+                    x.print_message()
+                    if return_q is not None:
+                        return_q.put(x)
 
         if return_q is not None:
-            return_q.put("Finished linting")
+            m = Message("LINT-F", "Finished linting", None, level=Level.Debug)
+            return_q.put(m)
 
         reset_cache()
 

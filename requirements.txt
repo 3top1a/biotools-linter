@@ -3,4 +3,4 @@ requests
 logging
 colorlog
 flask
-flask-socketio
+waitress

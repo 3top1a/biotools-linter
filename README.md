@@ -25,7 +25,7 @@ https://metexplore.toulouse.inra.fr/metexplore-webservice-documentation/ in /doc
 Or run the WebUI.
 
 ```sh
-$ python web.py
+$ python web.py --debug -p 80
 ```
 
 ## Architecture

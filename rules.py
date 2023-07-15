@@ -24,7 +24,7 @@ def reset_cache() -> None:
     urls_already_checked.clear()
 
 
-def delegate_filter(key: str, value: str) -> Message | None:
+def delegate_filter(key: str, value: str) -> list[Message] | None:
     """Delegate to separate filter functions based on the key and value.
 
     Attributes
@@ -45,8 +45,10 @@ def delegate_filter(key: str, value: str) -> Message | None:
 
     output = []
 
+    none = filter_none(key, value)
     if value is None or value == [] or value == "":
-        output.append(filter_none(key, value))
+        output.append(none)
+        # We can't check anything else as it will error
         return output
 
     url = filter_url(key, value)
@@ -79,7 +81,7 @@ def filter_none(key: str, _value: str) -> Message | None:
 
     for ik in IMPORTANT_KEYS:
         if key.endswith(ik):
-            return Message("TEXT001", f"Important key {key} is null/empty")
+            return Message("NONE001", f"Important key {key} is null/empty")
 
     return None
 

@@ -31,7 +31,9 @@ def serve_search(path: str) -> Response:
     if path == "" or path is None:
         return render_template("error.html", error="Please input a valid name"), 400
 
-    page = request.args.get("page", default=1)
+    page = request.args.get("page", default=1, type=int)
+    if page < 1:
+        return render_template("error.html", error="Invalid page"), 400
 
     s.search_api(path, page)
 

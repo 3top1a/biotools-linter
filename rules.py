@@ -1,8 +1,7 @@
 import logging
 
-from rule.url import filter_url
-
 from message import Message
+from rule.url import filter_url
 
 URL_REGEX = r"(http[s]?|ftp)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
 IMPORTANT_KEYS = ["name", "description",

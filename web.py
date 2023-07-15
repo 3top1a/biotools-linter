@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 import colorlog
-from flask import Flask, Response, jsonify, render_template, request, session
+from flask import Flask, Response, jsonify, render_template, request, send_file, session
 from flask_socketio import SocketIO
 
 from lib import Session
@@ -194,30 +194,19 @@ def lint_project() -> Response | tuple[str, int] | tuple[Response, int]:
         logging.exception(e)
         return f"Error: {e}", 400
 
-
 @app.route("/", defaults={"path": ""})
-@app.route("/<path:path>")
-def catch_all(path: str) -> Response:
-    """Catchall.
-
-    Route: / or any path not previously defined
-    Method: GET.
-
-    Catch-all route for serving static files or fallback to index.html.
-
-    Attributes
-    ----------
-    - path: The requested path, not used
-
-    Returns
-    -------
-    - Always returns the content of index.html
-    """
+def serve_index(path):
     if "s" not in session:
         session["s"] = vars(Session())
     logging.debug(f"Requested site {path}")
-    return app.send_static_file("index.html")
+    return send_file("website/index.html")
 
+@app.route("/script.js", defaults={"path": ""})
+def serve_script(path):
+    if "s" not in session:
+        session["s"] = vars(Session())
+    logging.debug(f"Requested site {path}")
+    return send_file("website/script.js")
 
 if __name__ == "__main__":
     # Configure logging

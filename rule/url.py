@@ -19,7 +19,7 @@ req_session.headers.update({"User-Agent": user_agent})
 
 URL_REGEX = r"(http[s]?|ftp)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
 REPORT = 15
-TIMEOUT = 25
+TIMEOUT = 30
 
 
 def filter_url(key: str, value: str) -> list[Message] | None:
@@ -59,12 +59,7 @@ def filter_url(key: str, value: str) -> list[Message] | None:
         return None
 
     # Warn if non-ssl http
-    if value.startswith("http://"):
-        reports.append(
-            Message(
-                "URL005",
-                f"URL {value} in {key} is not a SSL encrypted site, consider upgrading to HTTPS (consider https://letsencrypt.org/)",
-            ))
+    original_url_starts_with_http = value.startswith("http://")
 
     # Make a request
     try:
@@ -75,6 +70,22 @@ def filter_url(key: str, value: str) -> list[Message] | None:
             reports.append(
                 Message("URL002",
                         f"{value} in {key} doesn't returns 200 (HTTP_OK)"))
+
+        if response.is_permanent_redirect:
+            reports.append(
+                Message("URL005",
+                        f"{value} in {key} returns a permanent redirect"))
+
+        response_url_starts_with_http = response.url.startswith("http://")
+        if original_url_starts_with_http and response_url_starts_with_http:
+            reports.append(
+                Message("URL005",
+                        f"{value} in {key} does not use SSL"))
+
+        if original_url_starts_with_http and not response_url_starts_with_http:
+            reports.append(
+                Message("URL005",
+                        f"{value} in {key} does not start with https:// but site uses SSL"))
 
     except requests.Timeout:
         # Timeout error

@@ -3,4 +3,5 @@ requests
 logging
 colorlog
 flask
+flasgger
 waitress

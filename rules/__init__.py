@@ -1,28 +1,14 @@
+"""Rule delegator."""
+
 import logging
 
 from message import Message
-from rule.url import filter_url
+
+from .url import filter_url
 
 URL_REGEX = r"(http[s]?|ftp)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
 IMPORTANT_KEYS = ["name", "description",
                   "homepage", "biotoolsID", "biotoolsCURIE"]
-
-urls_already_checked = {}
-
-
-def reset_cache() -> None:
-    """Reset the cache of checked URLs.
-
-    Returns
-    -------
-        None
-
-    Raises
-    ------
-        None
-    """
-    urls_already_checked.clear()
-
 
 def delegate_filter(key: str, value: str) -> list[Message] | None:
     """Delegate to separate filter functions based on the key and value.
@@ -84,4 +70,3 @@ def filter_none(key: str, _value: str) -> Message | None:
             return Message("NONE001", f"Important key {key} is null/empty")
 
     return None
-

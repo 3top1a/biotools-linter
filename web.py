@@ -9,7 +9,7 @@ import sys
 from typing import TYPE_CHECKING
 
 import colorlog
-from flask import Flask, Response, render_template, request, session
+from flask import Flask, Response, jsonify, render_template, request, session
 
 from lib import Session
 
@@ -93,6 +93,34 @@ def serve_lint(path: str) -> Response:
                                        level=message.level.value)
 
     return render_template("lint.html", output_html=output_html)
+
+
+@app.route("/api/<path:path>")
+def serve_lint_api(path: str) -> Response:
+    """Serve API lint path."""
+    if "s" not in session:
+        session["s"] = vars(Session())
+    logging.debug(f"Requested API lint of {path}")
+
+    s: Session = Session(session["s"])
+    s.search_api(path)
+
+    if "next" in s.json:
+        return jsonify({"error": "Inconclusive search"}), 400
+
+    q = queue.Queue()
+    s.lint_specific_project(s.json, q)
+
+    messages = []
+    while True:
+        message: Message = q.get()  # Blocks until a new message is received
+
+        if message.code == "LINT-F":
+            break
+
+        messages.append(message.message_to_json())
+
+    return jsonify({"messages": messages})
 
 
 @app.route("/")

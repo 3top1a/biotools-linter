@@ -26,14 +26,12 @@ class Message:
 
     code: str
     body: str
-    project: str | None = None
     level: Level
 
-    def __init__(self: "Message", code: str, body: str, project: str | None = None, level: Level = Level.Report) -> "Message":
+    def __init__(self: "Message", code: str, body: str, level: Level = Level.Report) -> "Message":
         """Init a new message."""
         self.code = code
         self.body = body
-        self.project = project
         self.level = level
 
     def print_message_without_name(self: "Message", message_queue: None | queue.Queue = None) -> None:
@@ -55,3 +53,11 @@ class Message:
     def message_to_string(self: "Message") -> str:
         """Output that would be printed into a string."""
         return f"{self.code} {self.body}"
+
+    def message_to_json(self: "Message") -> dict[str]:
+        """Output a JSON dict for the API."""
+        return {
+            "code": self.code,
+            "body": self.body,
+            "level": self.level.to_int(),
+        }

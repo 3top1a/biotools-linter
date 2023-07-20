@@ -8,7 +8,7 @@ from typing import ClassVar
 import requests
 
 from message import Level, Message
-from rules import delegate_filter, reset_cache
+from rules import delegate_filter
 
 REPORT: int = 15
 TIMEOUT = 10
@@ -160,10 +160,8 @@ class Session:
                         return_q.put(x)
 
         if return_q is not None:
-            m = Message("LINT-F", "Finished linting", None, level=Level.Debug)
+            m = Message("LINT-F", "Finished linting", level=Level.Debug)
             return_q.put(m)
-
-        reset_cache()
 
     def lint_all_projects(self: "Session", return_q: queue.Queue | None = None) -> None:
         """Perform linting on all projects in the JSON data.

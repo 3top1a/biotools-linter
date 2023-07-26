@@ -18,8 +18,8 @@
 <script>
     $("#page_n").click(function() {
         const url = new URL(location.href);
-        var page = url.searchParams.get("page");
-        if (page == null) {
+        var page = Number(url.searchParams.get("page"));
+        if (page == null || isNaN(page)) {
             page = 1
         }
         page += 1

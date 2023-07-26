@@ -68,7 +68,7 @@ def main(arguments: Sequence[str]) -> None:
     root_logger.addHandler(console_handler)
 
     session = Session()
-    session.search_api(tool_name)
+    session.search_api(tool_name, page)
     session.lint_all_projects()
 
     if session.next_page_exists():

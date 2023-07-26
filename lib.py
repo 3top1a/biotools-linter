@@ -65,14 +65,13 @@ class Session:
         self.page = page
         self.json = json
 
-    def search_api(self: "Session", name: str, page: int = 1, im_feeling_lucky: bool = True) -> None:
+    def search_api(self: "Session", name: str, page: int = 1) -> None:
         """Retrieve JSON data from the biotools API.
 
         Attributes
         ----------
             name (str): The name to search for.
             page (int): The page number to retrieve (default: 1).
-            im_feeling_lucky (bool): Return only one result if the name is an exact match
 
         Returns
         -------
@@ -83,14 +82,6 @@ class Session:
             None
         """
         logging.debug(f"Searching API for {name}")
-
-        if im_feeling_lucky:
-            # Search as if it's an exact match
-            url = f"https://bio.tools/api/t/{name}?format=json"
-            response = requests.get(url, timeout=TIMEOUT)
-            if response.ok:
-                self.json = response.json()
-                return
 
         # Search
         url = f"https://bio.tools/api/t/?q={name}&format=json&page={page!s}"
@@ -113,8 +104,6 @@ class Session:
             None
         """
         if "next" in self.json:
-            logging.info(f"Search returned {len(self.json['list'])} results")
-
             return self.json["list"]
 
         return [self.json]
@@ -211,6 +200,9 @@ class Session:
             return self.json["previous"] is not None
         return False
 
+    def total_project_count(self: "Session") -> int:
+        """Return the total number (even not on page) of projects found."""
+        return self.json["count"]
 
 def flatten_json_to_single_dict(json_data: dict, parent_key: str = "", separator: str = "/") -> dict:
     """Recursively extract values from JSON.

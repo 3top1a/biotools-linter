@@ -36,7 +36,7 @@ def serve_search(path: str) -> Response:
     if page < 1:
         return render_template("error.html", error="Invalid page"), 400
 
-    s.search_api(path, page, im_feeling_lucky=False)
+    s.search_api(path, page)
 
     project_list = s.return_project_list_json()
 
@@ -50,7 +50,7 @@ def serve_search(path: str) -> Response:
 
     can_next = s.next_page_exists()
     can_previous = s.previous_page_exists()
-    count = len(project_list)
+    count = s.total_project_count()
 
     logging.debug(f"Requested search for {path}")
     return render_template("search.html",

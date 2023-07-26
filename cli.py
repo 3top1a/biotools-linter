@@ -69,6 +69,8 @@ def main(arguments: Sequence[str]) -> None:
 
     session = Session()
     session.search_api(tool_name, page)
+    count = session.total_project_count()
+    logging.info(f"Found {count} projects")
     session.lint_all_projects()
 
     if session.next_page_exists():

@@ -83,8 +83,10 @@ class Session:
         """
         logging.debug(f"Searching API for {name}")
 
+        self.page = page
+
         # Search
-        url = f"https://bio.tools/api/t/?q={name}&format=json&page={page!s}"
+        url = f"https://bio.tools/api/t/?q={name}&format=json&page={self.page!s}"
         response = requests.get(url, timeout=TIMEOUT)
         if response.ok:
             self.json = response.json()

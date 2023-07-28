@@ -65,6 +65,10 @@ class Session:
         self.page = page
         self.json = json
 
+    def clear_search() -> None:
+        """Reset multiple search. Call before `search_api`."""
+        return
+
     def search_api(self: "Session", names: str, page: int = 1, im_feeling_lucky: bool = True) -> None:
         """Retrieve JSON data from the biotools API.
 
@@ -88,6 +92,7 @@ class Session:
 
 
         def try_search_exact_match(name: str) -> bool:
+            logging.debug(f"Assuming {name} is an exact match")
             if im_feeling_lucky:
                 # Search as if it's an exact match
                 url = f"https://bio.tools/api/t/{name}?format=json"
@@ -98,6 +103,7 @@ class Session:
             return False
 
         def try_search_topic(name: str) -> bool:
+            logging.debug(f"Assuming {name} is a topic")
             if name.startswith("topic_"):
                 # Search as if it's an exact match
                 url = f'https://bio.tools/api/t?topicID="{name}"&format=json'
@@ -107,7 +113,19 @@ class Session:
                     return True
             return False
 
+        def try_search_operation(name: str) -> bool:
+            logging.debug(f"Assuming {name} is an operation")
+            if name.startswith("operation_"):
+                # Search as if it's an exact match
+                url = f'https://bio.tools/api/t?operationID="{name}"&format=json'
+                response = requests.get(url, timeout=TIMEOUT)
+                if response.ok:
+                    self.json = response.json()
+                    return True
+            return False
+
         def try_search_normal_tool(name: str) -> bool:
+            logging.debug(f"Assuming {name} is a regular search")
             url = f"https://bio.tools/api/t/?q={name}&format=json&page={self.page!s}"
             response = requests.get(url, timeout=TIMEOUT)
             if response.ok:
@@ -122,6 +140,8 @@ class Session:
             if try_search_exact_match(name):
                 return
             if try_search_topic(name):
+                return
+            if try_search_operation(name):
                 return
             if try_search_normal_tool(name):
                 return

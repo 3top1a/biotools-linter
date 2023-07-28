@@ -124,6 +124,15 @@ class Session:
                     return True
             return False
 
+        def try_search_collection(name: str) -> bool:
+            logging.debug(f"Assuming {name} is a collection")
+            url = f'https://bio.tools/api/t?collectionID="{name}"&format=json'
+            response = requests.get(url, timeout=TIMEOUT)
+            if response.ok and response.json()["count"] > 0:
+                self.json = response.json()
+                return True
+            return False
+
         def try_search_normal_tool(name: str) -> bool:
             logging.debug(f"Assuming {name} is a regular search")
             url = f"https://bio.tools/api/t/?q={name}&format=json&page={self.page!s}"
@@ -142,6 +151,8 @@ class Session:
             if try_search_topic(name):
                 return
             if try_search_operation(name):
+                return
+            if try_search_collection(name):
                 return
             if try_search_normal_tool(name):
                 return

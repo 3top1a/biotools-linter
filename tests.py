@@ -59,6 +59,16 @@ class SessionTest(unittest.TestCase):
         self.assertTrue("previous" in s.json)
         self.assertTrue("list" in s.json)
 
+        # Collection search
+        s.search_api("nf-core")
+        self.assertGreater(s.total_project_count(), 1)
+        self.assertFalse(s.next_page_exists())
+        self.assertFalse(s.previous_page_exists())
+        self.assertGreater(s.json["count"], 1)
+        self.assertTrue("next" in s.json)
+        self.assertTrue("previous" in s.json)
+        self.assertTrue("list" in s.json)
+
         # Invalid search
         s.search_api("aaaaaaaaaaaaaaaaaaaaa")
         self.assertEqual(s.total_project_count(), 0)

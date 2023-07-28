@@ -76,17 +76,23 @@ def serve_lint(path: str) -> Response:
         return render_template("error.html", error="Inconclusive search"), 400
 
     q = queue.Queue()
-    s.lint_specific_project(s.json, q)
+    for name in s.return_project_list_json():
+        s.lint_specific_project(name, q)
 
     output_html = ""
+    lints_complete = 0
     while True:
         message: Message = q.get()  # Blocks until a new message is received
 
         if message.code == "LINT-F":
+            lints_complete += 1
             output_html += render_template("message.html",
-                                           text=message.body,
-                                           level=message.level.value)
-            break
+                                        text=message.body,
+                                        level=message.level.value)
+            if lints_complete == s.total_project_count():
+                break
+            else:
+                continue
 
         output_html += render_template("message.html",
                                        text=message.message_to_string(),

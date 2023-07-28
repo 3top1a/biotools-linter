@@ -55,7 +55,7 @@ def filter_url(key: str, value: str) -> list[Message] | None:
 
     # Special check for edamontology
     if "://edamontology.org/" in value:
-        # TODO(3top1a): Special edamontology checks
+        # TODO(3top1a): Redirect to edamontology checks
         return None
 
     # Warn if non-ssl http
@@ -79,12 +79,12 @@ def filter_url(key: str, value: str) -> list[Message] | None:
         response_url_starts_with_http = response.url.startswith("http://")
         if original_url_starts_with_http and response_url_starts_with_http:
             reports.append(
-                Message("URL005",
+                Message("URL006",
                         f"{value} in {key} does not use SSL"))
 
         if original_url_starts_with_http and not response_url_starts_with_http:
             reports.append(
-                Message("URL005",
+                Message("URL007",
                         f"{value} in {key} does not start with https:// but site uses SSL"))
 
     except requests.Timeout:

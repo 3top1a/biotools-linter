@@ -52,7 +52,7 @@ def main(arguments: Sequence[str]) -> None:
         "%(log_color)s%(message)s",
         log_colors={
             "DEBUG": "thin",
-            "INFO": "thin",
+            "INFO": "reset",
             "REPORT": "bold_green",
             "WARNING": "yellow",
             "ERROR": "red",

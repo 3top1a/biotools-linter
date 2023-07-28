@@ -1,82 +1,74 @@
 """Unit tests."""
 import unittest
-import lib
+
 
 # The test based on unittest module
 class SessionTest(unittest.TestCase):
     def test_session(self):
+        import lib
         s = lib.Session()
 
         # Broad search
+        s.clear_search()
         s.search_api("e")
-        self.assertEqual(s.page, 1)
-        self.assertTrue("count" in s.json)
-        self.assertTrue("next" in s.json)
-        self.assertEqual(s.json["previous"], None)
-        self.assertTrue("list" in s.json)
-        self.assertGreater(s.total_project_count(), 1)
-        self.assertTrue(s.next_page_exists())
-        self.assertFalse(s.previous_page_exists())
+        assert s.page == 1
+        assert s.total_project_count() > 1
+        assert s.next_page_exists()
+        assert not s.previous_page_exists()
 
         # Broad search, page 10
+        s.clear_search()
         s.search_api("e", 10)
-        self.assertEqual(s.page, 10)
-        self.assertTrue("count" in s.json)
-        self.assertTrue("next" in s.json)
-        self.assertTrue("previous" in s.json)
-        self.assertTrue("list" in s.json)
-        self.assertGreater(s.total_project_count(), 1)
-        self.assertTrue(s.next_page_exists())
-        self.assertTrue(s.previous_page_exists())
+        assert s.page == 10
+        assert s.total_project_count() > 1
+        assert s.next_page_exists()
+        assert s.previous_page_exists()
 
         # Exact search
+        s.clear_search()
         s.search_api("msmc")
-        self.assertEqual(s.total_project_count(), 1)
-        self.assertFalse(s.next_page_exists())
-        self.assertFalse(s.previous_page_exists())
-        self.assertFalse("count" in s.json)
-        self.assertFalse("next" in s.json)
-        self.assertFalse("previous" in s.json)
-        self.assertFalse("list" in s.json)
+        assert s.total_project_count() == 1
+        assert not s.next_page_exists()
+        assert not s.previous_page_exists()
+
+        # Double exact search
+        s.clear_search()
+        s.search_api("msmc,metexplore")
+        assert s.total_project_count() == 2
+        assert not s.next_page_exists()
+        assert not s.previous_page_exists()
 
         # Topic search
+        s.clear_search()
         s.search_api("topic_2830")
-        self.assertGreater(s.total_project_count(), 1)
-        self.assertTrue(s.next_page_exists())
-        self.assertFalse(s.previous_page_exists())
-        self.assertGreater(s.json["count"], 100)
-        self.assertTrue("next" in s.json)
-        self.assertTrue("previous" in s.json)
-        self.assertTrue("list" in s.json)
+        assert s.total_project_count() > 1
+        assert s.next_page_exists()
+        assert not s.previous_page_exists()
 
         # Operation search
+        s.clear_search()
         s.search_api("operation_0252")
-        self.assertGreater(s.total_project_count(), 1)
-        self.assertTrue(s.next_page_exists())
-        self.assertFalse(s.previous_page_exists())
-        self.assertGreater(s.json["count"], 100)
-        self.assertTrue("next" in s.json)
-        self.assertTrue("previous" in s.json)
-        self.assertTrue("list" in s.json)
+        assert s.total_project_count() > 1
+        assert s.next_page_exists()
+        assert not s.previous_page_exists()
 
         # Collection search
+        s.clear_search()
         s.search_api("nf-core")
-        self.assertGreater(s.total_project_count(), 1)
-        self.assertFalse(s.next_page_exists())
-        self.assertFalse(s.previous_page_exists())
-        self.assertGreater(s.json["count"], 1)
-        self.assertTrue("next" in s.json)
-        self.assertTrue("previous" in s.json)
-        self.assertTrue("list" in s.json)
+        assert s.total_project_count() > 1
+        assert not s.next_page_exists()
+        assert not s.previous_page_exists()
 
         # Invalid search
+        s.clear_search()
         s.search_api("aaaaaaaaaaaaaaaaaaaaa")
-        self.assertEqual(s.total_project_count(), 0)
-        self.assertFalse(s.next_page_exists())
-        self.assertFalse(s.previous_page_exists())
-        self.assertEqual(s.json["count"], 0)
-        self.assertEqual(s.json["next"], None)
-        self.assertEqual(s.json["previous"], None)
-        self.assertEqual(s.json["list"], [])
+        assert s.total_project_count() == 0
+        assert not s.next_page_exists()
+        assert not s.previous_page_exists()
+
+    def test_cli(self):
+        import cli
+        # "end to end" CLI test, runs the CLI as if it was ran from the command line
+        cli.main(["msmc,metexplore"])
 
 unittest.main()

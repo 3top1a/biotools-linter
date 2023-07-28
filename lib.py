@@ -20,7 +20,7 @@ class Session:
     Attributes
     ----------
         page (int): The current page number.
-        json (dict): The JSON data retrieved from the API.
+        jsons (dict): Dictonary of a seach query and the resulting JSON
 
     Methods
     -------
@@ -41,7 +41,7 @@ class Session:
     """
 
     page: int = 1
-    json: dict = ClassVar[dict]
+    json: dict = ClassVar[dict[dict]]
 
     def __init__(self: "Session", page: int = 1, json: dict | None = None) -> None:
         """Initialize a new Session instance.
@@ -65,9 +65,9 @@ class Session:
         self.page = page
         self.json = json
 
-    def clear_search() -> None:
+    def clear_search(self: "Session") -> None:
         """Reset multiple search. Call before `search_api`."""
-        return
+        self.json = {}
 
     def search_api(self: "Session", names: str, page: int = 1, im_feeling_lucky: bool = True) -> None:
         """Retrieve JSON data from the biotools API.
@@ -91,73 +91,82 @@ class Session:
         self.page = page
 
 
+        # Individual search types
         def try_search_exact_match(name: str) -> bool:
-            logging.debug(f"Assuming {name} is an exact match")
             if im_feeling_lucky:
                 # Search as if it's an exact match
                 url = f"https://bio.tools/api/t/{name}?format=json"
                 response = requests.get(url, timeout=TIMEOUT)
                 if response.ok:
-                    self.json = response.json()
+                    self.json[name] = response.json()
                     return True
             return False
 
         def try_search_topic(name: str) -> bool:
-            logging.debug(f"Assuming {name} is a topic")
             if name.startswith("topic_"):
                 # Search as if it's an exact match
                 url = f'https://bio.tools/api/t?topicID="{name}"&format=json'
                 response = requests.get(url, timeout=TIMEOUT)
                 if response.ok:
-                    self.json = response.json()
+                    self.json[name] = response.json()
                     return True
             return False
 
         def try_search_operation(name: str) -> bool:
-            logging.debug(f"Assuming {name} is an operation")
             if name.startswith("operation_"):
                 # Search as if it's an exact match
                 url = f'https://bio.tools/api/t?operationID="{name}"&format=json'
                 response = requests.get(url, timeout=TIMEOUT)
                 if response.ok:
-                    self.json = response.json()
+                    self.json[name] = response.json()
                     return True
             return False
 
         def try_search_collection(name: str) -> bool:
-            logging.debug(f"Assuming {name} is a collection")
             url = f'https://bio.tools/api/t?collectionID="{name}"&format=json'
             response = requests.get(url, timeout=TIMEOUT)
             if response.ok and response.json()["count"] > 0:
-                self.json = response.json()
+                self.json[name] = response.json()
                 return True
             return False
 
         def try_search_normal_tool(name: str) -> bool:
-            logging.debug(f"Assuming {name} is a regular search")
             url = f"https://bio.tools/api/t/?q={name}&format=json&page={self.page!s}"
             response = requests.get(url, timeout=TIMEOUT)
             if response.ok:
-                self.json = response.json()
+                self.json[name] = response.json()
                 return True
             return False
 
-        # Doesn't support multiple search YET, just here for convinience
-        for name_raw in names.split(","):
+        dedup_list = []
+        names = names.split(",")
+
+        logging.debug(f"Searching {len(names)} name(s)")
+
+        for name_raw in names:
             name = name_raw.strip()
 
-            if try_search_exact_match(name):
-                return
-            if try_search_topic(name):
-                return
-            if try_search_operation(name):
-                return
-            if try_search_collection(name):
-                return
-            if try_search_normal_tool(name):
-                return
+            if name in dedup_list:
+                logging.debug(f"{name} was already searched, skipping")
+                continue
 
-        logging.critical("Could not search the API")
+            dedup_list.append(name)
+
+            if try_search_exact_match(name):
+                logging.debug(f"Assuming {name} is an exact match")
+                continue
+            if try_search_topic(name):
+                logging.debug(f"Assuming {name} is a topic")
+                continue
+            if try_search_operation(name):
+                logging.debug(f"Assuming {name} is an operation")
+                continue
+            if try_search_collection(name):
+                logging.debug(f"Assuming {name} is a collection")
+                continue
+            if try_search_normal_tool(name):
+                logging.debug(f"Assuming {name} is a regular search")
+                continue
 
     def return_project_list_json(self: "Session") -> list:
         """Return the project list from the JSON data.
@@ -170,10 +179,14 @@ class Session:
         ------
             None
         """
-        if "next" in self.json:
-            return self.json["list"]
+        output = []
+        for query in self.json.values():
+            if "list" in query:
+                output.extend(query["list"])
+            else:
+                output.append(query)
 
-        return [self.json]
+        return output
 
     def lint_specific_project(self: "Session", data_json: dict, return_q: queue.Queue | None = None) -> None:
         """Perform linting on a specific project.
@@ -238,7 +251,7 @@ class Session:
             self.lint_specific_project(project, return_q)
 
     def next_page_exists(self: "Session") -> bool:
-        """Check if the next page exists in the JSON data.
+        """Check if the next page exists in any project.
 
         Returns
         -------
@@ -248,12 +261,13 @@ class Session:
         ------
             None
         """
-        if "next" in self.json:
-            return self.json["next"] is not None
+        for query in self.json.values():
+            if "next" in query:
+                return query["next"] is not None
         return False
 
     def previous_page_exists(self: "Session") -> bool:
-        """Check if the previous page exists in the JSON data.
+        """Check if the previous page exists in any project.
 
         Returns
         -------
@@ -263,15 +277,14 @@ class Session:
         ------
             None
         """
-        if "previous" in self.json:
-            return self.json["previous"] is not None
+        for query in self.json.values():
+            if "previous" in query:
+                return query["previous"] is not None
         return False
 
     def total_project_count(self: "Session") -> int:
         """Return the total number (even not on page) of projects found."""
-        if "count" in self.json:
-            return self.json["count"]
-        return 1
+        return len(self.return_project_list_json())
 
 def flatten_json_to_single_dict(json_data: dict, parent_key: str = "", separator: str = "/") -> dict:
     """Recursively extract values from JSON.

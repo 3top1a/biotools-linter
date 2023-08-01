@@ -19,7 +19,6 @@ class Level(Enum):
         """Convert Level to Int."""
         return self.value
 
-
 class Message:
 
     """Linter message."""
@@ -33,6 +32,14 @@ class Message:
         self.code = code
         self.body = body
         self.level = level
+
+    def to_dict(self: "Message") -> dict:
+        """Convert to dict."""
+        return {
+            "code": self.code,
+            "body": self.body,
+            "level": self.level.to_int(),
+        }
 
     def print_message_without_name(self: "Message", message_queue: None | queue.Queue = None) -> None:
         """Print the message."""

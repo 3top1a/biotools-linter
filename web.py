@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 import colorlog
 from flask import Flask, Response, jsonify, render_template, request, session
 
+from flask_session import Session as FlaskSession
 from lib import Session
 
 if TYPE_CHECKING:
@@ -19,14 +20,18 @@ if TYPE_CHECKING:
 # Configure app
 app = Flask(__name__, static_folder="website")
 app.secret_key = os.urandom(24)  # Random secret key
-
+SESSION_TYPE = "filesystem"
+SESSION_FILE_THRESHOLD = 10 # How many sessions to store
+app.config.from_object(__name__)
+FlaskSession(app)
 
 @app.route("/search/<path:path>")
 def serve_search(path: str) -> Response:
     """Serve search path."""
     if "s" not in session:
-        session["s"] = vars(Session())
-    s: Session = Session(session["s"])
+        session["s"] = Session()
+    s: Session = session["s"]
+    logging.debug(f"Requested search for {path}")
 
     if path == "" or path is None:
         return render_template("error.html",
@@ -52,7 +57,6 @@ def serve_search(path: str) -> Response:
     can_previous = s.previous_page_exists()
     count = s.total_project_count()
 
-    logging.debug(f"Requested search for {path}")
     return render_template("search.html",
                            name=path,
                            page=page,
@@ -66,18 +70,24 @@ def serve_search(path: str) -> Response:
 def serve_lint(path: str) -> Response:
     """Serve lint path."""
     if "s" not in session:
-        session["s"] = vars(Session())
+        session["s"] = Session()
     logging.debug(f"Requested lint of {path}")
 
-    s: Session = Session(session["s"])
+    s: Session = session["s"]
     s.search_api(path)
 
     if "next" in s.json:
         return render_template("error.html", error="Inconclusive search"), 400
 
+    use_cache = request.args.get("cache")
+    use_cache = use_cache is None
+
+    using_cache = False
+
     q = queue.Queue()
     for name in s.return_project_list_json():
-        s.lint_specific_project(name, q)
+        if s.lint_specific_project(name, q, use_cache):
+            using_cache = True
 
     output_html = ""
     lints_complete = 0
@@ -87,28 +97,29 @@ def serve_lint(path: str) -> Response:
         if message.code == "LINT-F":
             lints_complete += 1
             output_html += render_template("message.html",
-                                        text=message.body,
-                                        level=message.level.value)
+                                           text=message.body,
+                                           level=message.level.value)
             if lints_complete == s.total_project_count():
                 break
-            else:
-                continue
+            continue
 
         output_html += render_template("message.html",
                                        text=message.message_to_string(),
                                        level=message.level.value)
 
-    return render_template("lint.html", output_html=output_html)
+    cacheless_url = f"/lint/{path}?cache=0"
+
+    return render_template("lint.html", output_html=output_html, cached=using_cache, cacheless_url=cacheless_url)
 
 
 @app.route("/api/<path:path>")
 def serve_lint_api(path: str) -> Response:
     """Serve API lint path."""
     if "s" not in session:
-        session["s"] = vars(Session())
+        session["s"] = Session()
     logging.debug(f"Requested API lint of {path}")
 
-    s: Session = Session(session["s"])
+    s: Session = session["s"]
     s.search_api(path)
 
     if "next" in s.json:
@@ -133,7 +144,7 @@ def serve_lint_api(path: str) -> Response:
 def serve_index() -> Response:
     """Serve index."""
     if "s" not in session:
-        session["s"] = vars(Session())
+        session["s"] = Session()
     logging.debug("Requested index")
     return render_template("index.html")
 

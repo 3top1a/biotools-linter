@@ -2,6 +2,7 @@
 
 import logging
 import queue
+import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import ClassVar
 
@@ -10,8 +11,28 @@ import requests
 from message import Level, Message
 from rules import delegate_filter
 
-REPORT: int = 15
-TIMEOUT = 10
+REPORT: int = 15 # Report log level is between debug and info
+TIMEOUT = 10 # Seconds
+CACHE_MAX_AGE = 1800 # Seconds
+
+
+class CacheEntry:
+    name: str
+    createdat: int # In Unix
+    data: dict
+
+    def __init__(self: "CacheEntry", name:str, data: dict) -> None:
+        """Initialize a cache entry."""
+        self.name = name
+        self.data = data
+        self.createdat = int( time.time() )
+
+    def is_old(self: "CacheEntry") -> bool:
+        """Return true if the cache entry is beyond max age."""
+        current_time = int( time.time() )
+        if self.createdat + CACHE_MAX_AGE > current_time:
+            return True
+        return False
 
 class Session:
 
@@ -21,6 +42,7 @@ class Session:
     ----------
         page (int): The current page number.
         jsons (dict): Dictonary of a seach query and the resulting JSON
+        cache (dict): Cache of projects and messages
 
     Methods
     -------
@@ -42,14 +64,16 @@ class Session:
 
     page: int = 1
     json: dict = ClassVar[dict[dict]]
+    cache: dict[str, dict]
 
-    def __init__(self: "Session", page: int = 1, json: dict | None = None) -> None:
+    def __init__(self: "Session", page: int = 1, json: dict | None = None, cache: dict | None = None) -> None:
         """Initialize a new Session instance.
 
         Attributes
         ----------
             page (int): The current page number.
             json (dict): The JSON data retrieved from the API.
+            cache (dict): Cache.
 
         Returns
         -------
@@ -62,12 +86,25 @@ class Session:
         if json is None:
             json = {}
 
+        if cache is None:
+            cache = {}
+
         self.page = page
         self.json = json
+        self.cache = cache
+
+    def to_json(self: "Session") -> dict:
+        json = self.__dict__
+        for project_name, project_cache in json['cache'].items():
+            for cached_message_index, cached_message in enumerate(project_cache):
+                json['cache'][project_name][cached_message_index] = cached_message.to_dict()
+
+        return json
 
     def clear_search(self: "Session") -> None:
         """Reset multiple search. Call before `search_api`."""
         self.json = {}
+        self.cache = {}
 
     def search_api(self: "Session", names: str, page: int = 1, im_feeling_lucky: bool = True) -> None:
         """Retrieve JSON data from the biotools API.
@@ -89,7 +126,7 @@ class Session:
         logging.debug(f"Searching API for {names}")
 
         self.page = page
-
+        self.json = {}
 
         # Individual search types
         def try_search_exact_match(name: str) -> bool:
@@ -188,7 +225,7 @@ class Session:
 
         return output
 
-    def lint_specific_project(self: "Session", data_json: dict, return_q: queue.Queue | None = None) -> None:
+    def lint_specific_project(self: "Session", data_json: dict, return_q: queue.Queue | None = None, use_cache: bool = True) -> bool:
         """Perform linting on a specific project.
 
         Attributes
@@ -198,7 +235,7 @@ class Session:
 
         Returns
         -------
-            None
+            bool: True if cache was used
 
         Raises
         ------
@@ -210,6 +247,12 @@ class Session:
 
         name = data_json["name"]
 
+        if name in self.cache and use_cache:
+            logging.info(f"Using cached lint for {name}")
+            for message in self.cache[name]:
+                return_q.put(message)
+            return True
+
         logging.info(
             f"Linting {name} at https://bio.tools/{data_json['biotoolsID']}")
         logging.debug(f"Project JSON returned {len(data_json)} keys")
@@ -220,6 +263,8 @@ class Session:
         futures = [executor.submit(delegate_filter, key, value)
                    for key, value in dictionary.items()]
 
+        to_be_cached = []
+
         for f in futures:
             output = f.result()
             for x in output:
@@ -227,10 +272,15 @@ class Session:
                     x.print_message()
                     if return_q is not None:
                         return_q.put(x)
+                        to_be_cached.append(x)
 
         if return_q is not None:
             m = Message("LINT-F", "Finished linting", level=Level.Debug)
             return_q.put(m)
+            to_be_cached.append(m)
+
+        self.cache[name] = to_be_cached
+        return False
 
     def lint_all_projects(self: "Session", return_q: queue.Queue | None = None) -> None:
         """Perform linting on all projects in the JSON data.

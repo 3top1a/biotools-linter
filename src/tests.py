@@ -4,6 +4,12 @@ import unittest
 
 # The test based on unittest module
 class SessionTest(unittest.TestCase):
+    def setUp(self):
+        from web import app
+        self.ctx = app.app_context()
+        self.ctx.push()
+        self.client = app.test_client()
+
     def test_session(self):
         import lib as lib
         s = lib.Session()
@@ -70,5 +76,15 @@ class SessionTest(unittest.TestCase):
         import cli as cli
         # "end to end" CLI test, runs the CLI as if it was ran from the command line
         cli.main(["msmc,metexplore"])
+
+    def test_web(self):
+        response = self.client.get("/")
+        assert response.status_code == 200
+        
+        response = self.client.get("/search/metexplore")
+        assert response.status_code == 200
+
+        response = self.client.get("/lint/metexplore")
+        assert response.status_code == 200
 
 unittest.main()

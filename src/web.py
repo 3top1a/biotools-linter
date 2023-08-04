@@ -79,8 +79,7 @@ def serve_lint(path: str) -> Response:
     if "next" in s.json:
         return render_template("error.html", error="Inconclusive search"), 400
 
-    use_cache = request.args.get("cache")
-    use_cache = use_cache is None
+    use_cache = request.args.get("cache") is None
 
     using_cache = False
 

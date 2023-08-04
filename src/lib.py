@@ -16,6 +16,9 @@ CACHE_MAX_AGE = 1800 # Seconds
 
 
 class CacheEntry:
+
+    """A class for Cache entries."""
+
     name: str
     createdat: int # Unix time
     data: dict
@@ -29,7 +32,7 @@ class CacheEntry:
     def is_old(self: "CacheEntry") -> bool:
         """Return true if the cache entry is beyond max age."""
         current_time = int( time.time() )
-        if self.createdat + CACHE_MAX_AGE > current_time:
+        if current_time > self.createdat + CACHE_MAX_AGE:
             return True
         return False
 
@@ -63,7 +66,7 @@ class Session:
 
     page: int = 1
     json: dict = ClassVar[dict[dict]]
-    cache: dict[str, dict]
+    cache: dict[str, CacheEntry]
 
     def __init__(self: "Session", page: int = 1, json: dict | None = None, cache: dict | None = None) -> None:
         """Initialize a new Session instance.
@@ -238,10 +241,21 @@ class Session:
 
         name = data_json["name"]
 
-        if name in self.cache and use_cache:
-            logging.info(f"Using cached lint for {name}")
-            for message in self.cache[name]:
-                return_q.put(message)
+        def try_cache() -> bool:
+            if name in self.cache and use_cache:
+                logging.info(f"Using cached lint for {name}")
+                project_cache = self.cache[name]
+
+                if project_cache.is_old():
+                    logging.info(f"Cache for {name} is old, ignoring")
+                    return False
+
+                for message in project_cache.data:
+                    return_q.put(message)
+                return True
+            return False
+
+        if use_cache and try_cache():
             return True
 
         logging.info(
@@ -270,7 +284,9 @@ class Session:
             return_q.put(m)
             to_be_cached.append(m)
 
-        self.cache[name] = to_be_cached
+        # Add to cache
+        self.cache[name] = CacheEntry(name, to_be_cached)
+
         return False
 
     def lint_all_projects(self: "Session", return_q: queue.Queue | None = None) -> None:

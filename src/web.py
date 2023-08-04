@@ -10,15 +10,15 @@ from typing import TYPE_CHECKING
 
 import colorlog
 from flask import Flask, Response, jsonify, render_template, request, session
+from lib import Session
 
 from flask_session import Session as FlaskSession
-from lib import Session
 
 if TYPE_CHECKING:
     from message import Message
 
 # Configure app
-app = Flask(__name__, static_folder="website")
+app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Random secret key
 SESSION_TYPE = "filesystem"
 SESSION_FILE_THRESHOLD = 10 # How many sessions to store

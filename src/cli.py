@@ -8,7 +8,6 @@ import sys
 from collections.abc import Sequence
 
 import colorlog
-
 from lib import Session
 
 REPORT = 15

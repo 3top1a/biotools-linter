@@ -7,7 +7,6 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import ClassVar
 
 import requests
-
 from message import Level, Message
 from rules import delegate_filter
 
@@ -18,7 +17,7 @@ CACHE_MAX_AGE = 1800 # Seconds
 
 class CacheEntry:
     name: str
-    createdat: int # In Unix
+    createdat: int # Unix time
     data: dict
 
     def __init__(self: "CacheEntry", name:str, data: dict) -> None:
@@ -92,14 +91,6 @@ class Session:
         self.page = page
         self.json = json
         self.cache = cache
-
-    def to_json(self: "Session") -> dict:
-        json = self.__dict__
-        for project_name, project_cache in json['cache'].items():
-            for cached_message_index, cached_message in enumerate(project_cache):
-                json['cache'][project_name][cached_message_index] = cached_message.to_dict()
-
-        return json
 
     def clear_search(self: "Session") -> None:
         """Reset multiple search. Call before `search_api`."""

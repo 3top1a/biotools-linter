@@ -5,7 +5,7 @@ import unittest
 # The test based on unittest module
 class SessionTest(unittest.TestCase):
     def test_session(self):
-        import lib
+        import lib as lib
         s = lib.Session()
 
         # Broad search
@@ -67,7 +67,7 @@ class SessionTest(unittest.TestCase):
         assert not s.previous_page_exists()
 
     def test_cli(self):
-        import cli
+        import cli as cli
         # "end to end" CLI test, runs the CLI as if it was ran from the command line
         cli.main(["msmc,metexplore"])
 

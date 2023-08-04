@@ -4,9 +4,8 @@ import logging
 import re
 
 import requests
-from requests.adapters import HTTPAdapter
-
 from message import Message
+from requests.adapters import HTTPAdapter
 
 # Initialize (here so it inits once)
 user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"

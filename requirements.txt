@@ -5,3 +5,4 @@ colorlog
 flask
 waitress
 flask_session
+joblib

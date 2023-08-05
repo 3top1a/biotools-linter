@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import ClassVar
 
 import requests
+from joblib import Parallel, delayed
 from message import Level, Message
 from rules import delegate_filter
 
@@ -289,7 +290,7 @@ class Session:
 
         return False
 
-    def lint_all_projects(self: "Session", return_q: queue.Queue | None = None) -> None:
+    def lint_all_projects(self: "Session", return_q: queue.Queue | None = None, threads: int = 1) -> None:
         """Perform linting on all projects in the JSON data.
 
         Attributes
@@ -304,8 +305,10 @@ class Session:
         ------
             None
         """
-        for project in self.return_project_list_json():
-            self.lint_specific_project(project, return_q)
+        logging.debug(f"Linting all projects with {threads} threads")
+        Parallel(n_jobs=threads, prefer="threads", require="sharedmem")(
+            delayed(self.lint_specific_project)(project, return_q) for project in self.return_project_list_json()
+        )
 
     def next_page_exists(self: "Session") -> bool:
         """Check if the next page exists in any project.

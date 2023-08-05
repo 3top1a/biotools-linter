@@ -4,14 +4,16 @@
 
 import argparse
 import logging
+import os
+from queue import Queue
 import sys
 from collections.abc import Sequence
 
 import colorlog
 from lib import Session
+from message import Message
 
 REPORT = 15
-
 
 def main(arguments: Sequence[str]) -> None:
     """Execute the main functionality of the tool.
@@ -37,11 +39,18 @@ def main(arguments: Sequence[str]) -> None:
     parser.add_argument("--log-level", "-l",
                         choices=["DEBUG", "INFO", "REPORT", "WARNING", "ERROR"],
                         default="REPORT",
-                        help="Set the logging level (default: INFO)")
+                        help="Set the logging level (default: REPORT)")
     parser.add_argument("--page", "-p", default=1, type=int,
                         help="Sets the page of the search")
+    parser.add_argument("--threads", default=1, type=int,
+                        help="How many threads to use when linting, eg. 8 threads will lint 8 projects at the same time")
+    parser.add_argument("--exit-on-error", action="store_true",
+                        help="Return error code 1 if there are any errors found")
+
     args = parser.parse_args(arguments)
+    exit_on_error = args.exit_on_error
     tool_name = args.name
+    threads = args.threads
     page = args.page
 
     # Configure logging
@@ -70,7 +79,16 @@ def main(arguments: Sequence[str]) -> None:
     session.search_api(tool_name, page)
     count = session.total_project_count()
     logging.info(f"Found {count} projects")
-    session.lint_all_projects()
+
+    return_queue = Queue()
+    session.lint_all_projects(return_q=return_queue, threads=threads)
+
+    # Convert queue to list
+    returned_atleast_one_error: bool = False
+    while not return_queue.empty():
+        item: Message = return_queue.get()
+        if item.level == 1 and not returned_atleast_one_error:
+            returned_atleast_one_error = True
 
     if session.next_page_exists():
         logging.info(
@@ -78,6 +96,9 @@ def main(arguments: Sequence[str]) -> None:
     if session.previous_page_exists():
         logging.info(
             f"You can also search the previous page (page {int(page) - 1})")
+
+    if returned_atleast_one_error and exit_on_error:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

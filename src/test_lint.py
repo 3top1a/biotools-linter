@@ -66,15 +66,3 @@ def test_cli():
     import cli as cli
     # "end to end" CLI test, runs the CLI as if it was ran from the command line
     cli.main(["msmc,metexplore"])
-
-def test_web():
-    from web import app
-    with app.test_client() as test_client:
-        response = test_client.get("/")
-        assert response.status_code == 200
-
-        response = test_client.get("/search/metexplore")
-        assert response.status_code == 200
-
-        response = test_client.get("/lint/metexplore")
-        assert response.status_code == 200

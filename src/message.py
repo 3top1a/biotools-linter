@@ -2,22 +2,18 @@
 
 import logging
 import queue
-from enum import Enum
+from enum import IntEnum
 
 REPORT = 15
 
 
-class Level(Enum):
+class Level(IntEnum):
 
     """Level for message."""
 
     Report = 1
     Error = 2
     Debug = 3
-
-    def to_int(self: "Level") -> int:
-        """Convert Level to Int."""
-        return self.value
 
 class Message:
 
@@ -38,7 +34,7 @@ class Message:
         return {
             "code": self.code,
             "body": self.body,
-            "level": self.level.to_int(),
+            "level": self.level,
         }
 
     def print_message_without_name(self: "Message", message_queue: None | queue.Queue = None) -> None:
@@ -66,5 +62,5 @@ class Message:
         return {
             "code": self.code,
             "body": self.body,
-            "level": self.level.to_int(),
+            "level": self.level,
         }

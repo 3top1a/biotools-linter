@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """A rule-based checker for bio.tools tools."""
 
 import argparse
@@ -14,6 +13,7 @@ from lib import Session
 from message import Message
 
 REPORT = 15
+
 
 def main(arguments: Sequence[str]) -> None:
     """Execute the main functionality of the tool.
@@ -35,21 +35,43 @@ def main(arguments: Sequence[str]) -> None:
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("name", help="Tool name")
-    parser.add_argument("--log-level", "-l",
-                        choices=["DEBUG", "INFO", "REPORT", "WARNING", "ERROR"],
-                        default="REPORT",
-                        help="Set the logging level (default: REPORT)")
-    parser.add_argument("--page", "-p", default=1, type=int,
+    parser.add_argument(
+        "--log-level",
+        "-l",
+        choices=["DEBUG", "INFO", "REPORT", "WARNING", "ERROR"],
+        default="REPORT",
+        help="Set the logging level (default: REPORT)")
+    parser.add_argument(
+        "--lint-all",
+        action="store_true",
+        help="Lint all available projects returned by the biotools API")
+    parser.add_argument("--page",
+                        "-p",
+                        default=1,
+                        type=int,
                         help="Sets the page of the search")
-    parser.add_argument("--threads", default=1, type=int,
-                        help="How many threads to use when linting, eg. 8 threads will lint 8 projects at the same time")
-    parser.add_argument("--exit-on-error", action="store_true",
-                        help="Return error code 1 if there are any errors found")
+    parser.add_argument(
+        "--threads",
+        default=4,
+        type=int,
+        help=
+        "How many threads to use when linting, eg. 8 threads will lint 8 projects at the same time"
+    )
+    parser.add_argument(
+        "--exit-on-error",
+        action="store_true",
+        help="Return error code 1 if there are any errors found")
+
+    # Name is not required if we are linting all
+    if not parser.parse_args(arguments).lint_all:
+        parser.add_argument("name",
+                            help="Tool name")
+        tool_name = parser.parse_args(arguments).args.name
+
 
     args = parser.parse_args(arguments)
     exit_on_error = args.exit_on_error
-    tool_name = args.name
+    lint_all = args.lint_all
     threads = args.threads
     page = args.page
 
@@ -76,12 +98,21 @@ def main(arguments: Sequence[str]) -> None:
     root_logger.addHandler(console_handler)
 
     session = Session()
-    session.search_api(tool_name, page)
-    count = session.total_project_count()
-    logging.info(f"Found {count} projects")
-
     return_queue = Queue()
-    session.lint_all_projects(return_q=return_queue, threads=threads)
+
+    if lint_all:
+        page = 1
+        while session.next_page_exists() or page == 1:
+            session.search_api("*", page)
+            count = session.total_project_count()
+            logging.info(f"Found {count} projects on page {page}")
+            session.lint_all_projects(return_q=return_queue, threads=threads)
+            page += 1
+    else:
+        session.search_api(tool_name, page)
+        count = session.total_project_count()
+        logging.info(f"Found {count} projects")
+        session.lint_all_projects(return_q=return_queue, threads=threads)
 
     # Convert queue to list
     returned_atleast_one_error: bool = False

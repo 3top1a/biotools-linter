@@ -6,3 +6,4 @@ flask
 waitress
 flask_session
 joblib
+psycopg2

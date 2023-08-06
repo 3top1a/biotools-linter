@@ -3,13 +3,14 @@
 
 import argparse
 import logging
-import sqlite3
 import sys
+import os
 from collections.abc import Sequence
 from queue import Queue
 from typing import TYPE_CHECKING
 
 import colorlog
+import psycopg2
 from lib import Session
 
 if TYPE_CHECKING:
@@ -45,16 +46,10 @@ def main(arguments: Sequence[str]) -> None:
         choices=["DEBUG", "INFO", "REPORT", "WARNING", "ERROR"],
         default="REPORT",
         help="Set the logging level (default: REPORT)")
-    parser.add_argument("--format",
-                        "-f",
-                        choices=["TXT", "SQL"],
-                        default="TXT",
-                        help="Export format")
-    parser.add_argument("--export",
-                        "-e",
+    parser.add_argument("--db",
                         default=None,
                         required=False,
-                        help="Export location")
+                        help="Database connection (host:port:database:user:password). Can also be in DB_CREDS variable")
     parser.add_argument(
         "--lint-all",
         action="store_true",
@@ -78,8 +73,7 @@ def main(arguments: Sequence[str]) -> None:
 
     args = parser.parse_args(arguments)
     exit_on_error = args.exit_on_error
-    export_location = args.export
-    export_format = args.format
+    database_creds = args.db if args.db else os.environ["DB_CREDS"]
     lint_all = args.lint_all
     threads = args.threads
     tool_name = args.name
@@ -115,6 +109,24 @@ def main(arguments: Sequence[str]) -> None:
     session = Session()
     return_queue = Queue()
 
+    # Initialize exporting, create table if it doesn't exist
+    export_db_connection = None
+    export_db_cursor = None
+
+    if database_creds:
+        export_db_connection = psycopg2.connect(
+            host=database_creds.split(":")[0],
+            port=database_creds.split(":")[1],
+            database=database_creds.split(":")[2],
+            user=database_creds.split(":")[3],
+            password=database_creds.split(":")[4],
+            )
+        export_db_cursor = export_db_connection.cursor()
+
+        # Create table
+        create_table_query = "CREATE TABLE IF NOT EXISTS messages ( id SERIAL PRIMARY KEY, project TEXT, code TEXT, body TEXT UNIQUE );"
+        export_db_cursor.execute(create_table_query)
+
     # Start linting loop
     if lint_all:
         # Try to lint all projects on bio.tools
@@ -132,18 +144,6 @@ def main(arguments: Sequence[str]) -> None:
         logging.info(f"Found {count} projects")
         session.lint_all_projects(return_q=return_queue, threads=threads)
 
-    # Initialize exporting
-    export_db_connection = None
-    export_db_cursor = None
-
-    if export_location and export_format == "SQL":
-        export_db_connection = sqlite3.connect(export_location)
-        export_db_cursor = export_db_connection.cursor()
-
-        # Create table
-        create_table_query = "CREATE TABLE IF NOT EXISTS messages ( id INTEGER PRIMARY KEY, project TEXT, code TEXT, body TEXT UNIQUE );"
-        export_db_cursor.execute(create_table_query)
-
     # Convert queue to list
     returned_atleast_one_error: bool = False
     while not return_queue.empty():
@@ -152,8 +152,8 @@ def main(arguments: Sequence[str]) -> None:
             returned_atleast_one_error = True
 
         # Export
-        if export_location and export_format == "SQL" and item.level == 1:
-            insert_query = "INSERT OR IGNORE INTO messages (project, code, body) VALUES (?, ?, ?);"
+        if database_creds and item.level == 1:
+            insert_query = "INSERT INTO messages (project, code, body) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING;"
             # Replace 'data' with your actual data variables
             data = (item.project, item.code, item.body)
             export_db_cursor.execute(insert_query, data)

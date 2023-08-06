@@ -3,8 +3,8 @@
 
 import argparse
 import logging
-import sys
 import os
+import sys
 from collections.abc import Sequence
 from queue import Queue
 from typing import TYPE_CHECKING
@@ -17,7 +17,6 @@ if TYPE_CHECKING:
     from message import Message
 
 REPORT = 15
-
 
 def main(arguments: Sequence[str]) -> int:
     """Execute the main functionality of the tool.
@@ -73,7 +72,7 @@ def main(arguments: Sequence[str]) -> int:
 
     args = parser.parse_args(arguments)
     exit_on_error = args.exit_on_error
-    database_creds = args.db if args.db else os.environ["DB_CREDS"]
+    database_creds = os.environ["DB_CREDS"] if "DB_CREDS" in os.environ else args.db
     lint_all = args.lint_all
     threads = args.threads
     tool_name = args.name
@@ -108,6 +107,7 @@ def main(arguments: Sequence[str]) -> int:
 
     session = Session()
     return_queue = Queue()
+    returned_atleast_one_error: bool = False
 
     # Initialize exporting, create table if it doesn't exist
     export_db_connection = None
@@ -127,6 +127,23 @@ def main(arguments: Sequence[str]) -> int:
         create_table_query = "CREATE TABLE IF NOT EXISTS messages ( id SERIAL PRIMARY KEY, project TEXT, code TEXT, body TEXT UNIQUE );"
         export_db_cursor.execute(create_table_query)
 
+    def process_queue(queue: Queue, sql_cursor) -> None:
+        if sql_cursor:
+            logging.info("Sending messages to database")
+
+        while not queue.empty():
+            item: Message = queue.get()
+            if item.level == 1 and not returned_atleast_one_error:
+                pass
+
+            # Export
+            if sql_cursor and item.level == 1:
+                insert_query = "INSERT INTO messages (project, code, body) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING;"
+                # Replace 'data' with your actual data variables
+                data = (item.project, item.code, item.body)
+                sql_cursor.execute(insert_query, data)
+        export_db_connection.commit()
+
     # Start linting loop
     if lint_all:
         # Try to lint all projects on bio.tools
@@ -137,26 +154,14 @@ def main(arguments: Sequence[str]) -> int:
             logging.info(f"Found {count} projects on page {page}")
             session.lint_all_projects(return_q=return_queue, threads=threads)
             page += 1
+            process_queue(return_queue, export_db_cursor)
     else:
         # Lint specific project(s)
         session.search_api(tool_name, page)
         count = session.total_project_count()
         logging.info(f"Found {count} projects")
         session.lint_all_projects(return_q=return_queue, threads=threads)
-
-    # Convert queue to list
-    returned_atleast_one_error: bool = False
-    while not return_queue.empty():
-        item: Message = return_queue.get()
-        if item.level == 1 and not returned_atleast_one_error:
-            returned_atleast_one_error = True
-
-        # Export
-        if database_creds and item.level == 1:
-            insert_query = "INSERT INTO messages (project, code, body) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING;"
-            # Replace 'data' with your actual data variables
-            data = (item.project, item.code, item.body)
-            export_db_cursor.execute(insert_query, data)
+        process_queue(return_queue, export_db_cursor)
 
     if export_db_connection:
         export_db_connection.commit()
@@ -172,7 +177,6 @@ def main(arguments: Sequence[str]) -> int:
     if returned_atleast_one_error and exit_on_error:
         return 1
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

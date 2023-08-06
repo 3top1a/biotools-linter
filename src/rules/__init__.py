@@ -1,4 +1,8 @@
-"""Rule delegator."""
+"""Rule delegator.
+
+Please keep reports in the following format:
+what(URL, name) `value(example.com)` at key(tool//description) is Issue(missing, invalid).
+"""
 
 import logging
 
@@ -65,10 +69,8 @@ def filter_none(key: str, _value: str) -> Message | None:
     """
     logging.debug(f"{key} returned null")
 
-    name = key.split("//")[0]
-
     for ik in IMPORTANT_KEYS:
         if key.endswith(ik):
-            return Message("NONE001", f"Important key {key} is null/empty", project=name)
+            return Message("NONE001", f"Important value at {key} is null/empty.")
 
     return None

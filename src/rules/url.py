@@ -38,8 +38,6 @@ def filter_url(key: str, value: str) -> list[Message] | None:
     ------
         None
     """
-    name = key.split("//")[0]
-
     # Return if does not match URL or key doesnt end with url/uri
     if not re.match(
             URL_REGEX,
@@ -49,8 +47,7 @@ def filter_url(key: str, value: str) -> list[Message] | None:
     # If the URL doesn't match the regex but is in a url/uri entry, throw an error
     if not re.match(URL_REGEX, value) and (key.endswith(("url", "uri"))):
         return Message("URL001",
-                       f"URL {value} in entry at {key} does not match a URL",
-                       project=name)
+                       f"URL `{value}` at {key} does not match a valid URL.")
 
     logging.debug(f"Checking URL: {value}")
     reports = []
@@ -71,49 +68,42 @@ def filter_url(key: str, value: str) -> list[Message] | None:
         if not response.ok:
             reports.append(
                 Message("URL002",
-                        f"{value} in {key} doesn't returns 200 (HTTP_OK)",
-                        project=name))
+                        f"URL `{value}` at {key} doesn't returns 200 (HTTP_OK)."))
 
         if response.is_permanent_redirect:
             reports.append(
                 Message("URL005",
-                        f"{value} in {key} returns a permanent redirect",
-                        project=name))
+                        f"URL `{value}` at {key} returns a permanent redirect."))
 
         response_url_starts_with_http = response.url.startswith("http://")
         if original_url_starts_with_http and response_url_starts_with_http:
             reports.append(
                 Message("URL006",
-                        f"{value} in {key} does not use SSL",
-                        project=name))
+                        f"URL `{value}` at {key} does not use SSL."))
 
         if original_url_starts_with_http and not response_url_starts_with_http:
             reports.append(
                 Message(
                     "URL007",
-                    f"{value} in {key} does not start with https:// but site uses SSL",
-                    project=name))
+                    f"URL `{value}` at {key} does not start with https:// but site uses SSL."))
 
     except requests.Timeout:
         # Timeout error
         reports.append(
             Message("URL003",
-                    f"{value} in {key} timeouted in {TIMEOUT} seconds",
-                    project=name))
+                    f"URL `{value}` at {key} timeouted in {TIMEOUT} seconds."))
 
     except requests.exceptions.SSLError:
         # SSL error
         reports.append(
             Message("URL004",
-                    f"{value} at {key} returned an SSL error",
-                    project=name))
+                    f"URL `{value}` at {key} returned an SSL error."))
 
     except requests.RequestException as e:
         # Generic request error
         reports.append(
             Message("URL---",
-                    f"Generic error while making URL request to {value} - {e}",
-                    project=name))
+                    f"Error requesting `{value}` at {key}, {e}"))
 
     if len(reports) != 0:
         return reports

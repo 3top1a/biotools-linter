@@ -273,15 +273,18 @@ class Session:
 
         for f in futures:
             output = f.result()
-            for x in output:
-                if type(x) == Message:
-                    x.print_message()
+            for message in output:
+                if type(message) == Message:
+                    # Add the project name to the message
+                    message.project = data_json["biotoolsID"]
+
+                    message.print_message()
                     if return_q is not None:
-                        return_q.put(x)
-                        to_be_cached.append(x)
+                        return_q.put(message)
+                        to_be_cached.append(message)
 
         if return_q is not None:
-            m = Message("LINT-F", "Finished linting", level=Level.Debug, project=name)
+            m = Message("LINT-F", "Finished linting", level=Level.Debug)
             return_q.put(m)
             to_be_cached.append(m)
 

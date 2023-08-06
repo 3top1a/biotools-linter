@@ -19,15 +19,17 @@ class Message:
 
     """Linter message."""
 
+    project: str
+    level: Level
     code: str
     body: str
-    level: Level
 
-    def __init__(self: "Message", code: str, body: str, level: Level = Level.Report) -> "Message":
+    def __init__(self: "Message", code: str, body: str, project: str, level: Level = Level.Report) -> "Message":
         """Init a new message."""
         self.code = code
         self.body = body
         self.level = level
+        self.project = project
 
     def to_dict(self: "Message") -> dict:
         """Convert to dict."""
@@ -35,6 +37,7 @@ class Message:
             "code": self.code,
             "body": self.body,
             "level": self.level,
+            "project": self.project,
         }
 
     def print_message_without_name(self: "Message", message_queue: None | queue.Queue = None) -> None:
@@ -63,4 +66,5 @@ class Message:
             "code": self.code,
             "body": self.body,
             "level": self.level,
+            "project": self.project,
         }

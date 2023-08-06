@@ -238,7 +238,7 @@ class Session:
         """
         if len(data_json) == 0:
             logging.critical("Received empty JSON!")
-            return
+            return None
 
         name = data_json["name"]
 
@@ -263,7 +263,7 @@ class Session:
             f"Linting {name} at https://bio.tools/{data_json['biotoolsID']}")
         logging.debug(f"Project JSON returned {len(data_json)} keys")
 
-        dictionary = flatten_json_to_single_dict(data_json, parent_key=name)
+        dictionary = flatten_json_to_single_dict(data_json, parent_key=name + "/")
 
         executor = ThreadPoolExecutor()
         futures = [executor.submit(delegate_filter, key, value)
@@ -281,7 +281,7 @@ class Session:
                         to_be_cached.append(x)
 
         if return_q is not None:
-            m = Message("LINT-F", "Finished linting", level=Level.Debug)
+            m = Message("LINT-F", "Finished linting", level=Level.Debug, project=name)
             return_q.put(m)
             to_be_cached.append(m)
 

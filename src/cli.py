@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 REPORT = 15
 
 
-def main(arguments: Sequence[str]) -> None:
+def main(arguments: Sequence[str]) -> int:
     """Execute the main functionality of the tool.
 
     Attributes
@@ -170,9 +170,9 @@ def main(arguments: Sequence[str]) -> None:
             f"You can also search the previous page (page {int(page) - 1})")
 
     if returned_atleast_one_error and exit_on_error:
-        sys.exit(1)
-    sys.exit(0)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    sys.exit(main(sys.argv[1:]))

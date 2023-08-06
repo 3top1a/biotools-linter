@@ -65,4 +65,4 @@ def test_session():
 def test_cli():
     import cli as cli
     # "end to end" CLI test, runs the CLI as if it was ran from the command line
-    cli.main(["msmc,metexplore"])
+    assert cli.main(["msmc,metexplore"]) == 0

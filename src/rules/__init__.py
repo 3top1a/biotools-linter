@@ -1,7 +1,7 @@
 """Rule delegator.
 
 Please keep reports in the following format:
-what(URL, name) `value(example.com)` at key(tool//description) is Issue(missing, invalid).
+what(URL, name) `value(example.com)` at `key(tool//description)` is Issue(missing, invalid).
 """
 
 import logging
@@ -71,6 +71,6 @@ def filter_none(key: str, _value: str) -> Message | None:
 
     for ik in IMPORTANT_KEYS:
         if key.endswith(ik):
-            return Message("NONE001", f"Important value at {key} is null/empty.")
+            return Message("NONE001", f"Important value `` at `{key}` is null/empty.")
 
     return None

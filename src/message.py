@@ -37,3 +37,11 @@ class Message:
         logging.log(REPORT, message)
         if message_queue is not None:
             message_queue.put(message)
+
+    def get_location(self: "Message") -> str:
+        """Return where the error happened. Strips the project name."""
+        return self.body.split("`")[3].split("//")[1]
+
+    def get_value(self: "Message") -> str:
+        """Return the value of the error."""
+        return self.body.split("`")[1]

@@ -2,6 +2,7 @@
 """A rule-based checker for bio.tools tools."""
 
 import argparse
+import datetime
 import logging
 import os
 import sys
@@ -123,7 +124,7 @@ def main(arguments: Sequence[str]) -> int:
         export_db_cursor = export_db_connection.cursor()
 
         # Create table query
-        create_table_query = "CREATE TABLE IF NOT EXISTS messages ( id SERIAL PRIMARY KEY, tool TEXT, code TEXT, body TEXT UNIQUE );"
+        create_table_query = "CREATE TABLE IF NOT EXISTS messages ( id SERIAL PRIMARY KEY, time INTEGER, tool TEXT, code TEXT, location TEXT, value TEXT );"
         export_db_cursor.execute(create_table_query)
 
     # Process the queue after linting, used for progressively sending to the database
@@ -139,9 +140,9 @@ def main(arguments: Sequence[str]) -> int:
 
             # Export
             if sql_cursor and item.level == 1:
-                insert_query = "INSERT INTO messages (tool, code, body) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING;"
+                insert_query = "INSERT INTO messages (time, tool, code, location, value) VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;"
                 # Replace 'data' with your actual data variables
-                data = (item.project, item.code, item.body)
+                data = (int(datetime.datetime.now(tz=datetime.timezone.utc).timestamp()), item.project, item.code, item.get_location(), item.get_value())
                 sql_cursor.execute(insert_query, data)
 
         # After processing

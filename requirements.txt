@@ -1,6 +1,5 @@
 argparse
 requests
-logging
 colorlog
 flask
 waitress

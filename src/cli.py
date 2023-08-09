@@ -160,15 +160,16 @@ def main(arguments: Sequence[str]) -> int:
         logging.info(f"Linting {count} tools")
 
         while session.next_page_exists() or page == 1:
+            # Dump cache so it doesn't OOM
             session.clear_search()
+
             session.search_api("*", page)
             processed_tools += 10
             logging.info(f"Progress: {processed_tools / count}%")
+
             session.lint_all_projects(return_q=return_queue, threads=threads)
             page += 1
             process_queue(return_queue, export_db_cursor)
-
-            # Dump cache so it doesn't OOM
     else:
         # Lint specific project(s)
         session.search_api(tool_name, page)

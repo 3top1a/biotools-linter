@@ -62,7 +62,12 @@ def filter_url(key: str, value: str) -> list[Message] | None:
 
     # Make a request
     try:
-        response = req_session.get(value, timeout=TIMEOUT)
+        # https://stackoverflow.com/questions/1731298/how-do-i-check-the-http-status-code-of-an-object-without-downloading-it#1731388
+        # The old way was using a get request, however some tools DOS'd the linter
+        # because it tried to download a 2GB+ zip file, so we just request the headers
+        # with `HEAD` and not the whole content of the file.
+        # It's also just faster
+        response = req_session.head(value, timeout=TIMEOUT)
 
         # Status is not HTTP_OK
         if not response.ok:

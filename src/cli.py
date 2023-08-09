@@ -153,13 +153,22 @@ def main(arguments: Sequence[str]) -> int:
     if lint_all:
         # Try to lint all projects on bio.tools
         page = 1
+        processed_tools = 0
+
+        session.search_api("*", page)
+        count = session.json["*"]["count"]
+        logging.info(f"Linting {count} tools")
+
         while session.next_page_exists() or page == 1:
             session.search_api("*", page)
-            count = session.total_project_count()
-            logging.info(f"Found {count} projects on page {page}")
+            processed_tools += 10
+            logging.info(f"Progress: {processed_tools / count}%")
             session.lint_all_projects(return_q=return_queue, threads=threads)
             page += 1
             process_queue(return_queue, export_db_cursor)
+
+            # Dump cache so it doesn't OOM
+            session.clear_cache()
     else:
         # Lint specific project(s)
         session.search_api(tool_name, page)

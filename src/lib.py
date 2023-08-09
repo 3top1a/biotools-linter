@@ -101,6 +101,10 @@ class Session:
         self.json = {}
         self.cache = {}
 
+    def clear_cache(self: "Session") -> None:
+        """Reset cache. Does not reset the current contents."""
+        self.cache = {}
+
     def search_api(self: "Session", names: str, page: int = 1, im_feeling_lucky: bool = True) -> None:
         """Retrieve JSON data from the biotools API.
 

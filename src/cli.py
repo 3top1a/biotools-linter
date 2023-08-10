@@ -153,7 +153,7 @@ def main(arguments: Sequence[str]) -> int:
     if lint_all:
         # Try to lint all projects on bio.tools
         page = page if page else 1
-        processed_tools = 0
+        processed_tools = 10 * (page - 1)
 
         session.search_api("*", page)
         count = session.json["*"]["count"]
@@ -165,7 +165,7 @@ def main(arguments: Sequence[str]) -> int:
 
             session.search_api("*", page)
             processed_tools += 10
-            logging.info(f"Progress: {processed_tools / count}%")
+            logging.info(f"Page: {page}, Progress: {processed_tools / count}%")
 
             session.lint_all_projects(return_q=return_queue, threads=threads)
             page += 1

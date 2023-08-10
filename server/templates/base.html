@@ -8,7 +8,6 @@
     <title>{% block title %}{% endblock %}</title>
     <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
-    <script src="https://cdn.socket.io/4.7.0/socket.io.min.js"></script>
 
     <style>
         .center {
@@ -58,7 +57,7 @@
                     </path>
                 </svg>Github</a>
         </nav>
-        <input id="search_data" type="search" class="pure-input-rounded" placeholder="Search tool, eg. MetExplore" value="{{name}}" />
+        <input id="search_data" type="search" class="pure-input-rounded" placeholder="Search tool, eg. MetExplore"/>
         <button id="search_input" type="submit" class="pure-button">Search</button>
         <script>
             $('#search_input').click(function() {

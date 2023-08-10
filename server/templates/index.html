@@ -1,0 +1,10 @@
+{% extends 'base.html' %} {% block title %}Biotools linter{% endblock %} {% block extrahead %}
+<meta name=description content=" A rule-based checker for bio.tools tools "> {% endblock %} {% block content %}
+<p></p>
+<article>
+    <h1>Bio.tools linter</h1>
+    <p>
+        A rule-based checker for the bio.tools database. This website searches the bio.tools API for a given tool name and checks various properties of the tool's JSON data, such as invalid URL links.
+        Currently found <code>{{count}}</code> errors in database.
+    </p>
+</article>{% endblock %}

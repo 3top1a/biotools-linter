@@ -152,7 +152,7 @@ def main(arguments: Sequence[str]) -> int:
     # Start linting loop
     if lint_all:
         # Try to lint all projects on bio.tools
-        page = 1
+        page = page if page else 1
         processed_tools = 0
 
         session.search_api("*", page)

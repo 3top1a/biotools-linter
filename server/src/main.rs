@@ -1,16 +1,8 @@
-use axum::{
-    extract::State,
-    http::StatusCode,
-    response::Html,
-    routing::{get, post},
-    Extension, Json, Router,
-};
-use pico_args::Arguments;
+use axum::{extract::State, response::Html, routing::get, Router};
 use serde::{Deserialize, Serialize};
-use sqlx::{PgPool, Pool, Postgres};
+use sqlx::{Pool, Postgres};
 use std::net::SocketAddr;
 use tera::{Context, Tera};
-use tokio::sync::RwLock;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 
@@ -40,21 +32,23 @@ struct DatabaseEntry {
     value: String,
 }
 
+// Server state passed to every http call
 #[derive(Clone)]
 pub struct ServerConfig {
     pub db: Pool<Postgres>,
 }
 
+// Initialize and cache templates
 lazy_static! {
     pub static ref TEMPLATES: Tera = {
-        let tera = match Tera::new("templates/*.html") {
+        
+        match Tera::new("templates/*.html") {
             Ok(t) => t,
             Err(e) => {
-                println!("Parsing error(s): {}", e);
+                println!("Parsing error(s): {e}");
                 ::std::process::exit(1);
             }
-        };
-        tera
+        }
     };
 }
 
@@ -97,7 +91,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-// basic handler that responds with a static string
+// Serve the main page
 async fn root(State(state): State<ServerConfig>) -> Html<String> {
     let total = sqlx::query_scalar!("SELECT COUNT(*) FROM messages")
         .fetch_all(&state.db)

@@ -5,6 +5,7 @@
     <h1>Bio.tools linter</h1>
     <p>
         A rule-based checker for the bio.tools database. This website searches the bio.tools API for a given tool name and checks various properties of the tool's JSON data, such as invalid URL links.
-        Currently found <code>{{count}}</code> errors in database.
+        Currently serving <code>{{count}}</code> errors.
+        Oldest entry was linted at <code>{{last_time | date(format="%Y-%m-%d %H:%M") }}</code>.
     </p>
 </article>{% endblock %}

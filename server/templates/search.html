@@ -1,40 +1,13 @@
 {% extends 'base.html' %} {% block title %}Biotools linter - search{% endblock %} {% block content %}
 <p id="count">Found {{count}} projects</p>
 <article id="listing">
-    {{output_html | safe}}
+    
+    {% for entry in entries -%}
+    <div class="listing notice" style="padding: 0.5rem 0.5rem 0.5rem 1.0rem !important;">
+        <a href="https://bio.tools/{{entry.tool}}" id="name">{{entry.tool}}</a>
+        <p style="margin: 0px;" >{{entry.processed_text}}</p>
+    </div>
+    {%- endfor %}
+
 </article>
-<div class="center">
-    {% if can_previous %}
-    <button id="page_p" style="float:left">Previous</button> {% else %}
-    <button id="page_p" disabled style="float:left">Previous</button> {% endif %}
-
-    <p id="page_c">Page {{page}}</p>
-
-    {% if can_next %}
-    <button id="page_n" style="float:right">Next</button> {% else %}
-    <button id="page_n" disabled style="float:right">Next</button> {% endif %}
-</div>
-
-<script>
-    $("#page_n").click(function() {
-        const url = new URL(location.href);
-        var page = Number(url.searchParams.get("page"));
-        if (page == null || isNaN(page)) {
-            page = 1
-        }
-        page += 1
-        url.searchParams.set("page", page);
-        location.assign(url);
-    })
-    $("#page_p").click(function() {
-        const url = new URL(location.href);
-        var page = url.searchParams.get("page");
-        if (page == null) {
-            page = 1
-        }
-        page -= 1
-        url.searchParams.set("page", page);
-        location.assign(url);
-    })
-</script>
 {% endblock %}

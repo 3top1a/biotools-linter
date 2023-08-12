@@ -96,7 +96,7 @@ def filter_url(key: str, value: str) -> list[Message] | None:
         # Timeout error
         reports.append(
             Message("URL003",
-                    f"URL `{value}` at `{key}` timeouted in {TIMEOUT} seconds."))
+                    f"URL `{value}` at `{key}` timeouted after {TIMEOUT} seconds."))
 
     except requests.exceptions.SSLError:
         # SSL error

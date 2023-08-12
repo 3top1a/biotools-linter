@@ -124,7 +124,7 @@ def main(arguments: Sequence[str]) -> int:
         export_db_cursor = export_db_connection.cursor()
 
         # Create table query
-        create_table_query = "CREATE TABLE IF NOT EXISTS messages ( id SERIAL PRIMARY KEY, time INTEGER, tool TEXT, code TEXT, location TEXT, value TEXT );"
+        create_table_query = "CREATE TABLE IF NOT EXISTS messages ( id SERIAL PRIMARY KEY, time INTEGER NOT NULL, tool TEXT NOT NULL, code TEXT NOT NULL, location TEXT NOT NULL, value TEXT NOT NULL );"
         export_db_cursor.execute(create_table_query)
 
     # Process the queue after linting, used for progressively sending to the database

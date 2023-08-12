@@ -12,6 +12,7 @@ use tera::{Context, Tera};
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 use tower_http::services::ServeFile;
+use dotenv::dotenv;
 
 #[macro_use]
 extern crate lazy_static;
@@ -120,6 +121,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_max_level(Level::TRACE)
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+
+    dotenv().ok();
 
     // Parse arguments
     let mut pargs = pico_args::Arguments::from_env();

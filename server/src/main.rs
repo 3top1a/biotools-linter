@@ -11,7 +11,7 @@ use std::net::SocketAddr;
 use tera::{Context, Tera};
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
-use tower_http::services::{ServeDir, ServeFile};
+use tower_http::services::ServeFile;
 
 #[macro_use]
 extern crate lazy_static;
@@ -26,7 +26,7 @@ FLAGS:
   -h, --help            Prints help information
 
 OPTIONS:
-  --port INT8           Sets server port
+  --port u16           Sets server port
 ";
 
 #[derive(Serialize, Deserialize)]
@@ -77,14 +77,14 @@ impl Message {
             _ => None,
         };
 
-        // Autolink
+        // Autolink URLs
         if m.processed_text.is_some() {
             let re = Regex::new(r"(http[s]?|ftp)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+").unwrap();
 
             m.processed_text = Some(
                 re.replace_all(&m.processed_text.unwrap(), |caps: &regex::Captures| {
                     let url = caps.get(0).unwrap().as_str();
-                    format!("<a href=\"{}\">{}</a>", url, url)
+                    format!("<a href=\"{url}\">{url}</a>")
                 })
                 .to_string(),
             );
@@ -124,16 +124,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Parse arguments
     let mut pargs = pico_args::Arguments::from_env();
     if pargs.contains(["-h", "--help"]) {
-        print!("{}", HELP);
+        print!("{HELP}");
         std::process::exit(0);
     }
     let port: u16 = pargs.value_from_str("--port").unwrap_or(3000);
 
     // Connect to DB
     let conn_str = std::env::var("DATABASE_URL").expect(
-        "Expected database connection string (postgres://username:password@localhost/dbname)",
+        "Expected database connection string (postgres://<username>:<password>@<ip>/<database>)",
     );
-
     let pool = PgPoolOptions::new().max_connections(5).connect_lazy(&conn_str).unwrap();
 
     // Build server state

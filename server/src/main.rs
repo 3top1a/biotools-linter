@@ -149,7 +149,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_state(state);
 
     // Start server
-    let addr = SocketAddr::from(([127, 0, 0, 1], port));
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
     tracing::info!("Listening on http://{}", addr);
     axum::Server::bind(&addr)
         .serve(routes.into_make_service())

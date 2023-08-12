@@ -1,10 +1,17 @@
-use axum::{extract::{State, Path}, response::Html, routing::get, Router};
+use axum::{
+    extract::{Path, State},
+    response::Html,
+    routing::get,
+    Router,
+};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
-use sqlx::{Pool, Postgres};
+use sqlx::{Pool, Postgres, postgres::PgPoolOptions};
 use std::net::SocketAddr;
 use tera::{Context, Tera};
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
+use tower_http::services::{ServeDir, ServeFile};
 
 #[macro_use]
 extern crate lazy_static;
@@ -30,26 +37,60 @@ struct Message {
     code: String,
     location: String,
     value: String,
-    processed_text: Option<String>
+    processed_text: Option<String>,
 }
 
 impl Message {
-    fn add_processed_text(self: Message) -> Message{
+    fn add_processed_text(self) -> Self {
         let mut m = self;
 
         m.processed_text = match m.code.as_str() {
             "NONE001" => Some(format!("Important value  at {} is null/empty.", m.location)),
-            "URL001" => Some(format!("URL {} at {} does not match a valid URL.", m.value, m.location)),
-            "URL002" => Some(format!("URL {} at {} doesn't returns 200 (HTTP_OK).", m.value, m.location)),
-            "URL003" => Some(format!("URL {} at {} timeouted after 30 seconds.", m.value, m.location)),
-            "URL004" => Some(format!("URL {} at {} returned an SSL error.", m.value, m.location)),
-            "URL005" => Some(format!("URL {} at {} returns a permanent redirect.", m.value, m.location)),
-            "URL006" => Some(format!("URL {} at {} does not use SSL.", m.value, m.location)),
-            "URL007" => Some(format!("URL {} at {} does not start with https:// but site uses SSL.", m.value, m.location)),
-            _ => None
+            "URL001" => Some(format!(
+                "URL {} at {} does not match a valid URL.",
+                m.value, m.location
+            )),
+            "URL002" => Some(format!(
+                "URL {} at {} doesn't returns 200 (HTTP_OK).",
+                m.value, m.location
+            )),
+            "URL003" => Some(format!(
+                "URL {} at {} timeouted after 30 seconds.",
+                m.value, m.location
+            )),
+            "URL004" => Some(format!(
+                "URL {} at {} returned an SSL error.",
+                m.value, m.location
+            )),
+            "URL005" => Some(format!(
+                "URL {} at {} returns a permanent redirect.",
+                m.value, m.location
+            )),
+            "URL006" => Some(format!(
+                "URL {} at {} does not use SSL.",
+                m.value, m.location
+            )),
+            "URL007" => Some(format!(
+                "URL {} at {} does not start with https:// but site uses SSL.",
+                m.value, m.location
+            )),
+            _ => None,
         };
-        
-        return m;
+
+        // Autolink
+        if m.processed_text.is_some() {
+            let re = Regex::new(r"(http[s]?|ftp)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+").unwrap();
+
+            m.processed_text = Some(
+                re.replace_all(&m.processed_text.unwrap(), |caps: &regex::Captures| {
+                    let url = caps.get(0).unwrap().as_str();
+                    format!("<a href=\"{}\">{}</a>", url, url)
+                })
+                .to_string(),
+            );
+        }
+
+        m
     }
 }
 
@@ -63,9 +104,7 @@ pub struct ServerConfig {
 lazy_static! {
     pub static ref TEMPLATES: Tera = {
         match Tera::new("templates/*.html") {
-            Ok(t) => {
-                t
-            },
+            Ok(t) => t,
             Err(e) => {
                 println!("Parsing error(s): {e}");
                 ::std::process::exit(1);
@@ -94,7 +133,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let conn_str = std::env::var("DATABASE_URL").expect(
         "Expected database connection string (postgres://username:password@localhost/dbname)",
     );
-    let pool = sqlx::PgPool::connect(&conn_str).await.unwrap();
+
+    let pool = PgPoolOptions::new().max_connections(5).connect_lazy(&conn_str).unwrap();
 
     // Build server state
     let state = ServerConfig { db: pool };
@@ -103,6 +143,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let routes = Router::new()
         .route("/", get(index))
         .route("/search/:name", get(search))
+        .nest_service("/robots.txt", ServeFile::new("static/robots.txt"))
         .with_state(state);
 
     // Start server
@@ -148,17 +189,21 @@ async fn search(State(state): State<ServerConfig>, Path(name): Path<String>) -> 
     .unwrap();
 
     // Process output, add text that is not stored in the DB
-    let messages: Vec<Message> = rows.into_iter().map(|row| {
-        Message {
-            code: row.code,
-            id: row.id,
-            location: row.location,
-            time: row.time,
-            tool: row.tool,
-            value: row.value,
-            processed_text: None,
-        }.add_processed_text()
-    }).collect();
+    let messages: Vec<Message> = rows
+        .into_iter()
+        .map(|row| {
+            Message {
+                code: row.code,
+                id: row.id,
+                location: row.location,
+                time: row.time,
+                tool: row.tool,
+                value: row.value,
+                processed_text: None,
+            }
+            .add_processed_text()
+        })
+        .collect();
 
     let mut c = Context::new();
     c.insert("entries", &messages);

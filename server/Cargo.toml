@@ -1,17 +1,41 @@
 [package]
-name = "server"
-version = "0.1.0"
+name = "biotools_linter_server"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+version = "0.1.0"
 
 [dependencies]
-axum = "0.6.20"
-tera = "1.19"
-serde = { version = "1.0", features = ["derive"] }
-tracing = "0.1.37"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-tokio = { version = "1.0", features = ["rt", "macros", "rt-multi-thread"] }
 lazy_static = "1.4.0"
-sqlx = { version = "0.7", features = [ "runtime-tokio", "tls-native-tls", "postgres" ] }
 pico-args = "0.5.0"
+regex = "1.9.3"
+tera = "1.19"
+tracing = "0.1.37"
+
+[dependencies.tower-http]
+version = "0.4.3"
+features = ["fs"]
+default-features = false
+
+[dependencies.axum]
+version = "0.6.20"
+features = ["json", "matched-path", "tokio", "tower-log", "http1", "form", "query"]
+default-features = false
+
+[dependencies.serde]
+version = "1.0"
+features = ["derive"]
+
+[dependencies.sqlx]
+version = "0.7"
+features = ["runtime-tokio", "tls-native-tls", "postgres"]
+
+[dependencies.tokio]
+version = "1.0"
+features = ["rt", "macros", "rt-multi-thread"]
+
+[dependencies.tracing-subscriber]
+version = "0.3"
+features = ["env-filter"]
+
+[profile.release]
+lto = true
+codegen-units = 1

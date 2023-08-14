@@ -177,6 +177,7 @@ async fn index(State(state): State<ServerConfig>) -> Html<String> {
     let mut c = Context::new();
     c.insert("count", &total_count);
     c.insert("last_time", &oldest_entry_unix);
+    c.insert("search_value", "");
 
     Html(TEMPLATES.render("index.html", &c).unwrap())
 }
@@ -218,6 +219,7 @@ async fn search(
     c.insert("entries", &messages);
     c.insert("count", &messages.len());
     c.insert("page", &0);
+    c.insert("search_value", &name);
 
     Html(TEMPLATES.render("search.html", &c).unwrap())
 }

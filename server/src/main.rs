@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, State, ConnectInfo},
+    extract::{ConnectInfo, Path, State},
     response::Html,
     routing::get,
     Router,
@@ -11,8 +11,8 @@ use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::net::SocketAddr;
 use tera::{Context, Tera};
 use tower_http::services::ServeFile;
-use tracing::{Level, info};
-use tracing_subscriber::{FmtSubscriber, util::SubscriberInitExt};
+use tracing::info;
+use tracing_subscriber::FmtSubscriber;
 
 #[macro_use]
 extern crate lazy_static;
@@ -117,8 +117,7 @@ lazy_static! {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize tracing
-    let subscriber = FmtSubscriber::builder()
-        .finish();
+    let subscriber = FmtSubscriber::builder().finish();
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     dotenv().ok();

@@ -1,18 +1,18 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, State, ConnectInfo},
     response::Html,
     routing::get,
     Router,
 };
+use dotenv::dotenv;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use sqlx::{Pool, Postgres, postgres::PgPoolOptions};
+use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::net::SocketAddr;
 use tera::{Context, Tera};
-use tracing::Level;
-use tracing_subscriber::FmtSubscriber;
 use tower_http::services::ServeFile;
-use dotenv::dotenv;
+use tracing::{Level, info};
+use tracing_subscriber::{FmtSubscriber, util::SubscriberInitExt};
 
 #[macro_use]
 extern crate lazy_static;
@@ -118,7 +118,6 @@ lazy_static! {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize tracing
     let subscriber = FmtSubscriber::builder()
-        .with_max_level(Level::TRACE)
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
@@ -136,7 +135,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let conn_str = std::env::var("DATABASE_URL").expect(
         "Expected database connection string (postgres://<username>:<password>@<ip>/<database>)",
     );
-    let pool = PgPoolOptions::new().max_connections(5).connect_lazy(&conn_str).unwrap();
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect_lazy(&conn_str)
+        .unwrap();
 
     // Build server state
     let state = ServerConfig { db: pool };
@@ -152,7 +154,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
     tracing::info!("Listening on http://{}", addr);
     axum::Server::bind(&addr)
-        .serve(routes.into_make_service())
+        .serve(routes.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .unwrap();
 
@@ -181,7 +183,13 @@ async fn index(State(state): State<ServerConfig>) -> Html<String> {
 }
 
 // Serve the search page
-async fn search(State(state): State<ServerConfig>, Path(name): Path<String>) -> Html<String> {
+async fn search(
+    State(state): State<ServerConfig>,
+    Path(name): Path<String>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+) -> Html<String> {
+    info!("Searching for `{}` from `{}`", name, addr);
+
     let rows = sqlx::query!(
         "SELECT * FROM messages WHERE tool ILIKE $1",
         format!("%{}%", name)

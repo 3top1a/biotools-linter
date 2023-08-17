@@ -4,7 +4,6 @@ edition = "2021"
 version = "0.1.0"
 
 [dependencies]
-chrono = "0.4.26"
 dotenv = "0.15.0"
 html-escape = "0.2.13"
 lazy_static = "1.4.0"
@@ -12,11 +11,6 @@ pico-args = "0.5.0"
 regex = "1.9.3"
 tera = "1.19"
 tracing = "0.1.37"
-
-[dependencies.tower-http]
-version = "0.4.3"
-features = ["fs"]
-default-features = false
 
 [dependencies.axum]
 version = "0.6.20"
@@ -27,13 +21,25 @@ default-features = false
 version = "1.0"
 features = ["derive"]
 
-[dependencies.sqlx]
-version = "0.7"
-features = ["runtime-tokio", "tls-native-tls", "postgres"]
-
 [dependencies.tokio]
 version = "1.0"
-features = ["rt", "macros", "rt-multi-thread"]
+features = ["num_cpus", "tokio-macros", "macros", "rt", "rt-multi-thread"]
+default-features = false
+
+[dependencies.tower-http]
+version = "0.4.3"
+features = ["tracing", "mime_guess", "mime", "httpdate", "fs", "percent-encoding"]
+default-features = false
+
+[dependencies.chrono]
+version = "0.4.26"
+features = ["wasmbind", "oldtime", "std"]
+default-features = false
+
+[dependencies.sqlx]
+version = "0.7"
+features = ["postgres", "sqlx-postgres", "_rt-tokio", "any", "tls-native-tls", "json", "runtime-tokio", "migrate", "macros"]
+default-features = false
 
 [dependencies.tracing-subscriber]
 version = "0.3"
@@ -42,3 +48,5 @@ features = ["env-filter"]
 [profile.release]
 lto = true
 codegen-units = 1
+
+[profile.release.package]

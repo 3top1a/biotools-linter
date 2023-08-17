@@ -104,11 +104,17 @@ def filter_url(key: str, value: str) -> list[Message] | None:
             Message("URL004",
                     f"URL `{value}` at `{key}` returned an SSL error."))
 
+    except requests.exceptions.ConnectionError:
+        # Connection error
+        reports.append(
+            Message("URL008",
+                    f"URL `{value}` at `{key}` returned a connection error, it may not exist."))
+
     except requests.RequestException as e:
-        # Generic request error
+        # Catch all request error
         reports.append(
             Message("URL---",
-                    f"Error requesting `{value}` at `{key}`, {e}"))
+                    f"Error: `{e}` at `{key}`"))
 
     if len(reports) != 0:
         return reports

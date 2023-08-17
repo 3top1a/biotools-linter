@@ -61,6 +61,10 @@ impl Message {
 
         m.processed_text = match m.code.as_str() {
             "NONE001" => Some(format!("Important value  at {} is null/empty.", m.location)),
+            "URL---" => Some(format!(
+                "Linter error: {} {}",
+                m.value, m.location
+            )),
             "URL001" => Some(format!(
                 "URL {} at {} does not match a valid URL.",
                 m.value, m.location
@@ -217,7 +221,6 @@ async fn serve_api(
     let page_default: String = String::from("0");
     let page = params.get("page").unwrap_or(&page_default);
     let page: i64 = page.parse().unwrap_or(0);
-
     let query = params.get("query");
 
     info!(
@@ -227,7 +230,7 @@ async fn serve_api(
 
     let messages = if query.is_some() {
         let rows = sqlx::query!(
-            "SELECT * FROM messages WHERE tool ILIKE $1 LIMIT 100 OFFSET $2",
+            "SELECT * FROM messages WHERE tool ILIKE $1 OR code ILIKE $1 LIMIT 100 OFFSET $2",
             format!("%{}%", html_escape::encode_text(query.unwrap())),
             page * 100,
         )

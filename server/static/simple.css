@@ -14,32 +14,11 @@
   --text: #212121;
   --text-light: #585858;
   --border: #898EA4;
-  --accent: #0d47a1;
-  --code: #d81b60;
+  --accent: #f47d21;
+  --code: #f47d21;
   --preformatted: #444;
   --marked: #ffdd33;
   --disabled: #efefef;
-}
-
-/* Dark theme */
-@media (prefers-color-scheme: dark) {
-  :root,
-  ::backdrop {
-    color-scheme: dark;
-    --bg: #212121;
-    --accent-bg: #2b2b2b;
-    --text: #dcdcdc;
-    --text-light: #ababab;
-    --accent: #ffb300;
-    --code: #f06292;
-    --preformatted: #ccc;
-    --disabled: #111;
-  }
-  /* Add a bit of transparency so light media isn't so glaring in dark mode */
-  img,
-  video {
-    opacity: 0.8;
-  }
 }
 
 /* Reset box-sizing */
@@ -666,13 +645,4 @@ sup {
 
 sub { 
   top: 0.3em; 
-}
-
-/* Classes for notices */
-.notice {
-  background: var(--accent-bg);
-  border: 2px solid var(--border);
-  border-radius: 5px;
-  padding: 1.5rem;
-  margin: 2rem 0;
 }

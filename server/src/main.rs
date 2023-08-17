@@ -175,7 +175,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/", get(index))
         .route("/api", get(serve_api))
         .nest_service("/robots.txt", ServeFile::new("static/robots.txt"))
-        .nest_service("/simple.css", ServeFile::new("static/simple.css"))
+        .nest_service("/style.css", ServeFile::new("static/style.css"))
         .with_state(state);
 
     // Start server

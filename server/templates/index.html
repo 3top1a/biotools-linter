@@ -4,7 +4,8 @@
 <article>
     <h1>Bio.tools linter</h1>
     <p>
-        A rule-based checker for the bio.tools database. This website searches the bio.tools API for a given tool name
+        A rule-based checker for the <a href="https://bio.tools/">bio.tools database</a>. This website searches the
+        bio.tools API for a given tool name
         and checks various properties of the tool's JSON data, such as invalid URL links.
         Currently serving <code>{{count}}</code> entries.
         Oldest entry was linted at <code>{{last_time | date(format="%Y-%m-%d %H:%M") }}</code>.
@@ -40,7 +41,13 @@
         },
         server: {
             url: '/api',
-            then: data => data.results.map(entry => [entry.id, entry.tool, entry.code, entry.time, gridjs.html(entry.processed_text)]),
+            then: data => data.results.map(entry => [
+                entry.id,
+                gridjs.html(`<a href="https://bio.tools/${entry.tool}"> ${entry.tool} </a>`),
+                entry.code,
+                entry.time,
+                gridjs.html(entry.processed_text)
+            ]),
             total: data => data.count
         }
     });

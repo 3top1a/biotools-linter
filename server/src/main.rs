@@ -272,7 +272,7 @@ async fn serve_api(
 
     let total_count = if query.is_some() {
         sqlx::query_scalar!(
-            "SELECT COUNT(*) FROM messages WHERE tool ILIKE $1",
+            "SELECT COUNT(*) FROM messages WHERE tool ILIKE $1 OR code ILIKE $1",
             format!("%{}%", html_escape::encode_text(query.unwrap()))
         )
         .fetch_all(&state.db)

@@ -28,6 +28,7 @@
 
 <script>
     $("table#table").Grid({
+        sort: true,
         search: {
             server: {
                 url: (prev, keyword) => `${prev}?query=${keyword}&`
@@ -45,7 +46,10 @@
                 entry.id,
                 gridjs.html(`<a href="https://bio.tools/${entry.tool}"> ${entry.tool} </a>`),
                 entry.code,
-                entry.time,
+                new Date(entry.time * 1000).toLocaleDateString('cs-cs', {
+                    minute: 'numeric',
+                    hour: 'numeric',
+                }),
                 gridjs.html(entry.processed_text)
             ]),
             total: data => data.count

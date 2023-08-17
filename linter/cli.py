@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 REPORT = 15
 
+
 def main(arguments: Sequence[str]) -> int:
     """Execute the main functionality of the tool.
 
@@ -46,10 +47,13 @@ def main(arguments: Sequence[str]) -> int:
         choices=["DEBUG", "INFO", "REPORT", "WARNING", "ERROR"],
         default="REPORT",
         help="Set the logging level (default: REPORT)")
-    parser.add_argument("--db",
-                        default=None,
-                        required=False,
-                        help="Database connection (host:port:database:user:password). Can also be in DB_CREDS variable")
+    parser.add_argument(
+        "--db",
+        default=None,
+        required=False,
+        help=
+        "Database connection (postgres://username:passwd@IP/database). Can also be in DATABASE_URL variable",
+    )
     parser.add_argument(
         "--lint-all",
         action="store_true",
@@ -73,7 +77,8 @@ def main(arguments: Sequence[str]) -> int:
 
     args = parser.parse_args(arguments)
     exit_on_error = args.exit_on_error
-    database_creds = os.environ["DB_CREDS"] if "DB_CREDS" in os.environ else args.db
+    database_creds = os.environ[
+        "DATABASE_URL"] if "DATABASE_URL" in os.environ else args.db
     lint_all = args.lint_all
     threads = args.threads
     tool_name = args.name
@@ -114,17 +119,11 @@ def main(arguments: Sequence[str]) -> int:
     export_db_connection = None
     export_db_cursor = None
     if database_creds:
-        export_db_connection = psycopg2.connect(
-            host=database_creds.split(":")[0],
-            port=database_creds.split(":")[1],
-            database=database_creds.split(":")[2],
-            user=database_creds.split(":")[3],
-            password=database_creds.split(":")[4],
-            )
+        export_db_connection = psycopg2.connect(database_creds)
         export_db_cursor = export_db_connection.cursor()
 
         # Create table query
-        create_table_query = "CREATE TABLE IF NOT EXISTS messages ( id SERIAL PRIMARY KEY, time INTEGER NOT NULL, tool TEXT NOT NULL, code TEXT NOT NULL, location TEXT NOT NULL, value TEXT NOT NULL );"
+        create_table_query = "CREATE TABLE IF NOT EXISTS messages_new ( id SERIAL PRIMARY KEY, time INTEGER NOT NULL, tool TEXT NOT NULL, code TEXT NOT NULL, location TEXT NOT NULL, value TEXT NOT NULL );"
         export_db_cursor.execute(create_table_query)
 
     # Process the queue after linting, used for progressively sending to the database
@@ -140,9 +139,12 @@ def main(arguments: Sequence[str]) -> int:
 
             # Export
             if sql_cursor and item.level == 1:
-                insert_query = "INSERT INTO messages (time, tool, code, location, value) VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;"
+                insert_query = "INSERT INTO messages_new (time, tool, code, location, value) VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;"
                 # Replace 'data' with your actual data variables
-                data = (int(datetime.datetime.now(tz=datetime.timezone.utc).timestamp()), item.project, item.code, item.get_location(), item.get_value())
+                data = (int(
+                    datetime.datetime.now(
+                        tz=datetime.timezone.utc).timestamp()), item.project,
+                        item.code, item.get_location(), item.get_value())
                 sql_cursor.execute(insert_query, data)
 
         # After processing
@@ -192,6 +194,7 @@ def main(arguments: Sequence[str]) -> int:
     if returned_atleast_one_error and exit_on_error:
         return 1
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

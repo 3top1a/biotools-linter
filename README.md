@@ -13,20 +13,32 @@ This is a rule-based checker for the [bio.tools](https://bio.tools/) database. T
     ```
 
 ## Usage
-Run the CLI python script.
+Run the CLI linter.
 
 ```sh
-$ python cli.py "MetExplore" -p 1
+$ python linter/cli.py --threads 16 "MetExplore" -p 1
 Search returned 1 results
 Starting to lint MetExplore
 https://metexplore.toulouse.inra.fr/metexplore-webservice-documentation/ in /documentation/2/url doesn't returns 200 (HTTP_OK)
 ```
 
-Or run the WebUI.
+You can also lint the entire bio.tools database
 
 ```sh
-$ python web.py --debug -p 80
+$ python linter/cli.py --threads 16 --lint-all
+...
 ```
+
+To send the results to a Postgresql database
+```sh
+$ export DATABASE_URL="postgres://username:passwd@IP/database"
+$ python linter/cli.py --threads 16 "MetExplore" -p 1
+Starting to lint MetExplore
+https://metexplore.toulouse.inra.fr/metexplore-webservice-documentation/ in /documentation/2/url doesn't returns 200 (HTTP_OK)
+Sending messages to database
+```
+The program will automatically create a new table called `messages_new` and fill data in.
+After manual inspection, the table should be renamed to `messages` for the web server.
 
 ## Architecture
 ![Architecture drawing](architecture.drawio.svg)

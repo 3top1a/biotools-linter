@@ -6,26 +6,14 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{% endblock %}</title>
-    <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
+    <link rel="stylesheet" href="/simple.css">
+
+    <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
+    <script src="https://unpkg.com/jquery/dist/jquery.min.js"></script>
+    <script src="https://unpkg.com/gridjs-jquery/dist/gridjs.production.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" />
 
     <style>
-        .center {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 5px 24px 5px 24px;
-        }
-
-        .message {
-            color: var(--preformatted);
-            background: var(--accent-bg);
-            border: 2px solid var(--border);
-            border-radius: 5px;
-            padding: 0.5rem;
-            margin: 0.5em 0;
-        }
-
         .icon {
             vertical-align: sub;
             padding-right: .25rem;
@@ -36,10 +24,6 @@
             stroke-width: 0;
             stroke: currentColor;
             fill: currentColor;
-        }
-
-        .secondary {
-            color: #6c757d;
         }
     </style>
 
@@ -57,15 +41,6 @@
                     </path>
                 </svg>Github</a>
         </nav>
-        <input id="search_data" type="search" class="pure-input-rounded" placeholder="Search tool, eg. MetExplore"
-            value="{{search_value}}" />
-        <button id="search_input" type="submit" class="pure-button">Search</button>
-        <script>
-            $('#search_input').click(function () {
-                query = $("#search_data").val();
-                window.location.href = "/search/" + query;
-            });
-        </script>
     </header>
 
     <div class="content">

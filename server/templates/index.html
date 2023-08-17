@@ -4,8 +4,45 @@
 <article>
     <h1>Bio.tools linter</h1>
     <p>
-        A rule-based checker for the bio.tools database. This website searches the bio.tools API for a given tool name and checks various properties of the tool's JSON data, such as invalid URL links.
-        Currently serving <code>{{count}}</code> errors.
+        A rule-based checker for the bio.tools database. This website searches the bio.tools API for a given tool name
+        and checks various properties of the tool's JSON data, such as invalid URL links.
+        Currently serving <code>{{count}}</code> entries.
         Oldest entry was linted at <code>{{last_time | date(format="%Y-%m-%d %H:%M") }}</code>.
     </p>
-</article>{% endblock %}
+
+    <table id="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Code</th>
+                <th>Found at</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</article>
+
+<script>
+    $("table#table").Grid({
+        search: {
+            server: {
+                url: (prev, keyword) => `${prev}?query=${keyword}&`
+            }
+        },
+        pagination: {
+            limit: 100,
+            server: {
+                url: (prev, page, limit) => `${prev}${prev.includes('?') ? '&' : '?'}page=${page}`
+            }
+        },
+        server: {
+            url: '/api',
+            then: data => data.results.map(entry => [entry.id, entry.tool, entry.code, entry.time, gridjs.html(entry.processed_text)]),
+            total: data => data.count
+        }
+    });
+</script>
+{% endblock %}

@@ -1,14 +1,14 @@
 use axum::{
-    extract::{ConnectInfo, Path, State},
+    extract::{ConnectInfo, Query, State},
     response::Html,
     routing::get,
-    Router,
+    Json, Router,
 };
 use dotenv::dotenv;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
-use std::net::SocketAddr;
+use std::{collections::HashMap, net::SocketAddr};
 use tera::{Context, Tera};
 use tower_http::services::ServeFile;
 use tracing::info;
@@ -30,7 +30,8 @@ OPTIONS:
   --port u16           Sets server port
 ";
 
-#[derive(Serialize, Deserialize)]
+/// What gets recieved from the database, plus processed_text which is added at runtime
+#[derive(Debug, Serialize, Deserialize)]
 struct Message {
     id: i32,
     time: i32,
@@ -40,8 +41,21 @@ struct Message {
     value: String,
     processed_text: Option<String>,
 }
-
 impl Message {
+    /// Escape HTML
+    fn escape(self) -> Self {
+        let mut m = self;
+
+        // Escape characters
+        m.tool = html_escape::encode_text(&m.tool).to_string();
+        m.code = html_escape::encode_text(&m.code).to_string();
+        m.location = html_escape::encode_text(&m.location).to_string();
+        m.value = html_escape::encode_text(&m.value).to_string();
+
+        m
+    }
+
+    /// Add processed_text to message
     fn add_processed_text(self) -> Self {
         let mut m = self;
 
@@ -95,6 +109,15 @@ impl Message {
     }
 }
 
+/// What gets sent out to web clients
+#[derive(Debug, Serialize)]
+struct ApiResponse {
+    count: i64,
+    next: Option<String>,
+    previous: Option<String>,
+    results: Vec<Message>,
+}
+
 // Server state passed to every http call
 #[derive(Clone)]
 pub struct ServerConfig {
@@ -117,6 +140,7 @@ lazy_static! {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize tracing
+    // TODO switch to env subscriber
     let subscriber = FmtSubscriber::builder().finish();
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
@@ -145,8 +169,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Build router
     let routes = Router::new()
         .route("/", get(index))
-        .route("/search/:name", get(search))
+        .route("/api", get(serve_api))
         .nest_service("/robots.txt", ServeFile::new("static/robots.txt"))
+        .nest_service("/simple.css", ServeFile::new("static/simple.css"))
         .with_state(state);
 
     // Start server
@@ -182,44 +207,105 @@ async fn index(State(state): State<ServerConfig>) -> Html<String> {
     Html(TEMPLATES.render("index.html", &c).unwrap())
 }
 
-// Serve the search page
-async fn search(
+/// Serve API
+async fn serve_api(
     State(state): State<ServerConfig>,
-    Path(name): Path<String>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-) -> Html<String> {
-    info!("Searching for `{}` from `{}`", name, addr);
+    Query(params): Query<HashMap<String, String>>,
+) -> Json<ApiResponse> {
+    // Get parameters
+    let page_default: String = String::from("0");
+    let page = params.get("page").unwrap_or(&page_default);
+    let page: i64 = page.parse().unwrap_or(0);
 
-    let rows = sqlx::query!(
-        "SELECT * FROM messages WHERE tool ILIKE $1",
-        format!("%{}%", name)
-    )
-    .fetch_all(&state.db)
-    .await
-    .unwrap();
+    let query = params.get("query");
 
-    // Process output, add text that is not stored in the DB
-    let messages: Vec<Message> = rows
-        .into_iter()
-        .map(|row| {
-            Message {
-                code: row.code,
-                id: row.id,
-                location: row.location,
-                time: row.time,
-                tool: row.tool,
-                value: row.value,
-                processed_text: None,
-            }
-            .add_processed_text()
-        })
-        .collect();
+    info!(
+        "Listing API from `{}` page {} query {:?}",
+        addr, page, query
+    );
 
-    let mut c = Context::new();
-    c.insert("entries", &messages);
-    c.insert("count", &messages.len());
-    c.insert("page", &0);
-    c.insert("search_value", &name);
+    let messages = if query.is_some() {
+        let rows = sqlx::query!(
+            "SELECT * FROM messages WHERE tool ILIKE $1 LIMIT 100 OFFSET $2",
+            format!("%{}%", html_escape::encode_text(query.unwrap())),
+            page * 100,
+        )
+        .fetch_all(&state.db)
+        .await
+        .unwrap();
 
-    Html(TEMPLATES.render("search.html", &c).unwrap())
+        // Process output, escape and add processed text that is not stored in the DB
+        rows.into_iter()
+            .map(|row| {
+                Message {
+                    code: row.code,
+                    id: row.id,
+                    location: row.location,
+                    time: row.time,
+                    tool: row.tool,
+                    value: row.value,
+                    processed_text: None,
+                }
+                .escape()
+                .add_processed_text()
+            })
+            .collect()
+
+        // TODO Escape query
+    } else {
+        let rows = sqlx::query!("SELECT * FROM messages LIMIT 100 OFFSET $1", page * 100,)
+            .fetch_all(&state.db)
+            .await
+            .unwrap();
+
+        // Process output, escape and add processed text that is not stored in the DB
+        rows.into_iter()
+            .map(|row| {
+                Message {
+                    code: row.code,
+                    id: row.id,
+                    location: row.location,
+                    time: row.time,
+                    tool: row.tool,
+                    value: row.value,
+                    processed_text: None,
+                }
+                .escape()
+                .add_processed_text()
+            })
+            .collect()
+    };
+
+    let total_count = if query.is_some() {
+        sqlx::query_scalar!(
+            "SELECT COUNT(*) FROM messages WHERE tool ILIKE $1",
+            format!("%{}%", html_escape::encode_text(query.unwrap()))
+        )
+        .fetch_all(&state.db)
+        .await
+        .unwrap()[0]
+            .unwrap()
+    } else {
+        sqlx::query_scalar!("SELECT COUNT(*) FROM messages")
+            .fetch_all(&state.db)
+            .await
+            .unwrap()[0]
+            .unwrap()
+    };
+
+    Json(ApiResponse {
+        count: total_count,
+        next: if page + 100 < total_count {
+            Some(format!("?page={}", page + 1))
+        } else {
+            None
+        },
+        previous: if page > 0 {
+            Some(format!("?page={}", page - 1))
+        } else {
+            None
+        },
+        results: messages,
+    })
 }

@@ -4,6 +4,7 @@ edition = "2021"
 version = "0.1.0"
 
 [dependencies]
+chrono = "0.4.26"
 dotenv = "0.15.0"
 html-escape = "0.2.13"
 lazy_static = "1.4.0"

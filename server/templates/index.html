@@ -4,9 +4,9 @@
 <article>
     <h1>Bio.tools linter</h1>
     <p>
-        A rule-based checker for the <a href="https://bio.tools/">bio.tools database</a>. This website searches the
-        bio.tools API for a given tool name
-        and checks various properties of the tool's JSON data, such as invalid URL links.
+        A rule-based checker for the <a href="https://bio.tools/">bio.tools database</a>. The linter searches the entire
+        bio.tools API and checks various properties of the tool's JSON data, such as dead URL links, and sends it to
+        a database this website draws from.
         Currently serving <code>{{count}}</code> entries.
         Oldest entry was linted at <code>{{last_time | date(format="%Y-%m-%d %H:%M") }}</code>.
     </p>
@@ -28,7 +28,6 @@
 
 <script>
     $("table#table").Grid({
-        sort: true,
         search: {
             server: {
                 url: (prev, keyword) => `${prev}?query=${keyword}&`
@@ -46,10 +45,7 @@
                 entry.id,
                 gridjs.html(`<a href="https://bio.tools/${entry.tool}"> ${entry.tool} </a>`),
                 entry.code,
-                new Date(entry.time * 1000).toLocaleDateString('cs-cs', {
-                    minute: 'numeric',
-                    hour: 'numeric',
-                }),
+                entry.timestamp,
                 gridjs.html(entry.processed_text)
             ]),
             total: data => data.count

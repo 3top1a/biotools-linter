@@ -4,11 +4,16 @@ use axum::{
     routing::get,
     Json, Router,
 };
+use chrono::{DateTime, Utc};
 use dotenv::dotenv;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
-use std::{collections::HashMap, net::SocketAddr};
+use std::{
+    collections::HashMap,
+    net::SocketAddr,
+    time::{Duration, UNIX_EPOCH},
+};
 use tera::{Context, Tera};
 use tower_http::services::ServeFile;
 use tracing::info;
@@ -30,86 +35,84 @@ OPTIONS:
   --port u16           Sets server port
 ";
 
-/// What gets recieved from the database, plus `processed_text` which is added at runtime
-#[derive(Debug, Serialize, Deserialize)]
-struct Message {
+/// What gets recieved from the database
+struct DatabaseEntry {
     id: i32,
     time: i32,
     tool: String,
     code: String,
     location: String,
     value: String,
-    processed_text: Option<String>,
 }
-impl Message {
-    /// Escape HTML
-    fn escape(self) -> Self {
-        let mut m = self;
 
-        // Escape characters
-        m.tool = html_escape::encode_text(&m.tool).to_string();
-        m.code = html_escape::encode_text(&m.code).to_string();
-        m.location = html_escape::encode_text(&m.location).to_string();
-        m.value = html_escape::encode_text(&m.value).to_string();
+/// Middle part of what gets sent to client
+#[derive(Debug, Serialize, Deserialize)]
+struct Message {
+    id: i32,
+    timestamp: String,
+    tool: String,
+    code: String,
+    processed_text: String,
+}
+impl From<DatabaseEntry> for Message {
+    fn from(value: DatabaseEntry) -> Self {
+        let mut v = value;
 
-        m
-    }
+        // Escape
+        v.tool = html_escape::encode_text(&v.tool).to_string();
+        v.code = html_escape::encode_text(&v.code).to_string();
+        v.location = html_escape::encode_text(&v.location).to_string();
+        v.value = html_escape::encode_text(&v.value).to_string();
 
-    /// Add `processed_text` to message
-    fn add_processed_text(self) -> Self {
-        let mut m = self;
-
-        m.processed_text = match m.code.as_str() {
-            "NONE001" => Some(format!("Important value  at {} is null/empty.", m.location)),
-            "URL---" => Some(format!(
-                "Linter error: {} {}",
-                m.value, m.location
-            )),
-            "URL001" => Some(format!(
+        // Process text
+        let processed_text = match v.code.as_str() {
+            "NONE001" => format!("Important value  at {} is null/empty.", v.location),
+            "URL---" => format!("Linter error: {} {}", v.value, v.location),
+            "URL001" => format!(
                 "URL {} at {} does not match a valid URL.",
-                m.value, m.location
-            )),
-            "URL002" => Some(format!(
+                v.value, v.location
+            ),
+            "URL002" => format!(
                 "URL {} at {} doesn't returns 200 (HTTP_OK).",
-                m.value, m.location
-            )),
-            "URL003" => Some(format!(
+                v.value, v.location
+            ),
+            "URL003" => format!(
                 "URL {} at {} timeouted after 30 seconds.",
-                m.value, m.location
-            )),
-            "URL004" => Some(format!(
-                "URL {} at {} returned an SSL error.",
-                m.value, m.location
-            )),
-            "URL005" => Some(format!(
+                v.value, v.location
+            ),
+            "URL004" => format!("URL {} at {} returned an SSL error.", v.value, v.location),
+            "URL005" => format!(
                 "URL {} at {} returns a permanent redirect.",
-                m.value, m.location
-            )),
-            "URL006" => Some(format!(
-                "URL {} at {} does not use SSL.",
-                m.value, m.location
-            )),
-            "URL007" => Some(format!(
+                v.value, v.location
+            ),
+            "URL006" => format!("URL {} at {} does not use SSL.", v.value, v.location),
+            "URL007" => format!(
                 "URL {} at {} does not start with https:// but site uses SSL.",
-                m.value, m.location
-            )),
-            _ => None,
+                v.value, v.location
+            ),
+            _ => String::from("Invalid entry code found, please file a bug report."),
         };
 
-        // Autolink URLs
-        if m.processed_text.is_some() {
-            let re = Regex::new(r"(http[s]?|ftp)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+").unwrap();
+        // Autolink
+        let processed_text = LINK_REGEX
+            .replace_all(&processed_text, |caps: &regex::Captures| {
+                let url = caps.get(0).unwrap().as_str();
+                format!("<a href=\"{url}\">{url}</a>")
+            })
+            .to_string();
 
-            m.processed_text = Some(
-                re.replace_all(&m.processed_text.unwrap(), |caps: &regex::Captures| {
-                    let url = caps.get(0).unwrap().as_str();
-                    format!("<a href=\"{url}\">{url}</a>")
-                })
-                .to_string(),
-            );
+        // Timestamp
+        let d = UNIX_EPOCH + Duration::from_secs(v.time.try_into().unwrap());
+        let datetime = DateTime::<Utc>::from(d);
+        let timestamp = datetime.format("%Y-%m-%d %H:%M").to_string();
+
+        Self {
+            code: v.code,
+            id: v.id,
+            tool: v.tool,
+            processed_text,
+            timestamp,
         }
-
-        m
     }
 }
 
@@ -138,6 +141,12 @@ lazy_static! {
                 ::std::process::exit(1);
             }
         }
+    };
+    pub static ref LINK_REGEX: Regex = {
+        Regex::new(
+            r"(http[s]?|ftp)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+",
+        )
+        .unwrap()
     };
 }
 
@@ -229,7 +238,8 @@ async fn serve_api(
     );
 
     let messages = if query.is_some() {
-        let rows = sqlx::query!(
+        let rows = sqlx::query_as!(
+            DatabaseEntry,
             "SELECT * FROM messages WHERE tool ILIKE $1 OR code ILIKE $1 LIMIT 100 OFFSET $2",
             format!("%{}%", html_escape::encode_text(query.unwrap())),
             page * 100,
@@ -238,46 +248,22 @@ async fn serve_api(
         .await
         .unwrap();
 
-        // Process output, escape and add processed text that is not stored in the DB
-        rows.into_iter()
-            .map(|row| {
-                Message {
-                    code: row.code,
-                    id: row.id,
-                    location: row.location,
-                    time: row.time,
-                    tool: row.tool,
-                    value: row.value,
-                    processed_text: None,
-                }
-                .escape()
-                .add_processed_text()
-            })
-            .collect()
+        // Process output from database entry to message
+        rows.into_iter().map(Message::from).collect()
 
         // TODO Escape query
     } else {
-        let rows = sqlx::query!("SELECT * FROM messages LIMIT 100 OFFSET $1", page * 100,)
-            .fetch_all(&state.db)
-            .await
-            .unwrap();
+        let rows = sqlx::query_as!(
+            DatabaseEntry,
+            "SELECT * FROM messages LIMIT 100 OFFSET $1",
+            page * 100,
+        )
+        .fetch_all(&state.db)
+        .await
+        .unwrap();
 
-        // Process output, escape and add processed text that is not stored in the DB
-        rows.into_iter()
-            .map(|row| {
-                Message {
-                    code: row.code,
-                    id: row.id,
-                    location: row.location,
-                    time: row.time,
-                    tool: row.tool,
-                    value: row.value,
-                    processed_text: None,
-                }
-                .escape()
-                .add_processed_text()
-            })
-            .collect()
+        // Process output from database entry to message
+        rows.into_iter().map(Message::from).collect()
     };
 
     let total_count = if query.is_some() {

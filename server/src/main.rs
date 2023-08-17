@@ -30,7 +30,7 @@ OPTIONS:
   --port u16           Sets server port
 ";
 
-/// What gets recieved from the database, plus processed_text which is added at runtime
+/// What gets recieved from the database, plus `processed_text` which is added at runtime
 #[derive(Debug, Serialize, Deserialize)]
 struct Message {
     id: i32,
@@ -55,7 +55,7 @@ impl Message {
         m
     }
 
-    /// Add processed_text to message
+    /// Add `processed_text` to message
     fn add_processed_text(self) -> Self {
         let mut m = self;
 

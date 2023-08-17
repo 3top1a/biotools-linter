@@ -16,7 +16,7 @@ req_session.mount("https://", adapter)
 # Change the UA so it doesn't get rate limited
 req_session.headers.update({"User-Agent": user_agent})
 
-URL_REGEX = r"(http[s]?|ftp)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+URL_REGEX = r"(http[s]?)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
 REPORT = 15
 TIMEOUT = 30
 
@@ -38,7 +38,11 @@ def filter_url(key: str, value: str) -> list[Message] | None:
     ------
         None
     """
-    # Return if does not match URL or key doesnt end with url/uri
+    # Exit if it is a ftp address
+    if value.startswith("ftp://"):
+        return None
+
+    # Exit if does not match URL or key doesnt end with url/uri
     if not re.match(
             URL_REGEX,
             value) and not key.endswith("url") and not key.endswith("uri"):

@@ -90,6 +90,10 @@ impl From<DatabaseEntry> for Message {
                 "URL {} at {} does not start with https:// but site uses SSL.",
                 v.value, v.location
             ),
+            "URL008" => format!(
+                "URL {} at {} returned a connection error, it may not exist.",
+                v.value, v.location
+            ),
             _ => String::from("Invalid entry code found, please file a bug report."),
         };
 

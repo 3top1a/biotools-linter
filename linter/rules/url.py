@@ -1,5 +1,7 @@
 """URL rules."""
 
+from __future__ import annotations
+
 import logging
 import re
 
@@ -50,8 +52,8 @@ def filter_url(key: str, value: str) -> list[Message] | None:
 
     # If the URL doesn't match the regex but is in a url/uri entry, throw an error
     if not re.match(URL_REGEX, value) and (key.endswith(("url", "uri"))):
-        return Message("URL001",
-                       f"URL `{value}` at `{key}` does not match a valid URL.")
+        return Message(
+            "URL001", f"URL `{value}` at `{key}` does not match a valid URL.")
 
     logging.debug(f"Checking URL: {value}")
     reports = []
@@ -62,7 +64,7 @@ def filter_url(key: str, value: str) -> list[Message] | None:
         return None
 
     # Warn if non-ssl http
-    original_url_starts_with_http = value.startswith("http://")
+    url_starts_with_https = value.startswith("https://")
 
     # Make a request
     try:
@@ -73,34 +75,50 @@ def filter_url(key: str, value: str) -> list[Message] | None:
         # It's also just faster
         response = req_session.head(value, timeout=TIMEOUT)
 
-        # Status is not HTTP_OK
-        if not response.ok:
-            reports.append(
-                Message("URL002",
-                        f"URL `{value}` at `{key}` doesn't returns 200 (HTTP_OK)."))
+        # Return a permanent redirect but only if it doesn't change http to https TODO
+        # Lib BUG - when doing a head request, the `url` value after a redirect
+        # is the same as the original url, but not with `requests.get`
 
         if response.is_permanent_redirect:
             reports.append(
-                Message("URL005",
-                        f"URL `{value}` at `{key}` returns a permanent redirect."))
+                Message(
+                    "URL005",
+                    f"URL `{value}` at `{key}` returns a permanent redirect."))
 
-        response_url_starts_with_http = response.url.startswith("http://")
-        if original_url_starts_with_http and response_url_starts_with_http:
-            reports.append(
-                Message("URL006",
-                        f"URL `{value}` at `{key}` does not use SSL."))
-
-        if original_url_starts_with_http and not response_url_starts_with_http:
+        # Status is not between 200 and 400
+        if not response.ok:
             reports.append(
                 Message(
-                    "URL007",
-                    f"URL `{value}` at `{key}` does not start with https:// but site uses SSL."))
+                    "URL002",
+                    f"URL `{value}` at `{key}` doesn't returns 200 (HTTP_OK)."))
+
+        if not url_starts_with_https:
+            # Try to request with SSL
+            try:
+                req_session.head(value.replace("http://", "https://"),
+                                 timeout=TIMEOUT)
+
+            except:
+                # If that fails, the site does not use SSL at all
+                reports.append(
+                    Message("URL006",
+                            f"URL `{value}` at `{key}` does not use SSL."))
+
+            else:
+                # If it succeeds, the site can use SSL but the URL is just wrong
+                reports.append(
+                    Message(
+                        "URL007",
+                        f"URL `{value}` at `{key}` does not start with https:// but site uses SSL.",
+                    ))
 
     except requests.Timeout:
         # Timeout error
         reports.append(
-            Message("URL003",
-                    f"URL `{value}` at `{key}` timeouted after {TIMEOUT} seconds."))
+            Message(
+                "URL003",
+                f"URL `{value}` at `{key}` timeouted after {TIMEOUT} seconds.")
+        )
 
     except requests.exceptions.SSLError:
         # SSL error
@@ -111,14 +129,14 @@ def filter_url(key: str, value: str) -> list[Message] | None:
     except requests.exceptions.ConnectionError:
         # Connection error
         reports.append(
-            Message("URL008",
-                    f"URL `{value}` at `{key}` returned a connection error, it may not exist."))
+            Message(
+                "URL008",
+                f"URL `{value}` at `{key}` returned a connection error, it may not exist."
+            ))
 
     except requests.RequestException as e:
         # Catch all request error
-        reports.append(
-            Message("URL---",
-                    f"Error: `{e}` at `{key}`"))
+        reports.append(Message("URL---", f"Error: `{e}` at `{key}`"))
 
     if len(reports) != 0:
         return reports

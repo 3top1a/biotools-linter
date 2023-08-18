@@ -1,15 +1,19 @@
 """Contains main classes and functions for linting."""
 
+from __future__ import annotations
+
 import logging
-import queue
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 import requests
 from joblib import Parallel, delayed
 from message import Level, Message
 from rules import delegate_filter
+
+if TYPE_CHECKING:
+    import queue
 
 REPORT: int = 15 # Report log level is between debug and info
 TIMEOUT = 10 # Seconds
@@ -24,13 +28,13 @@ class CacheEntry:
     createdat: int # Unix time
     data: dict
 
-    def __init__(self: "CacheEntry", name:str, data: dict) -> None:
+    def __init__(self: CacheEntry, name:str, data: dict) -> None:
         """Initialize a cache entry."""
         self.name = name
         self.data = data
         self.createdat = int( time.time() )
 
-    def is_old(self: "CacheEntry") -> bool:
+    def is_old(self: CacheEntry) -> bool:
         """Return true if the cache entry is beyond max age."""
         current_time = int( time.time() )
         if current_time > self.createdat + CACHE_MAX_AGE:
@@ -69,7 +73,7 @@ class Session:
     json: dict = ClassVar[dict[dict]]
     cache: dict[str, CacheEntry]
 
-    def __init__(self: "Session", page: int = 1, json: dict | None = None, cache: dict | None = None) -> None:
+    def __init__(self: Session, page: int = 1, json: dict | None = None, cache: dict | None = None) -> None:
         """Initialize a new Session instance.
 
         Attributes
@@ -96,12 +100,12 @@ class Session:
         self.json = json
         self.cache = cache
 
-    def clear_search(self: "Session") -> None:
+    def clear_search(self: Session) -> None:
         """Reset multiple search. Call before `search_api`."""
         self.json = {}
         self.cache = {}
 
-    def search_api(self: "Session", names: str, page: int = 1, im_feeling_lucky: bool = True) -> None:
+    def search_api(self: Session, names: str, page: int = 1, im_feeling_lucky: bool = True) -> None:
         """Retrieve JSON data from the biotools API.
 
         Attributes
@@ -200,7 +204,7 @@ class Session:
                 logging.debug(f"Assuming {name} is a regular search")
                 continue
 
-    def return_project_list_json(self: "Session") -> list:
+    def return_project_list_json(self: Session) -> list:
         """Return the project list from the JSON data.
 
         Returns
@@ -220,7 +224,7 @@ class Session:
 
         return output
 
-    def lint_specific_project(self: "Session", data_json: dict, return_q: queue.Queue | None = None, use_cache: bool = True) -> bool:
+    def lint_specific_project(self: Session, data_json: dict, return_q: queue.Queue | None = None, use_cache: bool = True) -> bool:
         """Perform linting on a specific project.
 
         Attributes
@@ -293,7 +297,7 @@ class Session:
 
         return False
 
-    def lint_all_projects(self: "Session", return_q: queue.Queue | None = None, threads: int = 1) -> None:
+    def lint_all_projects(self: Session, return_q: queue.Queue | None = None, threads: int = 1) -> None:
         """Perform linting on all projects in the JSON data.
 
         Attributes
@@ -313,7 +317,7 @@ class Session:
             delayed(self.lint_specific_project)(project, return_q) for project in self.return_project_list_json()
         )
 
-    def next_page_exists(self: "Session") -> bool:
+    def next_page_exists(self: Session) -> bool:
         """Check if the next page exists in any project.
 
         Returns
@@ -329,7 +333,7 @@ class Session:
                 return query["next"] is not None
         return False
 
-    def previous_page_exists(self: "Session") -> bool:
+    def previous_page_exists(self: Session) -> bool:
         """Check if the previous page exists in any project.
 
         Returns
@@ -345,7 +349,7 @@ class Session:
                 return query["previous"] is not None
         return False
 
-    def total_project_count(self: "Session") -> int:
+    def total_project_count(self: Session) -> int:
         """Return the total number (even not on page) of projects found."""
         return len(self.return_project_list_json())
 

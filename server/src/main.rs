@@ -254,8 +254,6 @@ async fn serve_api(
 
         // Process output from database entry to message
         rows.into_iter().map(Message::from).collect()
-
-        // TODO Escape query
     } else {
         let rows = sqlx::query_as!(
             DatabaseEntry,

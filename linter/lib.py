@@ -15,31 +15,31 @@ from rules import delegate_filter
 if TYPE_CHECKING:
     import queue
 
-REPORT: int = 15 # Report log level is between debug and info
-TIMEOUT = 10 # Seconds
-CACHE_MAX_AGE = 1800 # Seconds
+REPORT: int = 15  # Report log level is between debug and info
+TIMEOUT = 10  # Seconds
+CACHE_MAX_AGE = 1800  # Seconds
 
 
 class CacheEntry:
-
     """A class for Cache entries."""
 
     name: str
-    createdat: int # Unix time
+    createdat: int  # Unix time
     data: dict
 
-    def __init__(self: CacheEntry, name:str, data: dict) -> None:
+    def __init__(self: CacheEntry, name: str, data: dict) -> None:
         """Initialize a cache entry."""
         self.name = name
         self.data = data
-        self.createdat = int( time.time() )
+        self.createdat = int(time.time())
 
     def is_old(self: CacheEntry) -> bool:
         """Return true if the cache entry is beyond max age."""
-        current_time = int( time.time() )
+        current_time = int(time.time())
         if current_time > self.createdat + CACHE_MAX_AGE:
             return True
         return False
+
 
 class Session:
 
@@ -72,8 +72,12 @@ class Session:
     page: int = 1
     json: dict = ClassVar[dict[dict]]
     cache: dict[str, CacheEntry]
+    executor: None | ThreadPoolExecutor = None
 
-    def __init__(self: Session, page: int = 1, json: dict | None = None, cache: dict | None = None) -> None:
+    def __init__(self: Session,
+                 page: int = 1,
+                 json: dict | None = None,
+                 cache: dict | None = None) -> None:
         """Initialize a new Session instance.
 
         Attributes
@@ -105,7 +109,10 @@ class Session:
         self.json = {}
         self.cache = {}
 
-    def search_api(self: Session, names: str, page: int = 1, im_feeling_lucky: bool = True) -> None:
+    def search_api(self: Session,
+                   names: str,
+                   page: int = 1,
+                   im_feeling_lucky: bool = True) -> None:
         """Retrieve JSON data from the biotools API.
 
         Attributes
@@ -224,7 +231,10 @@ class Session:
 
         return output
 
-    def lint_specific_project(self: Session, data_json: dict, return_q: queue.Queue | None = None, use_cache: bool = True) -> bool:
+    def lint_specific_project(self: Session,
+                              data_json: dict,
+                              return_q: queue.Queue | None = None,
+                              use_cache: bool = True) -> bool:
         """Perform linting on a specific project.
 
         Attributes
@@ -245,6 +255,9 @@ class Session:
             return None
 
         name = data_json["name"]
+
+        if self.executor is None:
+            self.executor = ThreadPoolExecutor()
 
         def try_cache() -> bool:
             if name in self.cache and use_cache:
@@ -267,11 +280,13 @@ class Session:
             f"Linting {name} at https://bio.tools/{data_json['biotoolsID']}")
         logging.debug(f"Project JSON returned {len(data_json)} keys")
 
-        dictionary = flatten_json_to_single_dict(data_json, parent_key=name + "/")
+        dictionary = flatten_json_to_single_dict(data_json,
+                                                 parent_key=name + "/")
 
-        executor = ThreadPoolExecutor()
-        futures = [executor.submit(delegate_filter, key, value)
-                   for key, value in dictionary.items()]
+        futures = [
+            self.executor.submit(delegate_filter, key, value)
+            for key, value in dictionary.items()
+        ]
 
         to_be_cached = []
 
@@ -297,7 +312,9 @@ class Session:
 
         return False
 
-    def lint_all_projects(self: Session, return_q: queue.Queue | None = None, threads: int = 1) -> None:
+    def lint_all_projects(self: Session,
+                          return_q: queue.Queue | None = None,
+                          threads: int = 1) -> None:
         """Perform linting on all projects in the JSON data.
 
         Attributes
@@ -313,9 +330,14 @@ class Session:
             None
         """
         logging.debug(f"Linting all projects with {threads} threads")
-        Parallel(n_jobs=threads, prefer="threads", require="sharedmem")(
-            delayed(self.lint_specific_project)(project, return_q) for project in self.return_project_list_json()
-        )
+
+        self.executor = ThreadPoolExecutor(threads)
+
+        Parallel(n_jobs=threads,
+                 prefer="threads",
+                 require="sharedmem")(
+                     delayed(self.lint_specific_project)(project, return_q)
+                     for project in self.return_project_list_json())
 
     def next_page_exists(self: Session) -> bool:
         """Check if the next page exists in any project.
@@ -353,7 +375,10 @@ class Session:
         """Return the total number (even not on page) of projects found."""
         return len(self.return_project_list_json())
 
-def flatten_json_to_single_dict(json_data: dict, parent_key: str = "", separator: str = "/") -> dict:
+
+def flatten_json_to_single_dict(json_data: dict,
+                                parent_key: str = "",
+                                separator: str = "/") -> dict:
     """Recursively extract values from JSON.
 
     For example,
@@ -397,12 +422,14 @@ def flatten_json_to_single_dict(json_data: dict, parent_key: str = "", separator
         for x in json_data:
             index = json_data.index(x)
 
-            out.update(flatten_json_to_single_dict(
-                x, f"{parent_key}{separator}{index}"))
+            out.update(
+                flatten_json_to_single_dict(x,
+                                            f"{parent_key}{separator}{index}"))
     elif isinstance(json_data, dict):
         for key, value in json_data.items():
-            out.update(flatten_json_to_single_dict(
-                value, f"{parent_key}{separator}{key}"))
+            out.update(
+                flatten_json_to_single_dict(value,
+                                            f"{parent_key}{separator}{key}"))
     else:
         value = str(json_data)
         if value == "None":

@@ -4,6 +4,8 @@ Please keep reports in the following format:
 what(URL, name) `value(example.com)` at `key(tool//description)` is Issue(missing, invalid).
 """
 
+from __future__ import annotations
+
 import logging
 
 from message import Message

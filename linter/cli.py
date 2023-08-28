@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """A rule-based checker for bio.tools tools."""
 
+from __future__ import annotations
+
 import argparse
 import datetime
 import logging
 import os
 import sys
-from collections.abc import Sequence
 from queue import Queue
 from typing import TYPE_CHECKING
 
@@ -15,6 +16,8 @@ import psycopg2
 from lib import Session
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from message import Message
 
 REPORT = 15
@@ -129,7 +132,7 @@ def main(arguments: Sequence[str]) -> int:
     returned_atleast_one_error: bool = False
 
     # Initialize exporting, create table if it doesn't exist
-    export_db_connection = None
+    export_db_connection: psycopg2.connection | None = None
     export_db_cursor = None
     if database_creds:
         export_db_connection = psycopg2.connect(database_creds)
@@ -140,7 +143,7 @@ def main(arguments: Sequence[str]) -> int:
         export_db_cursor.execute(create_table_query)
 
     # Process the queue after linting, used for progressively sending to the database
-    def process_queue(queue: Queue, sql_cursor) -> None:
+    def process_queue(queue: Queue, sql_cursor: psycopg2.cursor | None) -> None:
         # Before processing
         if sql_cursor:
             logging.info("Sending messages to database")
@@ -161,7 +164,7 @@ def main(arguments: Sequence[str]) -> int:
                 sql_cursor.execute(insert_query, data)
 
         # After processing
-        if sql_cursor:
+        if export_db_connection:
             export_db_connection.commit()
 
     # Start linting loop

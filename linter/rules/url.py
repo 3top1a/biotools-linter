@@ -134,7 +134,7 @@ def filter_url(key: str, value: str) -> list[Message] | None:
         reports.append(
             Message(
                 "URL008",
-                f"URL `{value}` at `{key}` returned a connection error, it may not exist."
+                f"URL `{value}` at `{key}` returned a connection error, it may not exist.",
             ))
 
     except requests.RequestException as e:

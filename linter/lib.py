@@ -21,6 +21,7 @@ CACHE_MAX_AGE = 1800  # Seconds
 
 
 class CacheEntry:
+
     """A class for Cache entries."""
 
     name: str

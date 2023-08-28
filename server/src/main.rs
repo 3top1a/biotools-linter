@@ -69,11 +69,11 @@ impl From<DatabaseEntry> for Message {
             "NONE001" => format!("Important value  at {} is null/empty.", v.location),
             "URL---" => format!("Linter error: {} {}", v.value, v.location),
             "URL001" => format!(
-                "URL {} at {} does not match a valid URL.",
+                "URL {} at {} does not match a valid URL (there may be hidden unicode).",
                 v.value, v.location
             ),
             "URL002" => format!(
-                "URL {} at {} doesn't returns 200 (HTTP_OK).",
+                "URL {} at {} doesn't return ok status (>399).",
                 v.value, v.location
             ),
             "URL003" => format!(

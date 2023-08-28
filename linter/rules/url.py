@@ -52,8 +52,8 @@ def filter_url(key: str, value: str) -> list[Message] | None:
 
     # If the URL doesn't match the regex but is in a url/uri entry, throw an error
     if not re.match(URL_REGEX, value) and (key.endswith(("url", "uri"))):
-        return Message(
-            "URL001", f"URL `{value}` at `{key}` does not match a valid URL.")
+        return [Message(
+            "URL001", f"URL `{value}` at `{key}` does not match a valid URL (there may be hidden unicode).")]
 
     logging.debug(f"Checking URL: {value}")
     reports = []

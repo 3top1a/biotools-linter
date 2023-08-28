@@ -63,9 +63,6 @@ def filter_url(key: str, value: str) -> list[Message] | None:
         # TODO(3top1a): Redirect to edamontology checks
         return None
 
-    # Warn if non-ssl http
-    url_starts_with_https = value.startswith("https://")
-
     # Make a request
     try:
         # https://stackoverflow.com/questions/1731298/how-do-i-check-the-http-status-code-of-an-object-without-downloading-it#1731388
@@ -85,13 +82,20 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                     "URL005",
                     f"URL `{value}` at `{key}` returns a permanent redirect."))
 
+        if response.is_redirect or response.is_permanent_redirect:
+            # Fixes an annoying bug where response.url was still http
+            # even if the redirect was to the https site
+            if "Location" in response.headers:
+                value = response.headers["Location"]
+
         # Status is not between 200 and 400
         if not response.ok:
             reports.append(
                 Message(
                     "URL002",
-                    f"URL `{value}` at `{key}` doesn't returns 200 (HTTP_OK)."))
+                    f"URL `{value}` at `{key}` doesn't return ok status (>399)."))
 
+        url_starts_with_https = value.startswith("https://")
         if not url_starts_with_https:
             # Try to request with SSL
             try:
@@ -117,8 +121,7 @@ def filter_url(key: str, value: str) -> list[Message] | None:
         reports.append(
             Message(
                 "URL003",
-                f"URL `{value}` at `{key}` timeouted after {TIMEOUT} seconds.")
-        )
+                f"URL `{value}` at `{key}` timeouted after {TIMEOUT} seconds."))
 
     except requests.exceptions.SSLError:
         # SSL error

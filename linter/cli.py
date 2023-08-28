@@ -74,6 +74,10 @@ def main(arguments: Sequence[str]) -> int:
         "--exit-on-error",
         action="store_true",
         help="Return error code 1 if there are any errors found")
+    parser.add_argument(
+        "--no-color",
+        action="store_false",
+        help="Don't print colored output")
 
     args = parser.parse_args(arguments)
     exit_on_error = args.exit_on_error
@@ -81,30 +85,39 @@ def main(arguments: Sequence[str]) -> int:
         "DATABASE_URL"] if "DATABASE_URL" in os.environ else args.db
     lint_all = args.lint_all
     threads = args.threads
+    color = args.no_color
     tool_name = args.name
     page = args.page
 
     # Configure logging
     logging.addLevelName(REPORT, "REPORT")
     logging.basicConfig(level=args.log_level, force=True)
-    formatter = colorlog.ColoredFormatter(
-        "%(log_color)s%(message)s",
-        log_colors={
-            "DEBUG": "thin",
-            "INFO": "reset",
-            "REPORT": "bold_green",
-            "WARNING": "yellow",
-            "ERROR": "red",
-            "CRITICAL": "bold_red",
-        },
-        reset=True,
-        style="%",
-    )
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(formatter)
-    root_logger = logging.getLogger()
-    root_logger.removeHandler(root_logger.handlers[0])
-    root_logger.addHandler(console_handler)
+    if color:
+        formatter = colorlog.ColoredFormatter(
+            "%(log_color)s%(message)s",
+            log_colors={
+                "DEBUG": "thin",
+                "INFO": "reset",
+                "REPORT": "bold_green",
+                "WARNING": "yellow",
+                "ERROR": "red",
+                "CRITICAL": "bold_red",
+            },
+            reset=True,
+            style="%",
+        )
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+        root_logger = logging.getLogger()
+        root_logger.removeHandler(root_logger.handlers[0])
+        root_logger.addHandler(console_handler)
+    else:
+        formatter = logging.Formatter("%(levelname)s - %(message)s")
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+        root_logger = logging.getLogger()
+        root_logger.removeHandler(root_logger.handlers[0])
+        root_logger.addHandler(console_handler)
 
     # Require name or --lint-all
     if tool_name is None and lint_all is False:

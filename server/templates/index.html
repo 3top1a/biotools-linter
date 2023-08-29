@@ -24,10 +24,14 @@
         <tbody>
         </tbody>
     </table>
+    <div id="new"></div>
 </article>
 
 <script>
-    $("table#table").Grid({
+    let table = document.getElementById("table");
+
+    new gridjs.Grid({
+        from: table,
         search: {
             server: {
                 url: (prev, keyword) => `${prev}?query=${keyword}`
@@ -50,6 +54,7 @@
             ]),
             total: data => data.count
         }
-    });
+    }).render(document.getElementById("new"));
+    
 </script>
 {% endblock %}

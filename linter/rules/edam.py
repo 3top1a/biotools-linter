@@ -74,6 +74,9 @@ def filter_edam(key: str, value: str) -> list[Message] | None:
                 "EDAM_INVALID",
                 f"EDAM `{label_dict[value]}` at `{key}` is not a valid class ID."))
 
+    # TODO(3top1a) make sure term is not high level (output: Data, input: Data)
+    # TODO(3top1a) make sure term is in correct key (data -!> operation)
+
     if reports == []:
         return None
     return reports

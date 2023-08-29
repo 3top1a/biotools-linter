@@ -75,22 +75,34 @@ impl From<DatabaseEntry> for Message {
                 "URL {} at {} doesn't return ok status (>399).",
                 v.value, v.location
             ),
-            "URL003" | "URL_TIMEOUT"  => format!(
+            "URL003" | "URL_TIMEOUT" => format!(
                 "URL {} at {} timeouted after 30 seconds.",
                 v.value, v.location
             ),
-            "URL004" | "URL_SSL_ERROR"  => format!("URL {} at {} returned an SSL error.", v.value, v.location),
-            "URL005" | "URL_PERMANENT_REDIRECT"  => format!(
+            "URL004" | "URL_SSL_ERROR" => {
+                format!("URL {} at {} returned an SSL error.", v.value, v.location)
+            }
+            "URL005" | "URL_PERMANENT_REDIRECT" => format!(
                 "URL {} at {} returns a permanent redirect.",
                 v.value, v.location
             ),
-            "URL006" | "URL_NO_SSL"  => format!("URL {} at {} does not use SSL.", v.value, v.location),
-            "URL007" | "URL_UNUSED_SSL"  => format!(
+            "URL006" | "URL_NO_SSL" => {
+                format!("URL {} at {} does not use SSL.", v.value, v.location)
+            }
+            "URL007" | "URL_UNUSED_SSL" => format!(
                 "URL {} at {} does not start with https:// but site uses SSL.",
                 v.value, v.location
             ),
-            "URL008" | "URL_CONN_ERROR"  => format!(
+            "URL008" | "URL_CONN_ERROR" => format!(
                 "URL {} at {} returned a connection error, it may not exist.",
+                v.value, v.location
+            ),
+            "EDAM_OBSOLETE" => format!("EDAM {} at {} is obsolete.", v.value, v.location),
+            "EDAM_NOT_RECOMMENDED" => {
+                format!("EDAM {} at {} is not recommended.", v.value, v.location)
+            }
+            "EDAM_INVALID" => format!(
+                "EDAM {} at {} is not a valid class ID.",
                 v.value, v.location
             ),
             _ => String::from("Invalid entry code found, please file a bug report."),

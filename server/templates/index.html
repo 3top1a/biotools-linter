@@ -48,12 +48,12 @@
         server: {
             url: '/api',
             then: data => data.results.map(entry => [
-                gridjs.html(`<a href="https://bio.tools/${entry.tool}">${entry.tool}</a>`),
+                gridjs.html(`<a target="_blank" href="https://bio.tools/${entry.tool}">${entry.tool}</a>`),
                 gridjs.html(entry.processed_text),
                 entry.code,
                 entry.timestamp,
-                gridjs.html(`<a href="https://bio.tools/api/tool/${entry.tool}">JSON</a>
-                <a href="https://bio.tools/${entry.tool}/edit">Edit</a>`)
+                gridjs.html(`<a target="_blank" href="https://bio.tools/api/tool/${entry.tool}">JSON</a>
+                <a target="_blank" href="https://bio.tools/${entry.tool}/edit">Edit</a>`)
             ]),
             total: data => data.count
         },

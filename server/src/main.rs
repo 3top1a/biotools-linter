@@ -202,7 +202,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 // Serve the main page
 async fn index(State(state): State<ServerConfig>) -> Html<String> {
-    let total_count = sqlx::query_scalar!("SELECT COUNT(*) FROM messages")
+    // Simple statistics
+    let error_count = sqlx::query_scalar!("SELECT COUNT(*) FROM messages")
         .fetch_all(&state.db)
         .await
         .unwrap()[0]
@@ -214,8 +215,16 @@ async fn index(State(state): State<ServerConfig>) -> Html<String> {
         .unwrap()[0]
         .unwrap();
 
+    // select count(DISTINCT tool) from messages;
+    let tool_count = sqlx::query_scalar!("SELECT COUNT(DISTINCT tool) FROM messages")
+        .fetch_all(&state.db)
+        .await
+        .unwrap()[0]
+        .unwrap();
+
     let mut c = Context::new();
-    c.insert("count", &total_count);
+    c.insert("error_count", &error_count);
+    c.insert("tool_count", &tool_count);
     c.insert("last_time", &oldest_entry_unix);
     c.insert("search_value", "");
 

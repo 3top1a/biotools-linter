@@ -35,7 +35,9 @@
         search: {
             server: {
                 url: (prev, keyword) => `${prev}?query=${keyword}`
-            }
+            },
+            debounceTimeout: 250,
+
         },
         pagination: {
             limit: 100,
@@ -53,6 +55,11 @@
                 gridjs.html(entry.processed_text)
             ]),
             total: data => data.count
+        },
+        language: {
+            'search': {
+              'placeholder': '🔍 Search for name, biotools ID or error code'
+            },
         }
     }).render(document.getElementById("new"));
     

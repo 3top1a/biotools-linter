@@ -990,12 +990,8 @@ th.gridjs-th:last-child {
   border-bottom-width: 1px;
 }
 
-.gridjs-search {
-  float: left;
-}
-
 .gridjs-search-input {
-  width: 250px;
+  width: 100%;
 }
 
 .gridjs-loading-bar {

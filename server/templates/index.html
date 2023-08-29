@@ -14,7 +14,6 @@
     <table id="table">
         <thead>
             <tr>
-                <th>ID</th>
                 <th>Name</th>
                 <th>Code</th>
                 <th>Found at</th>
@@ -48,7 +47,6 @@
         server: {
             url: '/api',
             then: data => data.results.map(entry => [
-                entry.id,
                 gridjs.html(`<a href="https://bio.tools/${entry.tool}"> ${entry.tool} </a>`),
                 entry.code,
                 entry.timestamp,

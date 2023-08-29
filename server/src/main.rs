@@ -48,7 +48,6 @@ struct DatabaseEntry {
 /// Middle part of what gets sent to client
 #[derive(Debug, Serialize, Deserialize)]
 struct Message {
-    id: i32,
     timestamp: String,
     tool: String,
     code: String,
@@ -112,7 +111,6 @@ impl From<DatabaseEntry> for Message {
 
         Self {
             code: v.code,
-            id: v.id,
             tool: v.tool,
             processed_text,
             timestamp,

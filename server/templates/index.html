@@ -14,10 +14,11 @@
     <table id="table">
         <thead>
             <tr>
-                <th>Name</th>
+                <th>Tool name</th>
+                <th>Error</th>
                 <th>Code</th>
                 <th>Found at</th>
-                <th>Description</th>
+                <th>Links</th>
             </tr>
         </thead>
         <tbody>
@@ -47,10 +48,12 @@
         server: {
             url: '/api',
             then: data => data.results.map(entry => [
-                gridjs.html(`<a href="https://bio.tools/${entry.tool}"> ${entry.tool} </a>`),
-                entry.code,
+                gridjs.html(`<a href="https://bio.tools/${entry.tool}">${entry.tool}</a>`),
+                gridjs.html(entry.processed_text),
                 entry.timestamp,
-                gridjs.html(entry.processed_text)
+                entry.code,
+                gridjs.html(`<a href="https://bio.tools/api/tool/${entry.tool}">JSON</a>
+                <a href="https://bio.tools/${entry.tool}/edit">Edit</a>`)
             ]),
             total: data => data.count
         },

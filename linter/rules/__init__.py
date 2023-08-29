@@ -73,6 +73,8 @@ def filter_none(key: str, _value: str) -> Message | None:
 
     for ik in IMPORTANT_KEYS:
         if key.endswith(ik):
-            return Message("NONE001", f"Important value `` at `{key}` is null/empty.")
+            #TODO(3top1a) Needs to be more specific
+            #return Message("NONE001", f"Important value `` at `{key}` is null/empty.")
+            pass
 
     return None

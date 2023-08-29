@@ -53,7 +53,7 @@ def filter_url(key: str, value: str) -> list[Message] | None:
     # If the URL doesn't match the regex but is in a url/uri entry, throw an error
     if not re.match(URL_REGEX, value) and (key.endswith(("url", "uri"))):
         return [Message(
-            "URL001", f"URL `{value}` at `{key}` does not match a valid URL (there may be hidden unicode).")]
+            "URL_INVALID", f"URL `{value}` at `{key}` does not match a valid URL (there may be hidden unicode).")]
 
     logging.debug(f"Checking URL: {value}")
     reports = []
@@ -79,7 +79,7 @@ def filter_url(key: str, value: str) -> list[Message] | None:
         if response.is_permanent_redirect:
             reports.append(
                 Message(
-                    "URL005",
+                    "URL_PERMANENT_REDIRECT",
                     f"URL `{value}` at `{key}` returns a permanent redirect."))
 
         if response.is_redirect or response.is_permanent_redirect:
@@ -92,7 +92,7 @@ def filter_url(key: str, value: str) -> list[Message] | None:
         if not response.ok:
             reports.append(
                 Message(
-                    "URL002",
+                    "URL_BAD_STATUS",
                     f"URL `{value}` at `{key}` doesn't return ok status (>399)."))
 
         url_starts_with_https = value.startswith("https://")
@@ -105,14 +105,14 @@ def filter_url(key: str, value: str) -> list[Message] | None:
             except:
                 # If that fails, the site does not use SSL at all
                 reports.append(
-                    Message("URL006",
+                    Message("URL_NO_SSL",
                             f"URL `{value}` at `{key}` does not use SSL."))
 
             else:
                 # If it succeeds, the site can use SSL but the URL is just wrong
                 reports.append(
                     Message(
-                        "URL007",
+                        "URL_UNUSED_SSL",
                         f"URL `{value}` at `{key}` does not start with https:// but site uses SSL.",
                     ))
 
@@ -120,26 +120,26 @@ def filter_url(key: str, value: str) -> list[Message] | None:
         # Timeout error
         reports.append(
             Message(
-                "URL003",
+                "URL_TIMEOUT",
                 f"URL `{value}` at `{key}` timeouted after {TIMEOUT} seconds."))
 
     except requests.exceptions.SSLError:
         # SSL error
         reports.append(
-            Message("URL004",
+            Message("URL_SSL_ERROR",
                     f"URL `{value}` at `{key}` returned an SSL error."))
 
     except requests.exceptions.ConnectionError:
         # Connection error
         reports.append(
             Message(
-                "URL008",
+                "URL_CONN_ERROR",
                 f"URL `{value}` at `{key}` returned a connection error, it may not exist.",
             ))
 
     except requests.RequestException as e:
         # Catch all request error
-        reports.append(Message("URL---", f"Error: `{e}` at `{key}`"))
+        reports.append(Message("URL_LINTER_ERROR", f"Error: `{e}` at `{key}`"))
 
     if len(reports) != 0:
         return reports

@@ -66,30 +66,30 @@ impl From<DatabaseEntry> for Message {
         // Process text
         let processed_text = match v.code.as_str() {
             "NONE001" => format!("Important value  at {} is null/empty.", v.location),
-            "URL---" => format!("Linter error: {} {}", v.value, v.location),
-            "URL001" => format!(
+            "URL---" | "URL_LINTER_ERROR" => format!("Linter error: {} {}", v.value, v.location),
+            "URL001" | "URL_INVALID" => format!(
                 "URL {} at {} does not match a valid URL (there may be hidden unicode).",
                 v.value, v.location
             ),
-            "URL002" => format!(
+            "URL002" | "URL_BAD_STATUS" => format!(
                 "URL {} at {} doesn't return ok status (>399).",
                 v.value, v.location
             ),
-            "URL003" => format!(
+            "URL003" | "URL_TIMEOUT"  => format!(
                 "URL {} at {} timeouted after 30 seconds.",
                 v.value, v.location
             ),
-            "URL004" => format!("URL {} at {} returned an SSL error.", v.value, v.location),
-            "URL005" => format!(
+            "URL004" | "URL_SSL_ERROR"  => format!("URL {} at {} returned an SSL error.", v.value, v.location),
+            "URL005" | "URL_PERMANENT_REDIRECT"  => format!(
                 "URL {} at {} returns a permanent redirect.",
                 v.value, v.location
             ),
-            "URL006" => format!("URL {} at {} does not use SSL.", v.value, v.location),
-            "URL007" => format!(
+            "URL006" | "URL_NO_SSL"  => format!("URL {} at {} does not use SSL.", v.value, v.location),
+            "URL007" | "URL_UNUSED_SSL"  => format!(
                 "URL {} at {} does not start with https:// but site uses SSL.",
                 v.value, v.location
             ),
-            "URL008" => format!(
+            "URL008" | "URL_CONN_ERROR"  => format!(
                 "URL {} at {} returned a connection error, it may not exist.",
                 v.value, v.location
             ),

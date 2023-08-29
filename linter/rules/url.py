@@ -58,11 +58,6 @@ def filter_url(key: str, value: str) -> list[Message] | None:
     logging.debug(f"Checking URL: {value}")
     reports = []
 
-    # Special check for edamontology
-    if "://edamontology.org/" in value:
-        # TODO(3top1a): Redirect to edamontology checks
-        return None
-
     # Make a request
     try:
         # https://stackoverflow.com/questions/1731298/how-do-i-check-the-http-status-code-of-an-object-without-downloading-it#1731388

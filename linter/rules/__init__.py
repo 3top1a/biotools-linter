@@ -7,10 +7,13 @@ what(URL, name) `value(example.com)` at `key(tool//description)` is Issue(missin
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
-from message import Message
-
+from .edam import filter_edam
 from .url import filter_url
+
+if TYPE_CHECKING:
+    from message import Message
 
 URL_REGEX = r"(http[s]?|ftp)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
 IMPORTANT_KEYS = ["name", "description",
@@ -43,9 +46,14 @@ def delegate_filter(key: str, value: str) -> list[Message] | None:
         # We can't check anything else as it will error
         return output
 
-    url = filter_url(key, value)
-    if url is not None:
-        output.extend(url)
+    if "://edamontology.org/" in value:
+        messages = filter_edam(key, value)
+        if messages is not None:
+            output.extend(messages)
+    else:
+        messages = filter_url(key, value)
+        if messages is not None:
+            output.extend(messages)
 
     if output is []:
         return None
@@ -74,7 +82,6 @@ def filter_none(key: str, _value: str) -> Message | None:
     for ik in IMPORTANT_KEYS:
         if key.endswith(ik):
             #TODO(3top1a) Needs to be more specific
-            #return Message("NONE001", f"Important value `` at `{key}` is null/empty.")
             pass
 
     return None

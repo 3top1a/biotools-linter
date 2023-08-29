@@ -11,6 +11,7 @@ import requests
 from joblib import Parallel, delayed
 from message import Level, Message
 from rules import delegate_filter
+from rules.edam import initialize
 
 if TYPE_CHECKING:
     import queue
@@ -33,6 +34,9 @@ class CacheEntry:
         self.name = name
         self.data = data
         self.createdat = int(time.time())
+
+        # Initialize EDAM
+        initialize()
 
     def is_old(self: CacheEntry) -> bool:
         """Return true if the cache entry is beyond max age."""
@@ -104,6 +108,8 @@ class Session:
         self.page = page
         self.json = json
         self.cache = cache
+
+        initialize()
 
     def clear_search(self: Session) -> None:
         """Reset multiple search. Call before `search_api`."""

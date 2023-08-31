@@ -125,7 +125,12 @@ def main(arguments: Sequence[str]) -> int:
     # Require name or --lint-all
     if tool_name is None and lint_all is False:
         logging.critical("Please specify tools name or pass in --lint-all")
-        sys.exit(1)
+        return 1
+
+    # Require page > 0
+    if page <= 0:
+        logging.critical("Please specify a valid page")
+        return 1
 
     session = Session()
     return_queue = Queue()
@@ -191,7 +196,7 @@ def main(arguments: Sequence[str]) -> int:
     else:
         # Lint specific project(s)
         session.search_api(tool_name, page)
-        count = session.total_project_count()
+        count = session.get_total_project_count()
         logging.info(f"Found {count} projects")
         session.lint_all_projects(return_q=return_queue, threads=threads)
         process_queue(return_queue, export_db_cursor)

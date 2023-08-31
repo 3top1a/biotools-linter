@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, ClassVar
 
@@ -17,33 +16,7 @@ if TYPE_CHECKING:
     import queue
 
 REPORT: int = 15  # Report log level is between debug and info
-TIMEOUT = 10  # Seconds
-CACHE_MAX_AGE = 1800  # Seconds
-
-
-class CacheEntry:
-
-    """A class for Cache entries."""
-
-    name: str
-    createdat: int  # Unix time
-    data: dict
-
-    def __init__(self: CacheEntry, name: str, data: dict) -> None:
-        """Initialize a cache entry."""
-        self.name = name
-        self.data = data
-        self.createdat = int(time.time())
-
-        # Initialize EDAM
-        initialize()
-
-    def is_old(self: CacheEntry) -> bool:
-        """Return true if the cache entry is beyond max age."""
-        current_time = int(time.time())
-        if current_time > self.createdat + CACHE_MAX_AGE:
-            return True
-        return False
+TIMEOUT = 20  # Seconds
 
 
 class Session:
@@ -52,9 +25,7 @@ class Session:
 
     Attributes
     ----------
-        page (int): The current page number.
         jsons (dict): Dictonary of a seach query and the resulting JSON
-        cache (dict): Cache of projects and messages
 
     Methods
     -------
@@ -74,13 +45,10 @@ class Session:
             Checks if the previous page exists in the JSON data.
     """
 
-    page: int = 1
     json: dict = ClassVar[dict[dict]]
-    cache: dict[str, CacheEntry]
     executor: None | ThreadPoolExecutor = None
 
     def __init__(self: Session,
-                 page: int = 1,
                  json: dict | None = None,
                  cache: dict | None = None) -> None:
         """Initialize a new Session instance.
@@ -105,7 +73,6 @@ class Session:
         if cache is None:
             cache = {}
 
-        self.page = page
         self.json = json
         self.cache = cache
 
@@ -138,7 +105,6 @@ class Session:
         """
         logging.debug(f"Searching API for {names}")
 
-        self.page = page
         self.json = {}
 
         # Individual search types
@@ -181,7 +147,7 @@ class Session:
             return False
 
         def try_search_normal_tool(name: str) -> bool:
-            url = f"https://bio.tools/api/t/?q={name}&format=json&page={self.page!s}"
+            url = f"https://bio.tools/api/t/?q={name}&format=json&page={page!s}"
             response = requests.get(url, timeout=TIMEOUT)
             if response.ok:
                 self.json[name] = response.json()
@@ -240,8 +206,7 @@ class Session:
 
     def lint_specific_project(self: Session,
                               data_json: dict,
-                              return_q: queue.Queue | None = None,
-                              use_cache: bool = True) -> bool:
+                              return_q: queue.Queue | None = None) -> None:
         """Perform linting on a specific project.
 
         Attributes
@@ -261,41 +226,22 @@ class Session:
             logging.critical("Received empty JSON!")
             return None
 
-        name = data_json["name"]
+        tool_name = data_json["name"]
 
         if self.executor is None:
             self.executor = ThreadPoolExecutor()
 
-        def try_cache() -> bool:
-            if name in self.cache and use_cache:
-                logging.info(f"Using cached lint for {name}")
-                project_cache = self.cache[name]
-
-                if project_cache.is_old():
-                    logging.info(f"Cache for {name} is old, ignoring")
-                    return False
-
-                for message in project_cache.data:
-                    return_q.put(message)
-                return True
-            return False
-
-        if use_cache and try_cache():
-            return True
-
         logging.info(
-            f"Linting {name} at https://bio.tools/{data_json['biotoolsID']}")
+            f"Linting {tool_name} at https://bio.tools/{data_json['biotoolsID']}")
         logging.debug(f"Project JSON returned {len(data_json)} keys")
 
         dictionary = flatten_json_to_single_dict(data_json,
-                                                 parent_key=name + "/")
+                                                 parent_key=tool_name + "/")
 
         futures = [
             self.executor.submit(delegate_filter, key, value)
             for key, value in dictionary.items()
         ]
-
-        to_be_cached = []
 
         for f in futures:
             output = f.result()
@@ -307,15 +253,10 @@ class Session:
                     message.print_message()
                     if return_q is not None:
                         return_q.put(message)
-                        to_be_cached.append(message)
 
         if return_q is not None:
             m = Message("LINT-F", "Finished linting", level=Level.LinterInternal)
             return_q.put(m)
-            to_be_cached.append(m)
-
-        # Add to cache
-        self.cache[name] = CacheEntry(name, to_be_cached)
 
         return False
 
@@ -378,7 +319,7 @@ class Session:
                 return query["previous"] is not None
         return False
 
-    def total_project_count(self: Session) -> int:
+    def get_total_project_count(self: Session) -> int:
         """Return the total number (even not on page) of projects found."""
         return len(self.return_project_list_json())
 

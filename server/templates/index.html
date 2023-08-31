@@ -11,32 +11,32 @@
         Oldest entry was linted at <code>{{last_time | date(format="%Y-%m-%d %H:%M") }}</code>.
     </p>
 
-    <table id="table">
-        <thead>
-            <tr>
-                <th>Tool name</th>
-                <th>Error</th>
-                <th>Code</th>
-                <th>Found at</th>
-                <th>Links</th>
-            </tr>
-        </thead>
-        <tbody>
-        </tbody>
-    </table>
-    <div id="new"></div>
+    <div id="table"></div>
 </article>
 
 <script>
-    let table = document.getElementById("table");
-
     new gridjs.Grid({
-        from: table,
+        columns: [{
+            name: "Tool name",
+            attributes: (cell) => {
+                // add break-all to the name column
+                if (cell) {
+                    return {
+                        'style': 'word-break: break-all',
+                    }
+                }
+            }
+        },
+        "Error",
+        "Code",
+        "Found at",
+        "Links"
+        ],
         search: {
             server: {
                 url: (prev, keyword) => `${prev}?query=${keyword}`
             },
-            debounceTimeout: 500,
+            debounceTimeout: 750,
 
         },
         pagination: {
@@ -59,10 +59,17 @@
         },
         language: {
             'search': {
-              'placeholder': '🔍 Search for name, biotools ID or error code'
+                'placeholder': '🔍 Search for name, biotools ID or error code'
             },
-        }
-    }).render(document.getElementById("new"));
-    
+        },
+        resizable: true,
+        width: "100%",
+        style: {
+            table: {
+                'white-space': 'pre-line',
+            }
+        },
+    }).render(document.getElementById("table"));
+
 </script>
 {% endblock %}

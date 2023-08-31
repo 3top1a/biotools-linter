@@ -76,7 +76,7 @@ impl From<DatabaseEntry> for Message {
                 v.value, v.location
             ),
             "URL003" | "URL_TIMEOUT" => format!(
-                "URL {} at {} timeouted after 30 seconds.",
+                "URL {} at {} timeouts after 30 seconds.",
                 v.value, v.location
             ),
             "URL004" | "URL_SSL_ERROR" => {

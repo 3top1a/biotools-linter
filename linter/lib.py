@@ -310,7 +310,7 @@ class Session:
                         to_be_cached.append(message)
 
         if return_q is not None:
-            m = Message("LINT-F", "Finished linting", level=Level.Debug)
+            m = Message("LINT-F", "Finished linting", level=Level.LinterInternal)
             return_q.put(m)
             to_be_cached.append(m)
 

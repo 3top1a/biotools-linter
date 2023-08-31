@@ -5,7 +5,7 @@ import logging
 import os
 import sys
 
-from message import Message
+from message import Level, Message
 
 from .url import req_session
 
@@ -62,17 +62,20 @@ def filter_edam(key: str, value: str) -> list[Message] | None:
             reports.append(
                 Message(
                     "EDAM_OBSOLETE",
-                    f"EDAM `{label_dict[value]}` at `{key}` is obsolete. ({deprication_comment_dict[value]})"))
+                    f"EDAM `{label_dict[value]}` at `{key}` is obsolete. ({deprication_comment_dict[value]})",
+                    Level.ReportMedium))
         elif not_recommended_dict[value]:
                 reports.append(
                     Message(
                         "EDAM_NOT_RECOMMENDED",
-                        f"EDAM `{label_dict[value]}` at `{key}` is not recommended."))
+                        f"EDAM `{label_dict[value]}` at `{key}` is not recommended.",
+                        Level.ReportMedium))
     else:
         reports.append(
             Message(
                 "EDAM_INVALID",
-                f"EDAM `{label_dict[value]}` at `{key}` is not a valid class ID."))
+                f"EDAM `{label_dict[value]}` at `{key}` is not a valid class ID.",
+                Level.ReportMedium))
 
     # TODO(3top1a) make sure term is not high level (output: Data, input: Data)
     # TODO(3top1a) make sure term is in correct key (data -!> operation)

@@ -15,9 +15,13 @@ class Level(IntEnum):
 
     """Level for message."""
 
-    Report = 1
-    Error = 2
-    Debug = 3
+    Report = 1 # Obsolete
+    LinterError = 2 # Linter errors
+    LinterInternal = 3 # For messaging between threads, e.g. the LINT-F for when a lint finishes
+    ReportCritical = 4 # Reserved for security problems
+    ReportHigh = 5
+    ReportMedium = 6
+    ReportLow = 7
 
 class Message:
 

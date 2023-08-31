@@ -13,7 +13,9 @@ from typing import TYPE_CHECKING
 
 import colorlog
 import psycopg2
+from psycopg2.extensions import parse_dsn
 from lib import Session
+from message import Level
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -140,11 +142,11 @@ def main(arguments: Sequence[str]) -> int:
     export_db_connection: psycopg2.connection | None = None
     export_db_cursor = None
     if database_creds:
-        export_db_connection = psycopg2.connect(database_creds)
+        export_db_connection = psycopg2.connect(**parse_dsn(database_creds))
         export_db_cursor = export_db_connection.cursor()
 
         # Create table query
-        create_table_query = "CREATE TABLE IF NOT EXISTS messages_new ( id SERIAL PRIMARY KEY, time INTEGER NOT NULL, tool TEXT NOT NULL, code TEXT NOT NULL, location TEXT NOT NULL, value TEXT NOT NULL );"
+        create_table_query = "CREATE TABLE IF NOT EXISTS messages_new ( id SERIAL PRIMARY KEY, time INTEGER NOT NULL, tool TEXT NOT NULL, code TEXT NOT NULL, location TEXT NOT NULL, value TEXT NOT NULL, level INTEGER NOT NULL );"
         export_db_cursor.execute(create_table_query)
 
     # Process the queue after linting, used for progressively sending to the database
@@ -159,13 +161,13 @@ def main(arguments: Sequence[str]) -> int:
                 pass
 
             # Export
-            if sql_cursor and item.level == 1:
-                insert_query = "INSERT INTO messages_new (time, tool, code, location, value) VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;"
+            if sql_cursor and item.level != Level.LinterInternal:
+                insert_query = "INSERT INTO messages_new (time, tool, code, location, value, level) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;"
                 # Replace 'data' with your actual data variables
                 data = (int(
                     datetime.datetime.now(
                         tz=datetime.timezone.utc).timestamp()), item.project,
-                        item.code, item.get_location(), item.get_value())
+                        item.code, item.get_location(), item.get_value(), int(item.level))
                 sql_cursor.execute(insert_query, data)
 
         # After processing

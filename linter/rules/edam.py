@@ -69,7 +69,7 @@ def filter_edam(key: str, value: str) -> list[Message] | None:
                     Message(
                         "EDAM_NOT_RECOMMENDED",
                         f"EDAM `{label_dict[value]}` at `{key}` is not recommended.",
-                        Level.ReportMedium))
+                        Level.ReportLow))
     else:
         reports.append(
             Message(

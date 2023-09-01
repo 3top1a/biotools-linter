@@ -74,7 +74,7 @@ def filter_edam(key: str, value: str) -> list[Message] | None:
         reports.append(
             Message(
                 "EDAM_INVALID",
-                f"EDAM `{label_dict[value]}` at `{key}` is not a valid class ID.",
+                f"EDAM `{value}` at `{key}` is not a valid class ID.",
                 Level.ReportMedium))
 
     # TODO(3top1a) make sure term is not high level (output: Data, input: Data)

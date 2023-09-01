@@ -13,9 +13,9 @@ from typing import TYPE_CHECKING
 
 import colorlog
 import psycopg2
-from psycopg2.extensions import parse_dsn
 from lib import Session
 from message import Level
+from psycopg2.extensions import parse_dsn
 
 if TYPE_CHECKING:
     from collections.abc import Sequence

@@ -10,7 +10,7 @@ from message import Level, Message
 from requests.adapters import HTTPAdapter
 
 # Initialize (here so it inits once)
-user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 (Bio.tools linter, github.com/3top1a/biotools-linter)"
 req_session = requests.Session()
 adapter = HTTPAdapter(pool_connections=100, pool_maxsize=100)
 req_session.mount("http://", adapter)
@@ -71,24 +71,15 @@ def filter_url(key: str, value: str) -> list[Message] | None:
         # with `HEAD` and not the whole content of the file.
         # It's also just faster
         try:
-            response = req_session.head(value, timeout=TIMEOUT)
+            response = req_session.head(value, timeout=TIMEOUT, allow_redirects=True)
 
-            # Return a permanent redirect but only if it doesn't change http to https TODO
-            # Lib BUG - when doing a head request, the `url` value after a redirect
-            # is the same as the original url, but not with `requests.get`
-
-            if response.is_permanent_redirect:
+            response_no_auto_redirect = req_session.head(value, timeout=TIMEOUT, allow_redirects=False)
+            if response_no_auto_redirect.is_permanent_redirect:
                 reports.append(
                     Message(
                         "URL_PERMANENT_REDIRECT",
                         f"URL `{value}` at `{key}` returns a permanent redirect.",
                         Level.ReportLow))
-
-            if response.is_redirect or response.is_permanent_redirect:
-                # Fixes an annoying bug where response.url was still http
-                # even if the redirect was to the https site
-                if "Location" in response.headers:
-                    value = response.headers["Location"]
 
             # Status is not between 200 and 400
             if not response.ok:

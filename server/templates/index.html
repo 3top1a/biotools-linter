@@ -29,6 +29,7 @@
         },
         "Error",
         "Code",
+        "Severity",
         "Found at",
         "Links"
         ],
@@ -51,6 +52,7 @@
                 gridjs.html(`<a target="_blank" href="https://bio.tools/${entry.tool}">${entry.tool}</a>`),
                 gridjs.html(entry.processed_text),
                 entry.code,
+                entry.severity,
                 entry.timestamp,
                 gridjs.html(`<a target="_blank" href="https://bio.tools/api/tool/${entry.tool}">JSON</a>
                 <a target="_blank" href="https://bio.tools/${entry.tool}/edit">Edit</a>`)

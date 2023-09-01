@@ -43,6 +43,7 @@ struct DatabaseEntry {
     code: String,
     location: String,
     value: String,
+    level: i32,
 }
 
 /// Middle part of what gets sent to client
@@ -52,6 +53,7 @@ struct Message {
     tool: String,
     code: String,
     processed_text: String,
+    severity: String,
 }
 impl From<DatabaseEntry> for Message {
     fn from(value: DatabaseEntry) -> Self {
@@ -108,6 +110,18 @@ impl From<DatabaseEntry> for Message {
             _ => String::from("Invalid entry code found, please file a bug report."),
         };
 
+        // Process level
+        let severity = match v.level {
+            1 => "Obsolete",
+            2 => "Linting Error",
+            3 => "Linter Internal",
+            4 => "Critical",
+            5 => "High",
+            6 => "Medium",
+            7 => "Low",
+            _ => "Unknown, please report",
+        }.to_owned();
+
         // Autolink
         let processed_text = LINK_REGEX
             .replace_all(&processed_text, |caps: &regex::Captures| {
@@ -126,6 +140,7 @@ impl From<DatabaseEntry> for Message {
             tool: v.tool,
             processed_text,
             timestamp,
+            severity,
         }
     }
 }

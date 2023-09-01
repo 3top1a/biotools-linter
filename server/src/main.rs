@@ -18,6 +18,8 @@ use tera::{Context, Tera};
 use tower_http::services::ServeFile;
 use tracing::info;
 use tracing_subscriber::FmtSubscriber;
+use utoipa::{IntoParams, OpenApi, ToSchema};
+use utoipa_swagger_ui::SwaggerUi;
 
 #[macro_use]
 extern crate lazy_static;
@@ -35,6 +37,13 @@ OPTIONS:
   --port u16           Sets server port
 ";
 
+/// Api query
+#[derive(Deserialize, IntoParams)]
+struct APIQuery {
+    query: Option<String>,
+    page: Option<i64>,
+}
+
 /// What gets recieved from the database
 struct DatabaseEntry {
     id: i32,
@@ -47,7 +56,8 @@ struct DatabaseEntry {
 }
 
 /// Middle part of what gets sent to client
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[schema(example = json!({"timestamp": "1693564003", "tool": "biotools-linter", "code": "URL_UNUSED_SSL", "processed_text": "Just kidding", "severity": "Low"}))]
 struct Message {
     timestamp: String,
     tool: String,
@@ -120,7 +130,8 @@ impl From<DatabaseEntry> for Message {
             6 => "Medium",
             7 => "Low",
             _ => "Unknown, please report",
-        }.to_owned();
+        }
+        .to_owned();
 
         // Autolink
         let processed_text = LINK_REGEX
@@ -146,7 +157,8 @@ impl From<DatabaseEntry> for Message {
 }
 
 /// What gets sent out to web clients
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
+#[schema(example = json!({"count": "10000", "next": "?page=3", "previous": "?page=1", "results": []}))]
 struct ApiResponse {
     count: i64,
     next: Option<String>,
@@ -208,10 +220,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Build server state
     let state = ServerConfig { db: pool };
 
+    // API
+    #[derive(OpenApi)]
+    #[openapi(paths(serve_api), components(schemas(ApiResponse, Message)))]
+    struct ApiDoc;
+
     // Build router
     let routes = Router::new()
         .route("/", get(index))
         .route("/api", get(serve_api))
+        .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .nest_service("/robots.txt", ServeFile::new("static/robots.txt"))
         .nest_service("/style.css", ServeFile::new("static/style.css"))
         .with_state(state);
@@ -259,16 +277,25 @@ async fn index(State(state): State<ServerConfig>) -> Html<String> {
 }
 
 /// Serve API
+#[utoipa::path(
+   get,
+   path = "/api",
+   responses(
+        (status = 200, description = "Search successful", body = ApiResponse,
+        ),
+   ),
+   params(
+    APIQuery
+),
+)]
 async fn serve_api(
     State(state): State<ServerConfig>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    Query(params): Query<HashMap<String, String>>,
+    Query(params): Query<APIQuery>,
 ) -> Json<ApiResponse> {
     // Get parameters
-    let page_default: String = String::from("0");
-    let page = params.get("page").unwrap_or(&page_default);
-    let page: i64 = page.parse().unwrap_or(0);
-    let query = params.get("query");
+    let page = params.page.unwrap_or(0);
+    let query = params.query;
 
     info!(
         "Listing API from `{}` page {} query {:?}",
@@ -279,7 +306,7 @@ async fn serve_api(
         let rows = sqlx::query_as!(
             DatabaseEntry,
             "SELECT * FROM messages WHERE tool ILIKE $1 OR code ILIKE $1 LIMIT 100 OFFSET $2",
-            format!("%{}%", html_escape::encode_text(query.unwrap())),
+            format!("%{}%", html_escape::encode_text(&query.clone().unwrap())),
             page * 100,
         )
         .fetch_all(&state.db)
@@ -305,7 +332,7 @@ async fn serve_api(
     let total_count = if query.is_some() {
         sqlx::query_scalar!(
             "SELECT COUNT(*) FROM messages WHERE tool ILIKE $1 OR code ILIKE $1",
-            format!("%{}%", html_escape::encode_text(query.unwrap()))
+            format!("%{}%", html_escape::encode_text(&query.clone().unwrap()))
         )
         .fetch_all(&state.db)
         .await

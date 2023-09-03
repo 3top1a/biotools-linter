@@ -1,5 +1,3 @@
-use std::future::Future;
-
 use sqlx::{Pool, Postgres};
 
 use crate::Message;

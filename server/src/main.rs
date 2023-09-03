@@ -10,13 +10,14 @@ use dotenv::dotenv;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
+use tokio::join;
 use std::{
     net::SocketAddr,
     time::{Duration, UNIX_EPOCH},
 };
 use tera::{Context, Tera};
 use tower_http::services::ServeFile;
-use tracing::info;
+use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 use utoipa::{IntoParams, OpenApi, ToSchema};
 use utoipa_swagger_ui::SwaggerUi;
@@ -161,7 +162,7 @@ lazy_static! {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize tracing
     // TODO switch to env subscriber
-    let subscriber = FmtSubscriber::builder().finish();
+    let subscriber = FmtSubscriber::builder().compact().with_max_level(Level::TRACE).finish();
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     dotenv().ok();
@@ -250,14 +251,19 @@ async fn serve_api(
         addr, page, query
     );
 
-    let messages = match query.clone() {
-        None => db::get_messages_paginated(&state.pool, page).await,
-        Some(query) => db::get_messages_paginated_search(&state.pool, page, &query).await
-    };
-
-    let total_count = match query {
-        None => db::count_messages_paginated(&state.pool).await,
-        Some(query) => db::count_messages_paginated_search(&state.pool, &query).await
+    let (messages, total_count) = match query.clone() {
+        None => {
+            join!(
+                db::get_messages_paginated(&state.pool, page),
+                db::count_messages_paginated(&state.pool)
+            )
+        },
+        Some(query) => {
+            join!(
+                db::get_messages_paginated_search(&state.pool, page, &query),
+                db::count_messages_paginated_search(&state.pool, &query)
+            )
+        }
     };
 
     Json(ApiResponse {

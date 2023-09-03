@@ -1,47 +1,41 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM messages WHERE tool ILIKE $1 OR code ILIKE $1 LIMIT 100 OFFSET $2",
+  "query": "SELECT time,tool,code,location,text,level FROM messages LIMIT 100 OFFSET $1",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 1,
         "name": "time",
         "type_info": "Int4"
       },
       {
-        "ordinal": 2,
+        "ordinal": 1,
         "name": "tool",
         "type_info": "Text"
       },
       {
-        "ordinal": 3,
+        "ordinal": 2,
         "name": "code",
         "type_info": "Text"
       },
       {
-        "ordinal": 4,
+        "ordinal": 3,
         "name": "location",
         "type_info": "Text"
       },
       {
-        "ordinal": 5,
+        "ordinal": 4,
         "name": "text",
         "type_info": "Text"
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "level",
         "type_info": "Int4"
       }
     ],
     "parameters": {
       "Left": [
-        "Text",
         "Int8"
       ]
     },
@@ -51,9 +45,8 @@
       false,
       false,
       false,
-      false,
       false
     ]
   },
-  "hash": "c03820cfa0db28e1afca2069e241d98bcb74c3b4a11ff04f1577d51b98224c1b"
+  "hash": "912be29ce662c375d7db1f28d5f70e8bc6d96ca93b68fb7ea53557123bdb1122"
 }

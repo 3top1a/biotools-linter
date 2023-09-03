@@ -8,7 +8,7 @@ use chrono::{DateTime, Utc};
 use dotenv::dotenv;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use serde_repr::{Serialize_repr, Deserialize_repr};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::{
     net::SocketAddr,
@@ -18,7 +18,7 @@ use tera::{Context, Tera};
 use tower_http::services::ServeFile;
 use tracing::info;
 use tracing_subscriber::FmtSubscriber;
-use utoipa::{IntoParams, OpenApi, ToSchema};
+use utoipa::{schema, IntoParams, OpenApi, ToSchema};
 use utoipa_swagger_ui::SwaggerUi;
 
 #[macro_use]
@@ -28,7 +28,7 @@ const HELP: &str = "\
 Biotools linter server
 
 USAGE:
-  app [OPTIONS]
+  server [OPTIONS]
 
 FLAGS:
   -h, --help            Prints help information
@@ -37,16 +37,25 @@ OPTIONS:
   --port u16           Sets server port
 ";
 
-/// What queries get sent to the API
+/// Represents the query parameters needed by the API.
 #[derive(Deserialize, IntoParams)]
 struct APIQuery {
+    /// A search string used to filter messages (optional).
+    ///
+    /// If provided, the API will return messages that match this search string
+    /// in a case-insensitive manner.
     query: Option<String>,
-    page: Option<i64>,
+
+    /// The page number for pagination (optional).
+    ///
+    /// Each page contains up to 100 messages. Use this field to specify the
+    /// desired page number when retrieving results.
+    #[param(style = Simple, minimum = 0)]
+    page: Option<u16>,
 }
 
 /// What gets received from the database
 struct DatabaseEntry {
-    id: i32,
     time: i32,
     tool: String,
     code: String,
@@ -55,40 +64,29 @@ struct DatabaseEntry {
     level: i32,
 }
 
-/// Middle part of what gets sent to client
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[schema(example = json!({"timestamp": "1693564003", "tool": "biotools-linter", "code": "URL_UNUSED_SSL", "processed_text": "Just kidding", "severity": "Low"}))]
+/// Represents a single result in the API response.
+#[derive(Debug, Serialize, ToSchema)]
 struct Message {
+    /// Unix timestamp when the error was found
+    time: i32,
+    /// A human-readable timestamp formatted as `%Y-%m-%d %H:%M`.
     timestamp: String,
+    /// The ID of the tool to which the error belongs (valid biotools ID).
     tool: String,
+    /// Error code
     code: String,
+    /// Human readable error
     text: String,
-    severity: Severity,
+    /// The severity level of the error.
+    ///
+    /// - `4` indicates a critical error reserved for security vulnerabilities.
+    /// - `5` represents a high-severity error.
+    /// - `6` represents a medium-severity error.
+    /// - `7` represents a low-severity error.
+    severity: u8,
 }
 
-#[derive(Debug, Serialize_repr, Deserialize_repr, ToSchema)]
-#[schema()]
-#[repr(u8)]
-enum Severity {
-    InternalError = 0,
-    Critical = 4,
-    High = 5,
-    Medium = 6,
-    Low = 7,
-}
-
-impl From<i32> for Severity {
-    fn from(value: i32) -> Self {
-        match value {
-            4 => Self::Critical,
-            5 => Self::High,
-            6 => Self::Medium,
-            7 => Self::Low,
-            _ => Self::InternalError,
-        }
-    }
-}
-
+/// Convert a database entry into the api message
 impl From<DatabaseEntry> for Message {
     fn from(value: DatabaseEntry) -> Self {
         let mut v = value;
@@ -116,22 +114,26 @@ impl From<DatabaseEntry> for Message {
             tool: v.tool,
             text: processed_text,
             timestamp,
-            severity: Severity::from(v.level),
+            time: v.time,
+            severity: v.level as u8,
         }
     }
 }
 
-/// What gets sent out to web clients
+/// Represents the response sent to web clients.
 #[derive(Debug, Serialize, ToSchema)]
-#[schema(example = json!({"count": "10000", "next": "?page=3", "previous": "?page=1", "results": []}))]
 struct ApiResponse {
+    /// The number of results returned by the query.
     count: i64,
+    /// `null` if there is no next page, otherwise returns `?page={page + 1}`
     next: Option<String>,
+    /// `null` if there is no previous page, otherwise returns `?page={page - 1}`
     previous: Option<String>,
+    /// A list of results matching the query.
     results: Vec<Message>,
 }
 
-// Server state passed to every http call
+/// Server state passed to http endpoints that need access to the database
 #[derive(Clone)]
 pub struct ServerConfig {
     pub db: Pool<Postgres>,
@@ -270,9 +272,9 @@ async fn serve_api(
     let messages = if query.is_some() {
         let rows = sqlx::query_as!(
             DatabaseEntry,
-            "SELECT * FROM messages WHERE tool ILIKE $1 OR code ILIKE $1 LIMIT 100 OFFSET $2",
+            "SELECT time,tool,code,location,text,level FROM messages WHERE tool ILIKE $1 OR code ILIKE $1 LIMIT 100 OFFSET $2",
             format!("%{}%", html_escape::encode_text(&query.clone().unwrap())),
-            page * 100,
+            (page as i64) * 100,
         )
         .fetch_all(&state.db)
         .await
@@ -283,8 +285,8 @@ async fn serve_api(
     } else {
         let rows = sqlx::query_as!(
             DatabaseEntry,
-            "SELECT * FROM messages LIMIT 100 OFFSET $1",
-            page * 100,
+            "SELECT time,tool,code,location,text,level FROM messages LIMIT 100 OFFSET $1",
+            (page as i64) * 100,
         )
         .fetch_all(&state.db)
         .await
@@ -313,7 +315,7 @@ async fn serve_api(
 
     Json(ApiResponse {
         count: total_count,
-        next: if page + 100 < total_count {
+        next: if (page as i64) + 100 < total_count {
             Some(format!("?page={}", page + 1))
         } else {
             None

@@ -58,7 +58,8 @@ def filter_url(key: str, value: str) -> list[Message] | None:
             return [
                 Message(
                     "URL_INVALID",
-                    f"URL `{value}` at `{key}` does not match a valid URL (there may be hidden unicode).",
+                    f"URL {value} at {key} does not match a valid URL (there may be hidden unicode).",
+                    key,
                     Level.ReportHigh)]
 
         logging.debug(f"Checking URL: {value}")
@@ -68,7 +69,7 @@ def filter_url(key: str, value: str) -> list[Message] | None:
         # https://stackoverflow.com/questions/1731298/how-do-i-check-the-http-status-code-of-an-object-without-downloading-it#1731388
         # The old way was using a get request, however some tools DOS'd the linter
         # because it tried to download a 2GB+ zip file, so we just request the headers
-        # with `HEAD` and not the whole content of the file.
+        # with HEAD and not the whole content of the file.
         # It's also just faster
         try:
             response = req_session.head(value, timeout=TIMEOUT, allow_redirects=True)
@@ -78,7 +79,8 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                 reports.append(
                     Message(
                         "URL_PERMANENT_REDIRECT",
-                        f"URL `{value}` at `{key}` returns a permanent redirect.",
+                        f"URL {value} at {key} returns a permanent redirect.",
+                        key,
                         Level.ReportLow))
 
             # Status is not between 200 and 400
@@ -86,7 +88,8 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                 reports.append(
                     Message(
                         "URL_BAD_STATUS",
-                        f"URL `{value}` at `{key}` doesn't return ok status (>399).",
+                        f"URL {value} at {key} doesn't return ok status (>399).",
+                        key,
                         Level.ReportMedium))
 
             url_starts_with_https = value.startswith("https://")
@@ -100,7 +103,8 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                     # If that fails, the site does not use SSL at all
                     reports.append(
                         Message("URL_NO_SSL",
-                                f"URL `{value}` at `{key}` does not use SSL.",
+                                f"URL {value} at {key} does not use SSL.",
+                                key,
                                 Level.ReportMedium)) # Medium as it's hard to fix without owning the website
 
                 else:
@@ -108,7 +112,8 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                     reports.append(
                         Message(
                             "URL_UNUSED_SSL",
-                            f"URL `{value}` at `{key}` does not start with https:// but site uses SSL.",
+                            f"URL {value} at {key} does not start with https:// but site uses SSL.",
+                            key,
                             Level.ReportMedium)) # Medium since your browser should auto-upgrade
 
         except requests.Timeout:
@@ -116,14 +121,16 @@ def filter_url(key: str, value: str) -> list[Message] | None:
             reports.append(
                 Message(
                     "URL_TIMEOUT",
-                    f"URL `{value}` at `{key}` timeouts after {TIMEOUT} seconds.",
+                    f"URL {value} at {key} timeouts after {TIMEOUT} seconds.",
+                    key,
                     Level.ReportHigh)) # High as it's inaccessible
 
         except requests.exceptions.SSLError:
             # SSL error
             reports.append(
                 Message("URL_SSL_ERROR",
-                        f"URL `{value}` at `{key}` returned an SSL error.",
+                        f"URL {value} at {key} returned an SSL error.",
+                        key,
                         Level.ReportHigh))
 
         except requests.exceptions.ConnectionError:
@@ -131,12 +138,14 @@ def filter_url(key: str, value: str) -> list[Message] | None:
             reports.append(
                 Message(
                     "URL_CONN_ERROR",
-                    f"URL `{value}` at `{key}` returned a connection error, it may not exist.",
+                    f"URL {value} at {key} returned a connection error, it may not exist.",
+                    key,
                     Level.ReportHigh)) # High as it may not even exist
 
     except Exception as e:
         # Catch all request error
-        reports.append(Message("URL_LINTER_ERROR", f"Error: `{e}` at `{key}`",
+        reports.append(Message("URL_LINTER_ERROR", f"Error: {e} at {key} while checking {value}",
+                               key,
                                Level.LinterError))
 
     if len(reports) != 0:

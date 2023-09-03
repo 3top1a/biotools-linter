@@ -31,12 +31,14 @@ class Message:
     level: Level
     code: str
     body: str
+    location: str
 
-    def __init__(self: Message, code: str, body: str, level: Level = Level.Report) -> Message:
+    def __init__(self: Message, code: str, body: str, location: str, level: Level = Level.Report) -> Message:
         """Init a new message."""
         self.code = code
         self.body = body
         self.level = level
+        self.location = location
 
     def print_message(self: Message, message_queue: None | queue.Queue = None) -> None:
         """Print the message."""
@@ -46,10 +48,3 @@ class Message:
         if message_queue is not None:
             message_queue.put(message)
 
-    def get_location(self: Message) -> str:
-        """Return where the error happened. Strips the project name."""
-        return self.body.split("`")[3].split("//")[1]
-
-    def get_value(self: Message) -> str:
-        """Return the value of the error."""
-        return self.body.split("`")[1]

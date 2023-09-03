@@ -30,7 +30,7 @@
       },
       {
         "ordinal": 5,
-        "name": "value",
+        "name": "text",
         "type_info": "Text"
       },
       {

@@ -255,7 +255,7 @@ class Session:
                         return_q.put(message)
 
         if return_q is not None:
-            m = Message("LINT-F", "Finished linting", level=Level.LinterInternal)
+            m = Message("LINT-F", "Finished linting", "", level=Level.LinterInternal)
             return_q.put(m)
 
         return False

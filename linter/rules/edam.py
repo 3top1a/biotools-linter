@@ -62,19 +62,22 @@ def filter_edam(key: str, value: str) -> list[Message] | None:
             reports.append(
                 Message(
                     "EDAM_OBSOLETE",
-                    f"EDAM `{label_dict[value]}` at `{key}` is obsolete. ({deprication_comment_dict[value]})",
+                    f"EDAM {label_dict[value]} at {key} is obsolete. ({deprication_comment_dict[value]})",
+                    key,
                     Level.ReportMedium))
         elif not_recommended_dict[value]:
                 reports.append(
                     Message(
                         "EDAM_NOT_RECOMMENDED",
-                        f"EDAM `{label_dict[value]}` at `{key}` is not recommended.",
+                        f"EDAM {label_dict[value]} at {key} is not recommended.",
+                        key,
                         Level.ReportLow))
     else:
         reports.append(
             Message(
                 "EDAM_INVALID",
-                f"EDAM `{value}` at `{key}` is not a valid class ID.",
+                f"EDAM {value} at {key} is not a valid class ID.",
+                key,
                 Level.ReportMedium))
 
     # TODO(3top1a) make sure term is not high level (output: Data, input: Data)

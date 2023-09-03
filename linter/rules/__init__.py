@@ -1,8 +1,4 @@
-"""Rule delegator.
-
-Please keep reports in the following format:
-what(URL, name) `value(example.com)` at `key(tool//description)` is Issue(missing, invalid).
-"""
+"""Rule delegator."""
 
 from __future__ import annotations
 

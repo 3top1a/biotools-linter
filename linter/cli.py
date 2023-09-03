@@ -146,7 +146,7 @@ def main(arguments: Sequence[str]) -> int:
         export_db_cursor = export_db_connection.cursor()
 
         # Create table query
-        create_table_query = "CREATE TABLE IF NOT EXISTS messages_new ( id SERIAL PRIMARY KEY, time INTEGER NOT NULL, tool TEXT NOT NULL, code TEXT NOT NULL, location TEXT NOT NULL, value TEXT NOT NULL, level INTEGER NOT NULL );"
+        create_table_query = "CREATE TABLE IF NOT EXISTS messages_new ( id SERIAL PRIMARY KEY, time INTEGER NOT NULL, tool TEXT NOT NULL, code TEXT NOT NULL, location TEXT NOT NULL, text TEXT NOT NULL, level INTEGER NOT NULL );"
         export_db_cursor.execute(create_table_query)
 
     # Process the queue after linting, used for progressively sending to the database
@@ -162,12 +162,12 @@ def main(arguments: Sequence[str]) -> int:
 
             # Export
             if sql_cursor and item.level != Level.LinterInternal:
-                insert_query = "INSERT INTO messages_new (time, tool, code, location, value, level) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;"
+                insert_query = "INSERT INTO messages_new (time, tool, code, location, text, level) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;"
                 # Replace 'data' with your actual data variables
                 data = (int(
                     datetime.datetime.now(
                         tz=datetime.timezone.utc).timestamp()), item.project,
-                        item.code, item.get_location(), item.get_value(), int(item.level))
+                        item.code, item.location, item.body, int(item.level))
                 sql_cursor.execute(insert_query, data)
 
         # After processing

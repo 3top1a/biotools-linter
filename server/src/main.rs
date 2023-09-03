@@ -8,9 +8,9 @@ use chrono::{DateTime, Utc};
 use dotenv::dotenv;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use serde_repr::{Serialize_repr, Deserialize_repr};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::{
-    collections::HashMap,
     net::SocketAddr,
     time::{Duration, UNIX_EPOCH},
 };
@@ -25,7 +25,7 @@ use utoipa_swagger_ui::SwaggerUi;
 extern crate lazy_static;
 
 const HELP: &str = "\
-Biotools linter serber
+Biotools linter server
 
 USAGE:
   app [OPTIONS]
@@ -37,21 +37,21 @@ OPTIONS:
   --port u16           Sets server port
 ";
 
-/// Api query
+/// What queries get sent to the API
 #[derive(Deserialize, IntoParams)]
 struct APIQuery {
     query: Option<String>,
     page: Option<i64>,
 }
 
-/// What gets recieved from the database
+/// What gets received from the database
 struct DatabaseEntry {
     id: i32,
     time: i32,
     tool: String,
     code: String,
     location: String,
-    value: String,
+    text: String,
     level: i32,
 }
 
@@ -62,9 +62,33 @@ struct Message {
     timestamp: String,
     tool: String,
     code: String,
-    processed_text: String,
-    severity: String,
+    text: String,
+    severity: Severity,
 }
+
+#[derive(Debug, Serialize_repr, Deserialize_repr, ToSchema)]
+#[schema()]
+#[repr(u8)]
+enum Severity {
+    InternalError = 0,
+    Critical = 4,
+    High = 5,
+    Medium = 6,
+    Low = 7,
+}
+
+impl From<i32> for Severity {
+    fn from(value: i32) -> Self {
+        match value {
+            4 => Self::Critical,
+            5 => Self::High,
+            6 => Self::Medium,
+            7 => Self::Low,
+            _ => Self::InternalError,
+        }
+    }
+}
+
 impl From<DatabaseEntry> for Message {
     fn from(value: DatabaseEntry) -> Self {
         let mut v = value;
@@ -73,69 +97,10 @@ impl From<DatabaseEntry> for Message {
         v.tool = html_escape::encode_text(&v.tool).to_string();
         v.code = html_escape::encode_text(&v.code).to_string();
         v.location = html_escape::encode_text(&v.location).to_string();
-        v.value = html_escape::encode_text(&v.value).to_string();
-
-        // Process text
-        let processed_text = match v.code.as_str() {
-            "NONE001" => format!("Important value  at {} is null/empty.", v.location),
-            "URL---" | "URL_LINTER_ERROR" => format!("Linter error: {} {}", v.value, v.location),
-            "URL001" | "URL_INVALID" => format!(
-                "URL {} at {} does not match a valid URL (there may be hidden unicode).",
-                v.value, v.location
-            ),
-            "URL002" | "URL_BAD_STATUS" => format!(
-                "URL {} at {} doesn't return ok status (>399).",
-                v.value, v.location
-            ),
-            "URL003" | "URL_TIMEOUT" => format!(
-                "URL {} at {} timeouts after 30 seconds.",
-                v.value, v.location
-            ),
-            "URL004" | "URL_SSL_ERROR" => {
-                format!("URL {} at {} returned an SSL error.", v.value, v.location)
-            }
-            "URL005" | "URL_PERMANENT_REDIRECT" => format!(
-                "URL {} at {} returns a permanent redirect.",
-                v.value, v.location
-            ),
-            "URL006" | "URL_NO_SSL" => {
-                format!("URL {} at {} does not use SSL.", v.value, v.location)
-            }
-            "URL007" | "URL_UNUSED_SSL" => format!(
-                "URL {} at {} does not start with https:// but site uses SSL.",
-                v.value, v.location
-            ),
-            "URL008" | "URL_CONN_ERROR" => format!(
-                "URL {} at {} returned a connection error, it may not exist.",
-                v.value, v.location
-            ),
-            "EDAM_OBSOLETE" => format!("EDAM {} at {} is obsolete.", v.value, v.location),
-            "EDAM_NOT_RECOMMENDED" => {
-                format!("EDAM {} at {} is not recommended.", v.value, v.location)
-            }
-            "EDAM_INVALID" => format!(
-                "EDAM {} at {} is not a valid class ID.",
-                v.value, v.location
-            ),
-            _ => String::from("Invalid entry code found, please file a bug report."),
-        };
-
-        // Process level
-        let severity = match v.level {
-            1 => "Obsolete",
-            2 => "Linting Error",
-            3 => "Linter Internal",
-            4 => "Critical",
-            5 => "High",
-            6 => "Medium",
-            7 => "Low",
-            _ => "Unknown, please report",
-        }
-        .to_owned();
 
         // Autolink
         let processed_text = LINK_REGEX
-            .replace_all(&processed_text, |caps: &regex::Captures| {
+            .replace_all(&v.text, |caps: &regex::Captures| {
                 let url = caps.get(0).unwrap().as_str();
                 format!("<a href=\"{url}\">{url}</a>")
             })
@@ -149,9 +114,9 @@ impl From<DatabaseEntry> for Message {
         Self {
             code: v.code,
             tool: v.tool,
-            processed_text,
+            text: processed_text,
             timestamp,
-            severity,
+            severity: Severity::from(v.level),
         }
     }
 }

@@ -27,9 +27,27 @@
                 }
             }
         },
-        "Error",
         "Code",
-        "Severity",
+        "Error",
+        { 
+            name: 'Severity',
+            formatter: (cell) => {switch (cell) {
+                case 4:
+                    return "Critical"
+                    break;
+                case 5:
+                    return "High"
+                    break;
+                case 6:
+                    return "Medium"
+                    break;
+                case 7:
+                    return "Low"
+                    break;
+                default:
+                    return "Error";
+            }}
+        },
         "Found at",
         "Links"
         ],
@@ -50,8 +68,8 @@
             url: '/api',
             then: data => data.results.map(entry => [
                 gridjs.html(`<a target="_blank" href="https://bio.tools/${entry.tool}">${entry.tool}</a>`),
-                gridjs.html(entry.processed_text),
                 entry.code,
+                gridjs.html(entry.text),
                 entry.severity,
                 entry.timestamp,
                 gridjs.html(`<a target="_blank" href="https://bio.tools/api/tool/${entry.tool}">JSON</a>

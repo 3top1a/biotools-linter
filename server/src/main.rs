@@ -5,10 +5,10 @@ use axum::{
     Json, Router,
 };
 use chrono::{DateTime, Utc};
+use db::DatabaseEntry;
 use dotenv::dotenv;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use serde_repr::{Deserialize_repr, Serialize_repr};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::{
     net::SocketAddr,
@@ -18,8 +18,11 @@ use tera::{Context, Tera};
 use tower_http::services::ServeFile;
 use tracing::info;
 use tracing_subscriber::FmtSubscriber;
-use utoipa::{schema, IntoParams, OpenApi, ToSchema};
+use utoipa::{IntoParams, OpenApi, ToSchema};
 use utoipa_swagger_ui::SwaggerUi;
+
+mod db;
+mod api;
 
 #[macro_use]
 extern crate lazy_static;
@@ -54,21 +57,11 @@ struct APIQuery {
     page: Option<u16>,
 }
 
-/// What gets received from the database
-struct DatabaseEntry {
-    time: i32,
-    tool: String,
-    code: String,
-    location: String,
-    text: String,
-    level: i32,
-}
-
 /// Represents a single result in the API response.
 #[derive(Debug, Serialize, ToSchema)]
-struct Message {
+pub struct Message {
     /// Unix timestamp when the error was found
-    time: i32,
+    time: i64,
     /// A human-readable timestamp formatted as `%Y-%m-%d %H:%M`.
     timestamp: String,
     /// The ID of the tool to which the error belongs (valid biotools ID).
@@ -115,6 +108,7 @@ impl From<DatabaseEntry> for Message {
             text: processed_text,
             timestamp,
             time: v.time,
+            #[allow(clippy::cast_possible_truncation)]
             severity: v.level as u8,
         }
     }
@@ -136,8 +130,13 @@ struct ApiResponse {
 /// Server state passed to http endpoints that need access to the database
 #[derive(Clone)]
 pub struct ServerConfig {
-    pub db: Pool<Postgres>,
+    pub pool: Pool<Postgres>,
 }
+
+// API
+#[derive(OpenApi)]
+#[openapi(paths(serve_api), components(schemas(ApiResponse, Message)))]
+struct ApiDoc;
 
 // Initialize and cache templates
 lazy_static! {
@@ -185,12 +184,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap();
 
     // Build server state
-    let state = ServerConfig { db: pool };
-
-    // API
-    #[derive(OpenApi)]
-    #[openapi(paths(serve_api), components(schemas(ApiResponse, Message)))]
-    struct ApiDoc;
+    let state = ServerConfig { pool: pool };
 
     // Build router
     let routes = Router::new()
@@ -214,25 +208,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 // Serve the main page
 async fn index(State(state): State<ServerConfig>) -> Html<String> {
-    // Simple statistics
-    let error_count = sqlx::query_scalar!("SELECT COUNT(*) FROM messages")
-        .fetch_all(&state.db)
-        .await
-        .unwrap()[0]
-        .unwrap();
-
-    let oldest_entry_unix = sqlx::query_scalar!("SELECT MIN(time) from messages")
-        .fetch_all(&state.db)
-        .await
-        .unwrap()[0]
-        .unwrap();
-
-    // select count(DISTINCT tool) from messages;
-    let tool_count = sqlx::query_scalar!("SELECT COUNT(DISTINCT tool) FROM messages")
-        .fetch_all(&state.db)
-        .await
-        .unwrap()[0]
-        .unwrap();
+    // Simple statistics, multiple futures executing at once
+    let (error_count, oldest_entry_unix, tool_count) = tokio::join!(
+        db::count_total_messages(&state.pool),
+        db::get_oldest_entry_unix(&state.pool),
+        db::count_total_unique_tools(&state.pool),
+    );
 
     let mut c = Context::new();
     c.insert("error_count", &error_count);
@@ -269,48 +250,14 @@ async fn serve_api(
         addr, page, query
     );
 
-    let messages = if query.is_some() {
-        let rows = sqlx::query_as!(
-            DatabaseEntry,
-            "SELECT time,tool,code,location,text,level FROM messages WHERE tool ILIKE $1 OR code ILIKE $1 LIMIT 100 OFFSET $2",
-            format!("%{}%", html_escape::encode_text(&query.clone().unwrap())),
-            (page as i64) * 100,
-        )
-        .fetch_all(&state.db)
-        .await
-        .unwrap();
-
-        // Process output from database entry to message
-        rows.into_iter().map(Message::from).collect()
-    } else {
-        let rows = sqlx::query_as!(
-            DatabaseEntry,
-            "SELECT time,tool,code,location,text,level FROM messages LIMIT 100 OFFSET $1",
-            (page as i64) * 100,
-        )
-        .fetch_all(&state.db)
-        .await
-        .unwrap();
-
-        // Process output from database entry to message
-        rows.into_iter().map(Message::from).collect()
+    let messages = match query.clone() {
+        None => db::get_messages_paginated(&state.pool, page).await,
+        Some(query) => db::get_messages_paginated_search(&state.pool, page, &query).await
     };
 
-    let total_count = if query.is_some() {
-        sqlx::query_scalar!(
-            "SELECT COUNT(*) FROM messages WHERE tool ILIKE $1 OR code ILIKE $1",
-            format!("%{}%", html_escape::encode_text(&query.clone().unwrap()))
-        )
-        .fetch_all(&state.db)
-        .await
-        .unwrap()[0]
-            .unwrap()
-    } else {
-        sqlx::query_scalar!("SELECT COUNT(*) FROM messages")
-            .fetch_all(&state.db)
-            .await
-            .unwrap()[0]
-            .unwrap()
+    let total_count = match query {
+        None => db::count_messages_paginated(&state.pool).await,
+        Some(query) => db::count_messages_paginated_search(&state.pool, &query).await
     };
 
     Json(ApiResponse {

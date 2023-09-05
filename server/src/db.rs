@@ -1,7 +1,6 @@
 use sqlx::{Pool, Postgres};
 
-use crate::Message;
-
+use crate::api::Message;
 
 /// What gets received from the database
 pub struct DatabaseEntry {
@@ -15,13 +14,13 @@ pub struct DatabaseEntry {
 
 pub async fn count_total_messages(pool: &Pool<Postgres>) -> i64 {
     sqlx::query_scalar!("SELECT COUNT(*) FROM messages")
-    .fetch_all(pool)
-    .await
-    .unwrap()[0]
-    .unwrap()
+        .fetch_all(pool)
+        .await
+        .unwrap()[0]
+        .unwrap()
 }
 
-pub async fn count_total_unique_tools(pool: &Pool<Postgres>) -> i64{
+pub async fn count_total_unique_tools(pool: &Pool<Postgres>) -> i64 {
     sqlx::query_scalar!("SELECT COUNT(DISTINCT tool) FROM messages")
         .fetch_all(pool)
         .await
@@ -31,10 +30,10 @@ pub async fn count_total_unique_tools(pool: &Pool<Postgres>) -> i64{
 
 pub async fn get_oldest_entry_unix(pool: &Pool<Postgres>) -> i64 {
     sqlx::query_scalar!("SELECT MIN(time) from messages")
-    .fetch_all(pool)
-    .await
-    .unwrap()[0]
-    .unwrap()
+        .fetch_all(pool)
+        .await
+        .unwrap()[0]
+        .unwrap()
 }
 
 pub async fn get_messages_paginated(pool: &Pool<Postgres>, page: u16) -> Vec<Message> {
@@ -51,7 +50,11 @@ pub async fn get_messages_paginated(pool: &Pool<Postgres>, page: u16) -> Vec<Mes
     rows.into_iter().map(Message::from).collect()
 }
 
-pub async fn get_messages_paginated_search(pool: &Pool<Postgres>, page: u16, query: &String) -> Vec<Message> {
+pub async fn get_messages_paginated_search(
+    pool: &Pool<Postgres>,
+    page: u16,
+    query: &String,
+) -> Vec<Message> {
     let rows = sqlx::query_as!(
         DatabaseEntry,
         "SELECT time,tool,code,location,text,level FROM messages WHERE tool ILIKE $1 OR code ILIKE $1 LIMIT 100 OFFSET $2",
@@ -68,10 +71,10 @@ pub async fn get_messages_paginated_search(pool: &Pool<Postgres>, page: u16, que
 
 pub async fn count_messages_paginated(pool: &Pool<Postgres>) -> i64 {
     sqlx::query_scalar!("SELECT COUNT(*) FROM messages")
-    .fetch_all(pool)
-    .await
-    .unwrap()[0]
-    .unwrap()
+        .fetch_all(pool)
+        .await
+        .unwrap()[0]
+        .unwrap()
 }
 
 pub async fn count_messages_paginated_search(pool: &Pool<Postgres>, query: &String) -> i64 {
@@ -82,5 +85,5 @@ pub async fn count_messages_paginated_search(pool: &Pool<Postgres>, query: &Stri
     .fetch_all(pool)
     .await
     .unwrap()[0]
-    .unwrap()
+        .unwrap()
 }

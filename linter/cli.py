@@ -146,7 +146,7 @@ def main(arguments: Sequence[str]) -> int:
         export_db_cursor = export_db_connection.cursor()
 
         # Create table query
-        create_table_query = "CREATE TABLE IF NOT EXISTS messages_new ( id SERIAL PRIMARY KEY, time BIGINT NOT NULL, tool TEXT NOT NULL, code TEXT NOT NULL, location TEXT NOT NULL, text TEXT NOT NULL, level INTEGER NOT NULL );"
+        create_table_query = "CREATE TABLE IF NOT EXISTS messages ( id SERIAL PRIMARY KEY, time BIGINT NOT NULL, tool TEXT NOT NULL, code TEXT NOT NULL, location TEXT NOT NULL, text TEXT NOT NULL, level INTEGER NOT NULL );"
         export_db_cursor.execute(create_table_query)
 
     # Process the queue after linting, used for progressively sending to the database
@@ -162,7 +162,7 @@ def main(arguments: Sequence[str]) -> int:
 
             # Export
             if sql_cursor and item.level != Level.LinterInternal:
-                insert_query = "INSERT INTO messages_new (time, tool, code, location, text, level) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;"
+                insert_query = "INSERT INTO messages (time, tool, code, location, text, level) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;"
                 # Replace 'data' with your actual data variables
                 data = (int(
                     datetime.datetime.now(
@@ -173,6 +173,10 @@ def main(arguments: Sequence[str]) -> int:
         # After processing
         if export_db_connection:
             export_db_connection.commit()
+
+    def drop_rows_with_name(name: str):
+        delete_query = "DELETE FROM messages WHERE tool = %s;"
+        export_db_cursor.execute(delete_query, (name,))
 
     # Start linting loop
     if lint_all:
@@ -192,6 +196,11 @@ def main(arguments: Sequence[str]) -> int:
             processed_tools += 10
             logging.info(f"Page: {page}, Progress: {processed_tools / count}%")
 
+            # Delete old entries from table
+            for tool in session.return_project_list_json():
+                name = tool["biotoolsID"]
+                drop_rows_with_name(name)
+
             session.lint_all_projects(return_q=return_queue, threads=threads)
             page += 1
             process_queue(return_queue, export_db_cursor)
@@ -200,6 +209,12 @@ def main(arguments: Sequence[str]) -> int:
         session.search_api(tool_name, page)
         count = session.get_total_project_count()
         logging.info(f"Found {count} projects")
+
+        # Delete old entries from table
+        for tool in session.return_project_list_json():
+            name = tool["biotoolsID"]
+            drop_rows_with_name(name)
+
         session.lint_all_projects(return_q=return_queue, threads=threads)
         process_queue(return_queue, export_db_cursor)
 

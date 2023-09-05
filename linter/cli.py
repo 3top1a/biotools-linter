@@ -175,6 +175,9 @@ def main(arguments: Sequence[str]) -> int:
             export_db_connection.commit()
 
     def drop_rows_with_name(name: str):
+        if export_db_connection is None:
+            return
+
         delete_query = "DELETE FROM messages WHERE tool = %s;"
         export_db_cursor.execute(delete_query, (name,))
 

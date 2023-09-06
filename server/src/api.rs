@@ -8,10 +8,11 @@ use db::DatabaseEntry;
 
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
 
 use std::{
     net::SocketAddr,
-    time::{Duration, UNIX_EPOCH},
+    time::{Duration, UNIX_EPOCH}, collections::HashMap, fs,
 };
 use tera::{Context, Tera};
 use tokio::join;
@@ -145,6 +146,19 @@ pub async fn serve_index(State(state): State<ServerState>) -> Html<String> {
     c.insert("search_value", "");
 
     Html(TEMPLATES.render("index.html", &c).unwrap())
+}
+
+/// Serve the stats page
+pub async fn serve_statistics(State(state): State<ServerState>) -> Html<String> {
+    let json_str = fs::read_to_string(state.stats_file_path)
+        .expect("Should have been able to read json file");
+
+    let json: Value = serde_json::from_str(&json_str).expect("Could not parse JSON");
+    
+    let mut c = Context::new();
+    c.insert("json", &json["data"]);
+
+    Html(TEMPLATES.render("statistics.html", &c).unwrap())
 }
 
 /// List every error or search for a specific one 

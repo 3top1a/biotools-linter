@@ -1,0 +1,48 @@
+{% extends 'base.html' %} {% block title %}Biotools linter{% endblock %} {% block extrahead %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script> {% endblock %} {% block content %}
+<p></p>
+<article>
+    <h1>Statistics</h1>
+
+    <canvas id="total_errors"></canvas>
+    <canvas id="unique_tools"></canvas>
+
+</article>
+
+
+<script>
+    const json_str = '{{json | json_encode(pretty=false) | safe}}';
+    const json = JSON.parse(json_str);
+    
+    const total_errors = document.getElementById('total_errors');
+    new Chart(total_errors, {
+        type: 'line',
+        data: {
+            datasets: [{
+                label: 'Total errors',
+                data: json.map(x => x['total_errors']),
+            }],
+            labels: json.map(x => x['time']),
+        }
+    });
+
+    const unique_tools = document.getElementById('unique_tools');
+    new Chart(unique_tools, {
+        type: 'line',
+        data: {
+            datasets: [
+                {
+                    label: 'Tools with errors',
+                    data: json.map(x => x['unique_tools']),
+                },
+                {
+                    label: 'Tools in total',
+                    data: json.map(x => x['total_count_on_biotools']),
+                }
+            ],
+            labels: json.map(x => x['time']),
+        }
+    });
+</script>
+
+{% endblock %}

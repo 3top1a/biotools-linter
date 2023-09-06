@@ -7,7 +7,7 @@ use axum::{routing::get, Router};
 use dotenv::dotenv;
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
-use std::net::SocketAddr;
+use std::{net::SocketAddr, path::{Path, PathBuf}};
 
 use tower_http::services::ServeFile;
 use tracing::Level;
@@ -29,12 +29,14 @@ FLAGS:
 
 OPTIONS:
   --port u16           Sets server port
+  --stats path         Where to read statistics
 ";
 
 /// Server state passed to http endpoints that need access to the database
 #[derive(Clone)]
 pub struct ServerState {
     pub pool: Pool<Postgres>,
+    pub stats_file_path: PathBuf,
 }
 
 // API
@@ -61,6 +63,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(0);
     }
     let port: u16 = pargs.value_from_str("--port").unwrap_or(3000);
+    let stats_file_path: PathBuf = pargs.value_from_str("--stats").expect("Need a statistics file");
 
     // Connect to DB
     let conn_str = std::env::var("DATABASE_URL").expect(
@@ -72,7 +75,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap();
 
     // Build server state
-    let state = ServerState { pool: pool };
+    let state = ServerState { pool, stats_file_path };
 
     let routes = app(&state);
 
@@ -92,6 +95,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn app(state: &ServerState) -> Router {
     Router::new()
         .route("/", get(serve_index))
+        .route("/statistics", get(serve_statistics))
         .route("/api/search", get(serve_api))
         .merge(SwaggerUi::new("/docs").url("/api/openapi.json", ApiDoc::openapi()))
         .nest_service("/robots.txt", ServeFile::new("static/robots.txt"))

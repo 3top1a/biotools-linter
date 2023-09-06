@@ -92,8 +92,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn app(state: &ServerState) -> Router {
     Router::new()
         .route("/", get(serve_index))
-        .route("/api", get(serve_api))
-        .merge(SwaggerUi::new("/docs").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .route("/api/search", get(serve_api))
+        .merge(SwaggerUi::new("/docs").url("/api/openapi.json", ApiDoc::openapi()))
         .nest_service("/robots.txt", ServeFile::new("static/robots.txt"))
         .nest_service("/style.css", ServeFile::new("static/style.css"))
         .with_state(state.clone())

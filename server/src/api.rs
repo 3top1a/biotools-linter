@@ -147,10 +147,10 @@ pub async fn serve_index(State(state): State<ServerState>) -> Html<String> {
     Html(TEMPLATES.render("index.html", &c).unwrap())
 }
 
-/// Serve API
+/// List every error or search for a specific one 
 #[utoipa::path(
    get,
-   path = "/api",
+   path = "/api/search",
    responses(
         (status = 200, description = "Search successful", body = ApiResponse,
         ),

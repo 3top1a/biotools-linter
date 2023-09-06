@@ -97,7 +97,7 @@ impl From<DatabaseEntry> for Message {
         let processed_text = LINK_REGEX
             .replace_all(&v.text, |caps: &regex::Captures| {
                 let url = caps.get(0).unwrap().as_str();
-                format!("<a href=\"{url}\">{url}</a>")
+                format!("<a href=\"{url}\" rel=\"nofollow\" >{url}</a>")
             })
             .to_string();
 

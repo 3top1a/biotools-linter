@@ -108,7 +108,7 @@ fn app(state: &ServerState) -> Router {
         .route("/", get(serve_index))
         .route("/statistics", get(serve_statistics))
         .route("/api/search", get(serve_search_endpoint))
-        .merge(SwaggerUi::new("/docs").url("/api/openapi.json", ApiDoc::openapi()))
+        .merge(SwaggerUi::new("/api/documentation").url("/api/openapi.json", ApiDoc::openapi()))
         .nest_service("/robots.txt", ServeFile::new("static/robots.txt"))
         .nest_service("/style.css", ServeFile::new("static/style.css"))
         .with_state(state.clone())

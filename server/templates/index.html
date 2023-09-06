@@ -66,13 +66,13 @@
         server: {
             url: '/api/search',
             then: data => data.results.map(entry => [
-                gridjs.html(`<a target="_blank" href="https://bio.tools/${entry.tool}">${entry.tool}</a>`),
+                gridjs.html(`<a target="_blank" href="https://bio.tools/${entry.tool}" rel="nofollow">${entry.tool}</a>`),
                 entry.code,
                 gridjs.html(entry.text),
                 entry.severity,
                 entry.timestamp,
                 gridjs.html(`<a target="_blank" href="https://bio.tools/api/tool/${entry.tool}">JSON</a>
-                <a target="_blank" href="https://bio.tools/${entry.tool}/edit">Edit</a>`)
+                <a target="_blank" href="https://bio.tools/${entry.tool}/edit" rel="nofollow">Edit</a>`)
             ]),
             total: data => data.count
         },

@@ -1,19 +1,23 @@
 {% extends 'base.html' %} {% block title %}Biotools linter{% endblock %} {% block extrahead %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script> {% endblock %} {% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script> {%
+endblock %} {% block content %}
 <p></p>
 <article>
     <h1>Statistics</h1>
 
-    <canvas id="total_errors"></canvas>
-    <canvas id="unique_tools"></canvas>
+    <div class="chart-container">
+        <canvas id="total_errors"></canvas>
+        <canvas id="unique_tools"></canvas>
+        <canvas id="error_types"></canvas>
+    </div>
 
 </article>
-
 
 <script>
     const json_str = '{{json | json_encode(pretty=false) | safe}}';
     const json = JSON.parse(json_str);
-    
+
     const total_errors = document.getElementById('total_errors');
     new Chart(total_errors, {
         type: 'line',
@@ -21,9 +25,10 @@
             datasets: [{
                 label: 'Total errors',
                 data: json.map(x => x['total_errors']),
+                tension: 0.4
             }],
-            labels: json.map(x => x['time']),
-        }
+            labels: json.map(x => (new Date(Number.parseInt(x['time']) * 1000).toLocaleDateString("en-US")).toString()),
+        },
     });
 
     const unique_tools = document.getElementById('unique_tools');
@@ -32,17 +37,75 @@
         data: {
             datasets: [
                 {
-                    label: 'Tools with errors',
-                    data: json.map(x => x['unique_tools']),
-                },
-                {
                     label: 'Tools in total',
                     data: json.map(x => x['total_count_on_biotools']),
+                    tension: 0.4
+                },
+                {
+                    label: 'Tools with errors',
+                    data: json.map(x => x['unique_tools']),
+                    tension: 0.4
                 }
             ],
-            labels: json.map(x => x['time']),
-        }
+            labels: json.map(x => (new Date(Number.parseInt(x['time']) * 1000).toLocaleDateString("en-US")).toString()),
+        },
     });
+
+    const error_types = document.getElementById('error_types');
+    l = json[json.length - 1]['error_types'];
+    error_names = [];
+    error_values = [];
+    for (const key in l) {
+        if (l.hasOwnProperty(key)) {
+            const value = l[key];
+            error_names.push(key);
+            error_values.push(value);
+        }
+    }
+    new Chart(error_types, {
+        type: 'pie',
+        plugins: [ChartDataLabels],
+        labels: error_names,
+        data: {
+            labels: error_names,
+            datasets: [{
+                data: error_values,
+            }],
+        },
+        labels: {
+            render: 'label'
+        },
+        
+        options: {
+            layout: {
+                padding: 100,
+            },
+            plugins: {
+                datalabels: {
+                    align: 'end',
+                    anchor: 'end',
+                    color: function (context) {
+                        return context.dataset.backgroundColor;
+                    },
+                    font: function (context) {
+                        var w = context.chart.width;
+                        return {
+                            size: 10,
+                            weight: 'light',
+                        };
+                    },
+                    formatter: function (value, context) {
+                        return `${context.chart.data.labels[context.dataIndex]} (${context.chart.data.datasets[0].data[context.dataIndex]})`;
+                    }
+                },
+                legend: {
+                    display: false,
+                }
+            },
+        }
+
+    });
+
 </script>
 
 {% endblock %}

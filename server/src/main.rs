@@ -32,14 +32,16 @@ OPTIONS:
   --stats path         Where to read statistics
 ";
 
-/// Server state passed to http endpoints that need access to the database
+/// Server state passed to endpoints
 #[derive(Clone)]
 pub struct ServerState {
+    /// Connection to the postgresql database, shared across all endpoints
     pub pool: Pool<Postgres>,
+    /// Path to the statistics file used for graphs, generated with linter/statistics.py
     pub stats_file_path: PathBuf,
 }
 
-// API
+/// Auto generated API Documentation
 #[derive(OpenApi)]
 #[openapi(paths(serve_api), components(schemas(ApiResponse, Message)))]
 struct ApiDoc;

@@ -8,11 +8,12 @@ use db::DatabaseEntry;
 
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+use serde_json::Value;
 
 use std::{
+    fs,
     net::SocketAddr,
-    time::{Duration, UNIX_EPOCH}, collections::HashMap, fs,
+    time::{Duration, UNIX_EPOCH},
 };
 use tera::{Context, Tera};
 use tokio::join;
@@ -57,7 +58,7 @@ pub struct APIQuery {
     /// Each page contains up to 100 messages. Use this field to specify the
     /// desired page number when retrieving results.
     #[param(style = Simple, minimum = 0)]
-    page: Option<u16>,
+    page: Option<i64>,
 }
 
 /// Represents a single result in the API response.
@@ -150,18 +151,18 @@ pub async fn serve_index(State(state): State<ServerState>) -> Html<String> {
 
 /// Serve the stats page
 pub async fn serve_statistics(State(state): State<ServerState>) -> Html<String> {
-    let json_str = fs::read_to_string(state.stats_file_path)
-        .expect("Should have been able to read json file");
+    let json_str =
+        fs::read_to_string(state.stats_file_path).expect("Should have been able to read json file");
 
     let json: Value = serde_json::from_str(&json_str).expect("Could not parse JSON");
-    
+
     let mut c = Context::new();
     c.insert("json", &json["data"]);
 
     Html(TEMPLATES.render("statistics.html", &c).unwrap())
 }
 
-/// List every error or search for a specific one 
+/// List every error or search for a specific one
 #[utoipa::path(
    get,
    path = "/api/search",
@@ -173,7 +174,7 @@ pub async fn serve_statistics(State(state): State<ServerState>) -> Html<String> 
     APIQuery
 ),
 )]
-pub async fn serve_api(
+pub async fn serve_search_endpoint(
     State(state): State<ServerState>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Query(params): Query<APIQuery>,
@@ -204,7 +205,7 @@ pub async fn serve_api(
 
     Json(ApiResponse {
         count: total_count,
-        next: if (page as i64) + 100 < total_count {
+        next: if page + 100 < total_count {
             Some(format!("?page={}", page + 1))
         } else {
             None

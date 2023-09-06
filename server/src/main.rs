@@ -1,13 +1,16 @@
 mod api;
 mod db;
 
-use api::*;
+use api::{ApiResponse, Message, __path_serve_search_endpoint, serve_search_endpoint, serve_index, serve_statistics};
 use axum::{routing::get, Router};
 
 use dotenv::dotenv;
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
-use std::{net::SocketAddr, path::{Path, PathBuf}};
+use std::{
+    net::SocketAddr,
+    path::PathBuf,
+};
 
 use tower_http::services::ServeFile;
 use tracing::Level;
@@ -42,8 +45,9 @@ pub struct ServerState {
 }
 
 /// Auto generated API Documentation
+/// Remember to add additional paths and schemas
 #[derive(OpenApi)]
-#[openapi(paths(serve_api), components(schemas(ApiResponse, Message)))]
+#[openapi(paths(serve_search_endpoint), components(schemas(ApiResponse, Message)))]
 struct ApiDoc;
 
 #[tokio::main]
@@ -65,7 +69,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(0);
     }
     let port: u16 = pargs.value_from_str("--port").unwrap_or(3000);
-    let stats_file_path: PathBuf = pargs.value_from_str("--stats").expect("Need a statistics file");
+    let stats_file_path: PathBuf = pargs
+        .value_from_str("--stats")
+        .expect("Need a statistics file");
 
     // Connect to DB
     let conn_str = std::env::var("DATABASE_URL").expect(
@@ -77,7 +83,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap();
 
     // Build server state
-    let state = ServerState { pool, stats_file_path };
+    let state = ServerState {
+        pool,
+        stats_file_path,
+    };
 
     let routes = app(&state);
 
@@ -98,7 +107,7 @@ fn app(state: &ServerState) -> Router {
     Router::new()
         .route("/", get(serve_index))
         .route("/statistics", get(serve_statistics))
-        .route("/api/search", get(serve_api))
+        .route("/api/search", get(serve_search_endpoint))
         .merge(SwaggerUi::new("/docs").url("/api/openapi.json", ApiDoc::openapi()))
         .nest_service("/robots.txt", ServeFile::new("static/robots.txt"))
         .nest_service("/style.css", ServeFile::new("static/style.css"))

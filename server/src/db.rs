@@ -36,7 +36,7 @@ pub async fn get_oldest_entry_unix(pool: &Pool<Postgres>) -> i64 {
         .unwrap()
 }
 
-pub async fn get_messages_paginated(pool: &Pool<Postgres>, page: u16) -> Vec<Message> {
+pub async fn get_messages_paginated(pool: &Pool<Postgres>, page: i64) -> Vec<Message> {
     let rows = sqlx::query_as!(
         DatabaseEntry,
         "SELECT time,tool,code,location,text,level FROM messages LIMIT 100 OFFSET $1",
@@ -52,7 +52,7 @@ pub async fn get_messages_paginated(pool: &Pool<Postgres>, page: u16) -> Vec<Mes
 
 pub async fn get_messages_paginated_search(
     pool: &Pool<Postgres>,
-    page: u16,
+    page: i64,
     query: &String,
 ) -> Vec<Message> {
     let rows = sqlx::query_as!(

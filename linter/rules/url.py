@@ -125,11 +125,11 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                     key,
                     Level.ReportHigh)) # High as it's inaccessible
 
-        except requests.exceptions.SSLError:
+        except requests.exceptions.SSLError as e:
             # SSL error
             reports.append(
                 Message("URL_SSL_ERROR",
-                        f"URL {value} at {key} returned an SSL error.",
+                        f"URL {value} at {key} returned an SSL error. ({e})",
                         key,
                         Level.ReportHigh))
 

@@ -31,6 +31,9 @@
         { 
             name: 'Severity',
             formatter: (cell) => {switch (cell) {
+                case 2:
+                    return "Linter error";
+                    break;
                 case 4:
                     return "Critical"
                     break;

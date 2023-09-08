@@ -25,7 +25,7 @@ class Level(IntEnum):
 
 class Message:
 
-    """Linter message."""
+    """Message returned by the linter upwards to lib and cli."""
 
     project: str # Project will be filled-in in lib/lint_specific_project
     level: Level

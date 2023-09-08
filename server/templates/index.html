@@ -1,13 +1,20 @@
-{% extends 'base.html' %} {% block title %}Biotools linter{% endblock %} {% block extrahead %}{% endblock %} {% block content %}
+{% extends 'base.html' %} {% block title %}Biotools linter{% endblock %} {% block extrahead %}{% endblock %} {% block
+content %}
 <p></p>
 <article>
     <h1>Bio.tools linter</h1>
     <p>
-        A rule-based checker for the <a href="https://bio.tools/">bio.tools database</a>. The linter searches the entire
-        bio.tools API and checks various properties of the tool's JSON data, such as dead URL links, and sends it to
-        a database this website draws from.
-        Currently serving <code>{{error_count}}</code> errors for <code>{{tool_count}}</code> tools.
-        Oldest entry was linted at <code>{{last_time}}</code>.
+        This tool searches the entire <a href="https://bio.tools/">bio.tools database</a> for errors in the to help
+        maintainers and editors with data quality.
+        Currently serving <code>{{error_count}}</code> errors for <code>{{tool_count}}</code> tools, oldest entry was
+        linted at <code>{{last_time}}</code>.
+
+        <br>
+        <br>
+
+        Disclaimer: This tool does not cover all possible aspects or validations that can be performed on the data. It
+        should be used as an additional tool for evaluating the information retrieved from the bio.tools API.
+        Please use this tool responsibly and do not misuse or overwhelm the bio.tools API with excessive requests.
     </p>
 
     <div id="table"></div>
@@ -26,32 +33,34 @@
                 }
             }
         },
-        "Code",
-        "Error",
-        { 
+            "Code",
+            "Error",
+        {
             name: 'Severity',
-            formatter: (cell) => {switch (cell) {
-                case 2:
-                    return "Linter error";
-                    break;
-                case 4:
-                    return "Critical"
-                    break;
-                case 5:
-                    return "High"
-                    break;
-                case 6:
-                    return "Medium"
-                    break;
-                case 7:
-                    return "Low"
-                    break;
-                default:
-                    return "Error";
-            }}
+            formatter: (cell) => {
+                switch (cell) {
+                    case 2:
+                        return "Linter error";
+                        break;
+                    case 4:
+                        return "Critical"
+                        break;
+                    case 5:
+                        return "High"
+                        break;
+                    case 6:
+                        return "Medium"
+                        break;
+                    case 7:
+                        return "Low"
+                        break;
+                    default:
+                        return "Error";
+                }
+            }
         },
-        "Found at",
-        "Links"
+            "Found at",
+            "Links"
         ],
         search: {
             server: {

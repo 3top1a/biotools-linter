@@ -140,10 +140,15 @@ pub async fn serve_index(State(state): State<ServerState>) -> Html<String> {
         db::count_total_unique_tools(&state.pool),
     );
 
+    // Timestamp
+    let d = UNIX_EPOCH + Duration::from_secs(oldest_entry_unix.try_into().unwrap());
+    let datetime = DateTime::<Utc>::from(d);
+    let timestamp = datetime.format("%Y-%m-%d %H:%M").to_string();
+
     let mut c = Context::new();
     c.insert("error_count", &error_count);
     c.insert("tool_count", &tool_count);
-    c.insert("last_time", &oldest_entry_unix);
+    c.insert("last_time", &timestamp);
     c.insert("search_value", "");
 
     Html(TEMPLATES.render("index.html", &c).unwrap())

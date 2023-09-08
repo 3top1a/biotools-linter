@@ -21,7 +21,7 @@ default-features = false
 
 [dependencies.tera]
 version = "1.19"
-features = ["chrono"]
+features = []
 default-features=false
 
 [dependencies.serde]

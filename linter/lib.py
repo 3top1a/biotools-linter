@@ -84,7 +84,7 @@ class Session:
         self.cache = {}
 
     def search_api(self: Session,
-                   names: str,
+                   name: str,
                    page: int = 1,
                    im_feeling_lucky: bool = True) -> None:
         """Retrieve JSON data from the biotools API.
@@ -103,86 +103,13 @@ class Session:
         ------
             None
         """
-        logging.debug(f"Searching API for {names}")
+        logging.debug(f"Searching API for {name}")
 
         self.json = {}
-
-        # Individual search types
-        def try_search_exact_match(name: str) -> bool:
-            if im_feeling_lucky:
-                # Search as if it's an exact match
-                url = f"https://bio.tools/api/t/{name}?format=json"
-                response = requests.get(url, timeout=TIMEOUT)
-                if response.ok:
-                    self.json[name] = response.json()
-                    return True
-            return False
-
-        def try_search_topic(name: str) -> bool:
-            if name.startswith("topic_"):
-                # Search as if it's an exact match
-                url = f'https://bio.tools/api/t?topicID="{name}"&format=json'
-                response = requests.get(url, timeout=TIMEOUT)
-                if response.ok:
-                    self.json[name] = response.json()
-                    return True
-            return False
-
-        def try_search_operation(name: str) -> bool:
-            if name.startswith("operation_"):
-                # Search as if it's an exact match
-                url = f'https://bio.tools/api/t?operationID="{name}"&format=json'
-                response = requests.get(url, timeout=TIMEOUT)
-                if response.ok:
-                    self.json[name] = response.json()
-                    return True
-            return False
-
-        def try_search_collection(name: str) -> bool:
-            url = f'https://bio.tools/api/t?collectionID="{name}"&format=json'
-            response = requests.get(url, timeout=TIMEOUT)
-            if response.ok and response.json()["count"] > 0:
-                self.json[name] = response.json()
-                return True
-            return False
-
-        def try_search_normal_tool(name: str) -> bool:
-            url = f"https://bio.tools/api/t/?q={name}&format=json&page={page!s}"
-            response = requests.get(url, timeout=TIMEOUT)
-            if response.ok:
-                self.json[name] = response.json()
-                return True
-            return False
-
-        dedup_list = []
-        names = names.split(",")
-
-        logging.debug(f"Searching {len(names)} name(s)")
-
-        for name_raw in names:
-            name = name_raw.strip()
-
-            if name in dedup_list:
-                logging.debug(f"{name} was already searched, skipping")
-                continue
-
-            dedup_list.append(name)
-
-            if try_search_exact_match(name):
-                logging.debug(f"Assuming {name} is an exact match")
-                continue
-            if try_search_topic(name):
-                logging.debug(f"Assuming {name} is a topic")
-                continue
-            if try_search_operation(name):
-                logging.debug(f"Assuming {name} is an operation")
-                continue
-            if try_search_collection(name):
-                logging.debug(f"Assuming {name} is a collection")
-                continue
-            if try_search_normal_tool(name):
-                logging.debug(f"Assuming {name} is a regular search")
-                continue
+        url = f"https://bio.tools/api/t/?q={name}&format=json&page={page!s}"
+        response = requests.get(url, timeout=TIMEOUT)
+        if response.ok:
+            self.json[name] = response.json()
 
     def return_project_list_json(self: Session) -> list:
         """Return the project list from the JSON data.

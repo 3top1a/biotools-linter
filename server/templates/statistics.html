@@ -10,6 +10,7 @@ endblock %} {% block content %}
         <canvas id="total_errors"></canvas>
         <canvas id="unique_tools"></canvas>
         <canvas id="error_types"></canvas>
+        <canvas id="error_line"></canvas>
     </div>
 
 </article>
@@ -106,6 +107,53 @@ endblock %} {% block content %}
                 },
             }
 
+        });
+
+
+        const error_line = document.getElementById('error_line');
+
+        let datasets = []
+        let error_type_indexes = {}
+        json.forEach(x => {
+            for (const key in x['error_types']) {
+                if (x['error_types'].hasOwnProperty(key)) {
+                    const value = x['error_types'][key];
+                    if (!(key in error_type_indexes)) {
+                        error_type_indexes[key] = datasets.length
+                        datasets[error_type_indexes[key]] = {label: key, data: [], fill: "-1"}
+                    }
+                    datasets[error_type_indexes[key]].data.push(value)
+                }
+            }
+        })
+
+        console.log(error_type_indexes)
+        console.log(datasets)
+
+        new Chart(error_line, {
+            type: 'line',
+            data: {
+                labels: json.map(x => (new Date(Number.parseInt(x['time']) * 1000).toLocaleDateString("en-US")).toString()),
+                datasets: datasets,
+            },
+            options: {
+                scales: {
+                    y: {
+                        stacked: true
+                    }
+                },
+                plugins: {
+                    filler: {
+                        propagate: false
+                    },
+                    'samples-filler-analyser': {
+                        target: 'chart-analyser'
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                },
+            },
         });
     }).catch(function (err) {
         console.error('Fetch Error :-S', err);

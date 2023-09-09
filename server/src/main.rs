@@ -1,7 +1,7 @@
 mod api;
 mod db;
 
-use api::{ApiResponse, Message, __path_serve_search_endpoint, serve_search_endpoint, serve_index, serve_statistics};
+use api::{ApiResponse, Message, __path_serve_search_api, __path_serve_statistics_api, serve_search_api, serve_statistics_api, serve_index_page, serve_statistics_page, Statistics, StatisticsEntry};
 use axum::{routing::get, Router};
 
 use dotenv::dotenv;
@@ -47,7 +47,7 @@ pub struct ServerState {
 /// Auto generated API Documentation
 /// Remember to add additional paths and schemas
 #[derive(OpenApi)]
-#[openapi(paths(serve_search_endpoint), components(schemas(ApiResponse, Message)))]
+#[openapi(paths(serve_search_api, serve_statistics_api), components(schemas(ApiResponse, Message, Statistics, StatisticsEntry)))]
 struct ApiDoc;
 
 #[tokio::main]
@@ -105,9 +105,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// without having to create an HTTP server.
 fn app(state: &ServerState) -> Router {
     Router::new()
-        .route("/", get(serve_index))
-        .route("/statistics", get(serve_statistics))
-        .route("/api/search", get(serve_search_endpoint))
+        .route("/", get(serve_index_page))
+        .route("/statistics", get(serve_statistics_page))
+        .route("/api/search", get(serve_search_api))
+        .route("/api/statistics", get(serve_statistics_api))
         .merge(SwaggerUi::new("/api/documentation").url("/api/openapi.json", ApiDoc::openapi()))
         .nest_service("/robots.txt", ServeFile::new("static/robots.txt"))
         .nest_service("/style.css", ServeFile::new("static/style.css"))

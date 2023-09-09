@@ -8,7 +8,7 @@ use db::DatabaseEntry;
 
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 use std::{
     fs,
@@ -118,6 +118,21 @@ impl From<DatabaseEntry> for Message {
     }
 }
 
+/// Statistics data
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct Statistics {
+    pub data: Vec<StatisticsEntry>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct StatisticsEntry {
+    pub time: u64,
+    pub total_count_on_biotools: u64,
+    pub total_errors: u64,
+    pub unique_tools: u64,
+    pub error_types: Map<String, Value>,
+}
+
 /// Represents the response sent to web clients.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct ApiResponse {
@@ -132,7 +147,7 @@ pub struct ApiResponse {
 }
 
 /// Serve the main page
-pub async fn serve_index(State(state): State<ServerState>) -> Html<String> {
+pub async fn serve_index_page(State(state): State<ServerState>) -> Html<String> {
     // Simple statistics, multiple futures executing at once
     let (error_count, oldest_entry_unix, tool_count) = tokio::join!(
         db::count_total_messages(&state.pool),
@@ -155,16 +170,38 @@ pub async fn serve_index(State(state): State<ServerState>) -> Html<String> {
 }
 
 /// Serve the stats page
-pub async fn serve_statistics(State(state): State<ServerState>) -> Html<String> {
+pub async fn serve_statistics_page() -> Html<String> {
+    let c = Context::new();
+    Html(TEMPLATES.render("statistics.html", &c).unwrap())
+}
+
+/// Serve statistics JSON data
+#[utoipa::path(
+    get,
+    path = "/api/statistics",
+    responses(
+         (status = 200, description = "Request successful", body = ApiResponse,
+         ),
+    ),
+    params(
+ ),
+ )]
+pub async fn serve_statistics_api(
+    State(state): State<ServerState>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+) -> Json<Statistics> {
+    // Get parameters
+    info!(
+        "Listing statistics from `{}`",
+        addr
+    );
+
     let json_str =
         fs::read_to_string(state.stats_file_path).expect("Should have been able to read json file");
 
-    let json: Value = serde_json::from_str(&json_str).expect("Could not parse JSON");
+    let json: Statistics = serde_json::from_str(&json_str).expect("Could not parse JSON");
 
-    let mut c = Context::new();
-    c.insert("json", &json["data"]);
-
-    Html(TEMPLATES.render("statistics.html", &c).unwrap())
+    return Json(json);
 }
 
 /// List every error or search for a specific one
@@ -179,7 +216,7 @@ pub async fn serve_statistics(State(state): State<ServerState>) -> Html<String> 
     APIQuery
 ),
 )]
-pub async fn serve_search_endpoint(
+pub async fn serve_search_api(
     State(state): State<ServerState>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Query(params): Query<APIQuery>,

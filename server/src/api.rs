@@ -121,7 +121,7 @@ pub struct APIQuery {
 }
 
 /// Represents a single result in the API response.
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct Message {
     /// Unix timestamp when the error was found
     time: i64,
@@ -193,16 +193,16 @@ pub struct StatisticsEntry {
 }
 
 /// Represents the response sent to web clients.
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ApiResponse {
     /// The number of results returned by the query.
-    count: i64,
+    pub count: i64,
     /// `null` if there is no next page, otherwise returns `?page={page + 1}`
-    next: Option<String>,
+    pub next: Option<String>,
     /// `null` if there is no previous page, otherwise returns `?page={page - 1}`
-    previous: Option<String>,
+    pub previous: Option<String>,
     /// A list of results matching the query.
-    results: Vec<Message>,
+    pub results: Vec<Message>,
 }
 
 /// Serve the main page
@@ -302,7 +302,7 @@ pub async fn serve_search_api(
 
     Json(ApiResponse {
         count: total_count,
-        next: if page + 100 < total_count {
+        next: if (page * 100) + 100 < total_count {
             Some(format!("?page={}", page + 1))
         } else {
             None

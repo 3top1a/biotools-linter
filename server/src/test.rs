@@ -35,6 +35,10 @@ mod tests {
         let routes = app(&state);
         let client = TestClient::new(routes);
 
+        // Sanity check
+        let res = client.get("/invalid").send().await;
+        assert_ne!(res.status(), StatusCode::OK);
+
         for url in [
             "/",
             "/statistics",
@@ -50,8 +54,16 @@ mod tests {
             assert_eq!(res.status(), StatusCode::OK);
         }
 
-        // Sanity check
-        let res = client.get("/invalid").send().await;
-        assert_ne!(res.status(), StatusCode::OK);
+        // Request all api pages
+        let mut page = 0;
+        loop {
+            let res = client.get(&format!("/api/search?page={}", page)).send().await;
+            assert_eq!(res.status(), StatusCode::OK);
+            if res.json::<ApiResponse>().await.results.len() == 0 {
+                break;
+            }
+            page += 1;
+        }
+
     }
 }

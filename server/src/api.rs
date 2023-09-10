@@ -1,5 +1,5 @@
 use axum::{
-    extract::{ConnectInfo, Query, State},
+    extract::{Query, State},
     response::Html,
     Json,
 };
@@ -12,7 +12,6 @@ use serde_json::{Map, Value};
 
 use std::{
     fs,
-    net::SocketAddr,
     time::{Duration, UNIX_EPOCH},
 };
 use tera::{Context, Tera};
@@ -245,9 +244,7 @@ pub async fn serve_statistics_page() -> Html<String> {
     params(
  ),
  )]
-pub async fn serve_statistics_api(
-    State(state): State<ServerState>,
-) -> Json<Statistics> {
+pub async fn serve_statistics_api(State(state): State<ServerState>) -> Json<Statistics> {
     // Get parameters
     info!("Listing statistics");
 
@@ -280,10 +277,7 @@ pub async fn serve_search_api(
     let query = params.query;
     let severity = params.severity;
 
-    info!(
-        "Listing API page {} query {:?}",
-        page, query
-    );
+    info!("Listing API page {} query {:?}", page, query);
 
     let (messages, total_count) = match query.clone() {
         None => {

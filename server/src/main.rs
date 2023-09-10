@@ -14,9 +14,8 @@ use dotenv::dotenv;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::{net::SocketAddr, path::PathBuf};
 
+use env_logger::Env;
 use tower_http::services::ServeFile;
-use tracing::Level;
-use tracing_subscriber::FmtSubscriber;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -58,12 +57,7 @@ struct ApiDoc;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize tracing
-    // TODO switch to env subscriber
-    let subscriber = FmtSubscriber::builder()
-        .compact()
-        .with_max_level(Level::TRACE)
-        .finish();
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
     dotenv().ok();
 

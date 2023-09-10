@@ -57,13 +57,15 @@ mod tests {
         // Request all api pages
         let mut page = 0;
         loop {
-            let res = client.get(&format!("/api/search?page={}", page)).send().await;
+            let res = client
+                .get(&format!("/api/search?page={}", page))
+                .send()
+                .await;
             assert_eq!(res.status(), StatusCode::OK);
             if res.json::<ApiResponse>().await.results.len() == 0 {
                 break;
             }
             page += 1;
         }
-
     }
 }

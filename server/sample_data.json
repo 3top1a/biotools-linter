@@ -1,0 +1,84 @@
+{
+  "data": [
+    {
+      "time": 1694023634,
+      "total_count_on_biotools": 28402,
+      "total_errors": 68038,
+      "unique_tools": 20699,
+      "error_types": {
+        "URL_INVALID": 5,
+        "URL_PERMANENT_REDIRECT": 12150,
+        "URL_BAD_STATUS": 6281,
+        "URL_NO_SSL": 9189,
+        "URL_UNUSED_SSL": 18338,
+        "URL_TIMEOUT": 2244,
+        "URL_SSL_ERROR": 4525,
+        "URL_CONN_ERROR": 3823,
+        "URL_LINTER_ERROR": 32,
+        "EDAM_OBSOLETE": 1476,
+        "EDAM_NOT_RECOMMENDED": 9923,
+        "EDAM_INVALID": 52
+      }
+    },
+    {
+      "time": 1694024070,
+      "total_count_on_biotools": 28402,
+      "total_errors": 68043,
+      "unique_tools": 20697,
+      "error_types": {
+        "URL_INVALID": 5,
+        "URL_PERMANENT_REDIRECT": 12157,
+        "URL_BAD_STATUS": 6278,
+        "URL_NO_SSL": 9188,
+        "URL_UNUSED_SSL": 18339,
+        "URL_TIMEOUT": 2245,
+        "URL_SSL_ERROR": 4525,
+        "URL_CONN_ERROR": 3823,
+        "URL_LINTER_ERROR": 32,
+        "EDAM_OBSOLETE": 1476,
+        "EDAM_NOT_RECOMMENDED": 9923,
+        "EDAM_INVALID": 52
+      }
+    },
+    {
+      "time": 1694024469,
+      "total_count_on_biotools": 28402,
+      "total_errors": 68048,
+      "unique_tools": 20698,
+      "error_types": {
+        "URL_INVALID": 5,
+        "URL_PERMANENT_REDIRECT": 12160,
+        "URL_BAD_STATUS": 6278,
+        "URL_NO_SSL": 9188,
+        "URL_UNUSED_SSL": 18339,
+        "URL_TIMEOUT": 2247,
+        "URL_SSL_ERROR": 4525,
+        "URL_CONN_ERROR": 3823,
+        "URL_LINTER_ERROR": 32,
+        "EDAM_OBSOLETE": 1476,
+        "EDAM_NOT_RECOMMENDED": 9923,
+        "EDAM_INVALID": 52
+      }
+    },
+    {
+      "time": 1694028216,
+      "total_count_on_biotools": 28402,
+      "total_errors": 68020,
+      "unique_tools": 20695,
+      "error_types": {
+        "URL_INVALID": 5,
+        "URL_PERMANENT_REDIRECT": 12132,
+        "URL_BAD_STATUS": 6277,
+        "URL_NO_SSL": 9191,
+        "URL_UNUSED_SSL": 18294,
+        "URL_TIMEOUT": 2289,
+        "URL_SSL_ERROR": 4525,
+        "URL_CONN_ERROR": 3824,
+        "URL_LINTER_ERROR": 32,
+        "EDAM_OBSOLETE": 1476,
+        "EDAM_NOT_RECOMMENDED": 9923,
+        "EDAM_INVALID": 52
+      }
+    }
+  ]
+}

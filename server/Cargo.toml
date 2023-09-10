@@ -15,6 +15,9 @@ utoipa = { version = "3.5.0", features = ["axum_extras", "repr"] }
 utoipa-swagger-ui = { version = "3.1.5", features = ["axum"] }
 serde_repr = "0.1"
 
+[dev-dependencies]
+axum-test-helper = "0.3.0"
+
 [dependencies.axum]
 version = "0.6.20"
 features = ["json", "matched-path", "tokio", "http1", "query"]

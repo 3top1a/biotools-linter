@@ -56,9 +56,8 @@ lazy_static! {
 /// - ReportMedium (6) -> Represents a medium-severity error.
 /// - ReportLow (7) -> Represents a low-severity error.
 pub enum Severity {
-    /// Obsolete, no longer used
+    /// Obsolete, now used as an API error
     #[serde(rename = "Error")]
-    #[deprecated]
     Error = 1,
     /// Uncaught linter error
     #[serde(rename = "LinterError")]
@@ -248,10 +247,9 @@ pub async fn serve_statistics_page() -> Html<String> {
  )]
 pub async fn serve_statistics_api(
     State(state): State<ServerState>,
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
 ) -> Json<Statistics> {
     // Get parameters
-    info!("Listing statistics from `{}`", addr);
+    info!("Listing statistics");
 
     let json_str =
         fs::read_to_string(state.stats_file_path).expect("Should have been able to read json file");
@@ -275,7 +273,6 @@ pub async fn serve_statistics_api(
 )]
 pub async fn serve_search_api(
     State(state): State<ServerState>,
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Query(params): Query<APIQuery>,
 ) -> Json<ApiResponse> {
     // Get parameters
@@ -284,8 +281,8 @@ pub async fn serve_search_api(
     let severity = params.severity;
 
     info!(
-        "Listing API from `{}` page {} query {:?}",
-        addr, page, query
+        "Listing API page {} query {:?}",
+        page, query
     );
 
     let (messages, total_count) = match query.clone() {

@@ -1,16 +1,17 @@
 mod api;
 mod db;
 
-use api::{ApiResponse, Message, __path_serve_search_api, __path_serve_statistics_api, serve_search_api, serve_statistics_api, serve_index_page, serve_statistics_page, Statistics, StatisticsEntry};
+use api::{
+    ApiResponse, Message, __path_serve_search_api, __path_serve_statistics_api, serve_index_page,
+    serve_search_api, serve_statistics_api, serve_statistics_page, Severity, Statistics,
+    StatisticsEntry,
+};
 use axum::{routing::get, Router};
 
 use dotenv::dotenv;
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
-use std::{
-    net::SocketAddr,
-    path::PathBuf,
-};
+use std::{net::SocketAddr, path::PathBuf};
 
 use tower_http::services::ServeFile;
 use tracing::Level;
@@ -47,7 +48,10 @@ pub struct ServerState {
 /// Auto generated API Documentation
 /// Remember to add additional paths and schemas
 #[derive(OpenApi)]
-#[openapi(paths(serve_search_api, serve_statistics_api), components(schemas(ApiResponse, Message, Statistics, StatisticsEntry)))]
+#[openapi(
+    paths(serve_search_api, serve_statistics_api),
+    components(schemas(ApiResponse, Message, Statistics, StatisticsEntry, Severity))
+)]
 struct ApiDoc;
 
 #[tokio::main]

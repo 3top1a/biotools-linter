@@ -22,6 +22,8 @@ use tracing::info;
 
 use utoipa::{IntoParams, ToSchema};
 
+use serde_repr::{Deserialize_repr, Serialize_repr};
+
 use crate::db;
 use crate::ServerState;
 
@@ -43,14 +45,49 @@ lazy_static! {
         .unwrap()
     };
 }
+#[derive(Debug, Serialize_repr, Deserialize_repr, ToSchema)]
+#[repr(u8)]
+/// Enumerable severity score
+/// - Error (1) -> Obsolete, no longer used
+/// - LinterError (2) -> Uncaught linter error
+/// - ReportCritical (4) -> Indicates a critical error reserved for security vulnerabilities.
+/// - ReportHigh (5) -> Represents a high-severity error.
+/// - ReportMedium (6) -> Represents a medium-severity error.
+/// - ReportLow (7) -> Represents a low-severity error.
+pub enum Severity {
+    /// Obsolete, no longer used
+    Error = 1,
+    /// Uncaught linter error
+    LinterError = 2,
+    /// Indicates a critical error reserved for security vulnerabilities.
+    ReportCritical = 4,
+    /// Represents a high-severity error.
+    ReportHigh = 5,
+    /// Represents a medium-severity error.
+    ReportMedium = 6,
+    /// Represents a low-severity error.
+    ReportLow = 7,
+}
+
+impl From<i32> for Severity {
+    fn from(value: i32) -> Self {
+        match value {
+            2 => Self::LinterError,
+            4 => Self::ReportCritical,
+            5 => Self::ReportHigh,
+            6 => Self::ReportMedium,
+            7 => Self::ReportLow,
+            _ => Self::Error,
+        }
+    }
+}
 
 /// Represents the query parameters needed by the API.
 #[derive(Deserialize, IntoParams)]
 pub struct APIQuery {
     /// A search string used to filter messages (optional).
     ///
-    /// If provided, the API will return messages that match this search string
-    /// in a case-insensitive manner.
+    /// If provided, the API will return errors where the tool or error code matches the query (Case insensitive)
     query: Option<String>,
 
     /// The page number for pagination (optional).
@@ -59,6 +96,8 @@ pub struct APIQuery {
     /// desired page number when retrieving results.
     #[param(style = Simple, minimum = 0)]
     page: Option<i64>,
+    // Optional severity, TODO
+    //severity: Option<u8>,
 }
 
 /// Represents a single result in the API response.
@@ -80,7 +119,7 @@ pub struct Message {
     /// - `5` represents a high-severity error.
     /// - `6` represents a medium-severity error.
     /// - `7` represents a low-severity error.
-    severity: u8,
+    severity: Severity,
 }
 
 /// Convert a database entry into the api message
@@ -113,7 +152,7 @@ impl From<DatabaseEntry> for Message {
             timestamp,
             time: v.time,
             #[allow(clippy::cast_possible_truncation)]
-            severity: v.level as u8,
+            severity: Severity::from(v.level),
         }
     }
 }
@@ -191,10 +230,7 @@ pub async fn serve_statistics_api(
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
 ) -> Json<Statistics> {
     // Get parameters
-    info!(
-        "Listing statistics from `{}`",
-        addr
-    );
+    info!("Listing statistics from `{}`", addr);
 
     let json_str =
         fs::read_to_string(state.stats_file_path).expect("Should have been able to read json file");

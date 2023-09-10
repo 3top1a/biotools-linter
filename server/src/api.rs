@@ -45,7 +45,8 @@ lazy_static! {
         .unwrap()
     };
 }
-#[derive(Debug, Serialize_repr, Deserialize_repr, ToSchema)]
+
+#[derive(Debug, Serialize_repr, Deserialize_repr, ToSchema, Clone, Copy)]
 #[repr(u8)]
 /// Enumerable severity score
 /// - Error (1) -> Obsolete, no longer used
@@ -56,16 +57,23 @@ lazy_static! {
 /// - ReportLow (7) -> Represents a low-severity error.
 pub enum Severity {
     /// Obsolete, no longer used
+    #[serde(rename = "Error")]
+    #[deprecated]
     Error = 1,
     /// Uncaught linter error
+    #[serde(rename = "LinterError")]
     LinterError = 2,
     /// Indicates a critical error reserved for security vulnerabilities.
+    #[serde(rename = "ReportCritical")]
     ReportCritical = 4,
     /// Represents a high-severity error.
+    #[serde(rename = "ReportHigh")]
     ReportHigh = 5,
     /// Represents a medium-severity error.
+    #[serde(rename = "ReportMedium")]
     ReportMedium = 6,
     /// Represents a low-severity error.
+    #[serde(rename = "ReportLow")]
     ReportLow = 7,
 }
 
@@ -78,6 +86,19 @@ impl From<i32> for Severity {
             6 => Self::ReportMedium,
             7 => Self::ReportLow,
             _ => Self::Error,
+        }
+    }
+}
+
+impl From<Severity> for i32 {
+    fn from(value: Severity) -> Self {
+        match value {
+            Severity::LinterError => 2,
+            Severity::ReportCritical => 4,
+            Severity::ReportHigh => 5,
+            Severity::ReportMedium => 6,
+            Severity::ReportLow => 7,
+            Severity::Error => 1,
         }
     }
 }
@@ -96,8 +117,8 @@ pub struct APIQuery {
     /// desired page number when retrieving results.
     #[param(style = Simple, minimum = 0)]
     page: Option<i64>,
-    // Optional severity, TODO
-    //severity: Option<u8>,
+    /// Optional severity
+    severity: Option<Severity>,
 }
 
 /// Represents a single result in the API response.
@@ -219,7 +240,7 @@ pub async fn serve_statistics_page() -> Html<String> {
     get,
     path = "/api/statistics",
     responses(
-         (status = 200, description = "Request successful", body = ApiResponse,
+         (status = 200, description = "Request successful", body = Statistics,
          ),
     ),
     params(
@@ -260,6 +281,7 @@ pub async fn serve_search_api(
     // Get parameters
     let page = params.page.unwrap_or(0);
     let query = params.query;
+    let severity = params.severity;
 
     info!(
         "Listing API from `{}` page {} query {:?}",
@@ -269,14 +291,14 @@ pub async fn serve_search_api(
     let (messages, total_count) = match query.clone() {
         None => {
             join!(
-                db::get_messages_paginated(&state.pool, page),
-                db::count_messages_paginated(&state.pool)
+                db::get_messages_paginated(&state.pool, page, severity.clone()),
+                db::count_messages_paginated(&state.pool, severity.clone())
             )
         }
         Some(query) => {
             join!(
-                db::get_messages_paginated_search(&state.pool, page, &query),
-                db::count_messages_paginated_search(&state.pool, &query)
+                db::get_messages_paginated_search(&state.pool, page, &query, severity.clone()),
+                db::count_messages_paginated_search(&state.pool, &query, severity.clone())
             )
         }
     };

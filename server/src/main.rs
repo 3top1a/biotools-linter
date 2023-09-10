@@ -1,5 +1,6 @@
 mod api;
 mod db;
+mod test;
 
 use api::{
     ApiResponse, Message, __path_serve_search_api, __path_serve_statistics_api, serve_index_page,

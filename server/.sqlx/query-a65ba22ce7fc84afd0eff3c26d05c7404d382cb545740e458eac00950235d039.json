@@ -1,0 +1,54 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT time,tool,code,location,text,level FROM messages WHERE level BETWEEN $1 AND $2 LIMIT 100 OFFSET $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "time",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "tool",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "location",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "text",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "level",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a65ba22ce7fc84afd0eff3c26d05c7404d382cb545740e458eac00950235d039"
+}

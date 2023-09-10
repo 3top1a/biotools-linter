@@ -1,0 +1,55 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT time,tool,code,location,text,level FROM messages WHERE (tool ILIKE $1 OR code ILIKE $1) AND level BETWEEN $3 AND $4 LIMIT 100 OFFSET $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "time",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "tool",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "location",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "text",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "level",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "4a719bf337f6ff0afeceed7b5110531463b9c666fec2b5edf492aee29f080ae6"
+}

@@ -36,6 +36,14 @@ pub async fn get_oldest_entry_unix(pool: &Pool<Postgres>) -> i64 {
         .unwrap()
 }
 
+pub async fn count_critical_messages(pool: &Pool<Postgres>) -> i64 {
+    sqlx::query_scalar!("SELECT COUNT(*) FROM messages where level = 8")
+        .fetch_all(pool)
+        .await
+        .unwrap()[0]
+        .unwrap()
+}
+
 pub async fn get_messages_paginated(
     pool: &Pool<Postgres>,
     page: i64,

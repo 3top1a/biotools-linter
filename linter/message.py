@@ -18,10 +18,10 @@ class Level(IntEnum):
     Report = 1 # Obsolete
     LinterError = 2 # Linter errors
     LinterInternal = 3 # For messaging between threads, e.g. the LINT-F for when a lint finishes
-    ReportCritical = 4 # Reserved for security problems
     ReportHigh = 5
     ReportMedium = 6
     ReportLow = 7
+    ReportCritical = 8 # Reserved for security problems
 
 class Message:
 

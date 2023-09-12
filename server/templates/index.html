@@ -1,12 +1,12 @@
-{% extends 'base.html' %} {% block title %}Biotools linter{% endblock %} {% block extrahead %}<script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>{% endblock %} {% block
+{% extends 'base.html' %} {% block title %}Biotools database linter{% endblock %} {% block extrahead %}<script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>{% endblock %} {% block
 content %}
 <p></p>
 <article>
-    <h1>Bio.tools linter</h1>
+    <h1>Biotools database linter</h1>
     <p>
         This tool searches the entire <a href="https://bio.tools/">bio.tools database</a> for errors in the to help
         maintainers and editors with data quality.
-        Currently serving <code>{{error_count}}</code> errors for <code>{{tool_count}}</code> tools, oldest entry was
+        Currently serving <code>{{error_count}}</code> errors and <code>{{critical_count}}</code> security warnings for <code>{{tool_count}}</code> tools, oldest entry was
         linted at <code>{{last_time}}</code>.
 
         <br>

@@ -63,7 +63,7 @@ pub enum Severity {
     LinterError = 2,
     /// Indicates a critical error reserved for security vulnerabilities.
     #[serde(rename = "ReportCritical")]
-    ReportCritical = 4,
+    ReportCritical = 8,
     /// Represents a high-severity error.
     #[serde(rename = "ReportHigh")]
     ReportHigh = 5,
@@ -79,7 +79,7 @@ impl From<i32> for Severity {
     fn from(value: i32) -> Self {
         match value {
             2 => Self::LinterError,
-            4 => Self::ReportCritical,
+            8 => Self::ReportCritical,
             5 => Self::ReportHigh,
             6 => Self::ReportMedium,
             7 => Self::ReportLow,
@@ -92,7 +92,7 @@ impl From<Severity> for i32 {
     fn from(value: Severity) -> Self {
         match value {
             Severity::LinterError => 2,
-            Severity::ReportCritical => 4,
+            Severity::ReportCritical => 8,
             Severity::ReportHigh => 5,
             Severity::ReportMedium => 6,
             Severity::ReportLow => 7,
@@ -207,10 +207,11 @@ pub struct ApiResponse {
 /// Serve the main page
 pub async fn serve_index_page(State(state): State<ServerState>) -> Html<String> {
     // Simple statistics, multiple futures executing at once
-    let (error_count, oldest_entry_unix, tool_count) = tokio::join!(
+    let (error_count, oldest_entry_unix, tool_count, critical_count) = tokio::join!(
         db::count_total_messages(&state.pool),
         db::get_oldest_entry_unix(&state.pool),
         db::count_total_unique_tools(&state.pool),
+        db::count_critical_messages(&state.pool),
     );
 
     // Timestamp
@@ -219,6 +220,7 @@ pub async fn serve_index_page(State(state): State<ServerState>) -> Html<String> 
     let timestamp = datetime.format("%Y-%m-%d %H:%M").to_string();
 
     let mut c = Context::new();
+    c.insert("critical_count", &critical_count);
     c.insert("error_count", &error_count);
     c.insert("tool_count", &tool_count);
     c.insert("last_time", &timestamp);

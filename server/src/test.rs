@@ -2,6 +2,8 @@
 mod tests {
     use axum::http::StatusCode;
     use axum_test_helper::TestClient;
+    use tracing::Level;
+    use tracing_subscriber::FmtSubscriber;
 
     #[tokio::test]
     async fn sql() {

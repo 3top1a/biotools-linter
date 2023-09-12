@@ -6,11 +6,30 @@ endblock %} {% block content %}
 <article>
     <h1>Statistics</h1>
 
+    <style>
+        @media only screen and (min-width: 600px) {
+            .graph {
+                width: 50%
+            }
+            .chart-container {
+                display: flex; flex-flow: wrap;
+            }
+        }
+    </style>
+
     <div class="chart-container">
-        <canvas id="total_errors"></canvas>
-        <canvas id="unique_tools"></canvas>
-        <canvas id="error_types"></canvas>
-        <canvas id="error_line"></canvas>
+        <div class="graph">
+            <canvas id="total_errors"></canvas>
+        </div>
+        <div class="graph">
+            <canvas id="unique_tools"></canvas>
+        </div>
+        <div class="graph">
+            <canvas id="error_types"></canvas>
+        </div>
+        <div class="graph">
+            <canvas id="error_line"></canvas>
+        </div>
     </div>
 
 </article>
@@ -24,6 +43,7 @@ endblock %} {% block content %}
         const total_errors = document.getElementById('total_errors');
         new Chart(total_errors, {
             type: 'line',
+            aspectRatio: 1,
             data: {
                 datasets: [{
                     label: 'Total errors',
@@ -37,6 +57,7 @@ endblock %} {% block content %}
         const unique_tools = document.getElementById('unique_tools');
         new Chart(unique_tools, {
             type: 'line',
+            aspectRatio: 1,
             data: {
                 datasets: [
                     {
@@ -68,6 +89,7 @@ endblock %} {% block content %}
         new Chart(error_types, {
             type: 'pie',
             plugins: [ChartDataLabels],
+            aspectRatio: 1,
             labels: error_names,
             data: {
                 labels: error_names,
@@ -120,7 +142,7 @@ endblock %} {% block content %}
                     const value = x['error_types'][key];
                     if (!(key in error_type_indexes)) {
                         error_type_indexes[key] = datasets.length
-                        datasets[error_type_indexes[key]] = {label: key, data: [], fill: "-1"}
+                        datasets[error_type_indexes[key]] = { label: key, data: [], fill: "-1" }
                     }
                     datasets[error_type_indexes[key]].data.push(value)
                 }
@@ -132,6 +154,7 @@ endblock %} {% block content %}
 
         new Chart(error_line, {
             type: 'line',
+            aspectRatio: 1,
             data: {
                 labels: json.map(x => (new Date(Number.parseInt(x['time']) * 1000).toLocaleDateString("en-US")).toString()),
                 datasets: datasets,

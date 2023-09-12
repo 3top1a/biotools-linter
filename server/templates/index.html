@@ -7,9 +7,9 @@ content %}
 <article>
     <h1>Biotools database linter</h1>
     <p>
-        This tool searches the entire <a href="https://bio.tools/">bio.tools database</a> for errors in the to help
+        This tool searches the entire <a href="https://bio.tools/">bio.tools database</a> for errors to help
         maintainers and editors with data quality.
-        Currently serving <code>{{error_count}}</code> errors and <code>{{critical_count}}</code> security warnings for
+        Currently serving <code>{{error_count}}</code> errors and <code>{{critical_count}}</code> security warnings* for
         <code>{{tool_count}}</code> tools, oldest entry was
         linted at <code>{{last_time}}</code>.
 
@@ -21,7 +21,7 @@ content %}
         Please use this tool responsibly and do not misuse or overwhelm the bio.tools API with excessive requests.
     </p>
 
-    <table id="table"></table>
+    <table id="table" style="width: 100%;"></table>
 </article>
 
 <script>
@@ -48,18 +48,22 @@ content %}
             }
         },
         columns: [
-            { data: 'tool' },
-            { data: 'code' },
-            { data: 'text' },
+            {
+                data: 'tool',
+                title: 'Tool name',
+                render: function (data, type, row) {
+                    return (`<a target="_blank" href="https://bio.tools/tool/${data}" rel="nofollow">${data}</a>`);
+                }
+            },
+            { data: 'code', title: 'Code' },
+            { data: 'text', title: 'Error' },
             {
                 data: 'severity',
+                title: 'Severity',
                 render: function (data, type, row) {
                     switch (data) {
                         case 2:
                             return "Linter error";
-                            break;
-                        case 8:
-                            return "Critical"
                             break;
                         case 5:
                             return "High"
@@ -70,16 +74,21 @@ content %}
                         case 7:
                             return "Low"
                             break;
+                        case 8:
+                            return "Critical"
+                            break;
                         default:
                             return "Error";
                     }
                 }
             },
             {
-                data: 'timestamp'
+                data: 'timestamp',
+                title: 'Found at'
             },
             {
                 data: 'tool',
+                title: 'Links',
                 render: function (data, type, row) {
                     return (`<a target="_blank" href="https://bio.tools/api/tool/${data}" rel="nofollow">JSON</a>
                 <a target="_blank" href="https://bio.tools/${data}/edit" rel="nofollow">Edit</a>`);

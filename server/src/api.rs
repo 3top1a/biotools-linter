@@ -248,7 +248,7 @@ pub async fn serve_statistics_page() -> Html<String> {
  )]
 pub async fn serve_statistics_api(State(state): State<ServerState>) -> Json<Statistics> {
     // Get parameters
-    info!("Listing statistics");
+    info!("Listing statistics API");
 
     let json_str =
         fs::read_to_string(state.stats_file_path).expect("Should have been able to read json file");

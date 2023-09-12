@@ -1,7 +1,7 @@
 {% extends 'base.html' %} {% block title %}Biotools database linter{% endblock %} {% block extrahead %}
-<link href="https://cdn.datatables.net/v/dt/jq-3.7.0/dt-1.13.6/datatables.min.css" rel="stylesheet">
+<script src="https://cdn.datatables.net/v/dt/jq-3.7.0/dt-1.13.6/datatables.min.js"></script>
 
-<script src="https://cdn.datatables.net/v/dt/jq-3.7.0/dt-1.13.6/datatables.min.js"></script>{% endblock %} {% block
+{% endblock %} {% block
 content %}
 <p></p>
 <article>
@@ -34,8 +34,7 @@ content %}
             url: '/api/search',
             data: function (d) {
                 d.page = d.start / 100
-                if (d['search']["value"] != "")
-                {
+                if (d['search']["value"] != "") {
                     d.query = d['search']["value"]
                 }
             },
@@ -59,7 +58,7 @@ content %}
                         case 2:
                             return "Linter error";
                             break;
-                        case 4:
+                        case 8:
                             return "Critical"
                             break;
                         case 5:
@@ -82,7 +81,7 @@ content %}
             {
                 data: 'tool',
                 render: function (data, type, row) {
-                    return (`<a target="_blank" href="https://bio.tools/api/tool/${data}">JSON</a>
+                    return (`<a target="_blank" href="https://bio.tools/api/tool/${data}" rel="nofollow">JSON</a>
                 <a target="_blank" href="https://bio.tools/${data}/edit" rel="nofollow">Edit</a>`);
                 }
             },

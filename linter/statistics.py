@@ -74,7 +74,7 @@ def main():
     EDAM_GENERIC = count_error("EDAM_GENERIC")
 
     logging.info(
-        "%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d",
+        "%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d",
         URL_INVALID,
         URL_PERMANENT_REDIRECT,
         URL_BAD_STATUS,

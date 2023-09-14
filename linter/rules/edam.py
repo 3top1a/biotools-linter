@@ -80,7 +80,17 @@ def filter_edam(key: str, value: str) -> list[Message] | None:
                 key,
                 Level.ReportMedium))
 
-    # TODO(3top1a) make sure term is not high level (output: Data, input: Data)
+    high_level = ["http://edamontology.org/data_0006", "http://edamontology.org/format_1915", "http://edamontology.org/operation_0004", "http://edamontology.org/topic_0003"]
+
+    # make sure term is not high level (output: Data, input: Data)
+    if value in high_level:
+        reports.append(
+            Message(
+                "EDAM_GENERIC",
+                f"EDAM {label_dict[value]} at {key} is too generic, consider filling in a more specific value.",
+                key,
+                Level.ReportMedium))
+
     # TODO(3top1a) make sure term is in correct key (data -!> operation)
 
     if reports == []:

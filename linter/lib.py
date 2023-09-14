@@ -11,6 +11,7 @@ from joblib import Parallel, delayed
 from message import Level, Message
 from rules import delegate_filter
 from rules.edam import initialize
+import sys
 
 if TYPE_CHECKING:
     import queue
@@ -110,6 +111,9 @@ class Session:
         response = requests.get(url, timeout=TIMEOUT)
         if response.ok:
             self.json[name] = response.json()
+        else:
+            logging.critical("Non 200 status code received from bio.tools API")
+            sys.exit(1)
 
     def return_project_list_json(self: Session) -> list:
         """Return the project list from the JSON data.

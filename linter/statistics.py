@@ -71,6 +71,7 @@ def main():
     EDAM_OBSOLETE = count_error("EDAM_OBSOLETE")
     EDAM_NOT_RECOMMENDED = count_error("EDAM_NOT_RECOMMENDED")
     EDAM_INVALID = count_error("EDAM_INVALID")
+    EDAM_GENERIC = count_error("EDAM_GENERIC")
 
     logging.info(
         "%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d",
@@ -86,6 +87,7 @@ def main():
         EDAM_OBSOLETE,
         EDAM_NOT_RECOMMENDED,
         EDAM_INVALID,
+        EDAM_GENERIC
     )
 
     with open(output_file) as json_file:
@@ -109,6 +111,7 @@ def main():
             "EDAM_OBSOLETE": EDAM_OBSOLETE,
             "EDAM_NOT_RECOMMENDED": EDAM_NOT_RECOMMENDED,
             "EDAM_INVALID": EDAM_INVALID,
+            "EDAM_GENERIC": EDAM_GENERIC,
         },
     }
     data["data"].append(new_data_entry)

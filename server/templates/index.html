@@ -26,17 +26,56 @@ content %}
 </article>
 
 <script>
-    $('#table').dataTable({
+    severity_dropdown = null;
+    var table = $('#table').DataTable({
         serverSide: true,
         lengthChange: false,
         pageLength: 100,
         ordering: false,
+        initComplete: function () {
+            // Create severity dropdown menu
+
+            let column = this.api().columns().header()[3];
+
+            // Create select element
+            severity_dropdown = document.createElement('select');
+            severity_dropdown.add(new Option(''));
+            column.append(severity_dropdown);
+
+            severity_dropdown.addEventListener('change', function () {
+                table.ajax.reload()
+            });
+
+            // Add options
+            ['Low', 'Medium', 'High', 'Linter Error'].forEach(d => {
+                severity_dropdown.add(new Option(d));
+            });
+        },
         ajax: {
             url: '/api/search',
             data: function (d) {
                 d.page = d.start / 100
                 if (d['search']["value"] != "") {
                     d.query = d['search']["value"]
+                }
+
+                // Add severity
+                if (severity_dropdown)
+                {
+                    switch (severity_dropdown.value) {
+                        case "High":
+                            d.severity = 5
+                            break;
+                        case "Medium":
+                            d.severity = 6
+                            break;
+                        case "Low":
+                            d.severity = 7
+                            break;
+                        case "Linter Error":
+                            d.severity = 2
+                            break;
+                    }
                 }
             },
             dataSrc: 'results',

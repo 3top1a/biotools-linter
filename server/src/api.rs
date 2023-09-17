@@ -279,7 +279,7 @@ pub async fn serve_search_api(
     let query = params.query;
     let severity = params.severity;
 
-    info!("Listing API page {} query {:?}", page, query);
+    info!("Listing API page {} query {:?} severity {:?}", page, query, severity);
 
     let (messages, total_count) = match query.clone() {
         None => {

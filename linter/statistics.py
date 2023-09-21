@@ -87,7 +87,7 @@ def main():
         EDAM_OBSOLETE,
         EDAM_NOT_RECOMMENDED,
         EDAM_INVALID,
-        EDAM_GENERIC
+        EDAM_GENERIC,
     )
 
     with open(output_file) as json_file:

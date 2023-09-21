@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import sys
+import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, ClassVar
 
@@ -11,7 +13,6 @@ from joblib import Parallel, delayed
 from message import Level, Message
 from rules import delegate_filter
 from rules.edam import initialize
-import sys
 
 if TYPE_CHECKING:
     import queue
@@ -106,14 +107,25 @@ class Session:
         """
         logging.debug(f"Searching API for {name}")
 
+        tries = 5
         self.json = {}
         url = f"https://bio.tools/api/t/?q={name}&format=json&page={page!s}"
-        response = requests.get(url, timeout=TIMEOUT)
-        if response.ok:
-            self.json[name] = response.json()
-        else:
-            logging.critical("Non 200 status code received from bio.tools API")
-            sys.exit(1)
+
+        while tries > 0:
+            tries -= 1
+            try:
+                response = requests.get(url, timeout=TIMEOUT)
+                if response.ok:
+                    self.json[name] = response.json()
+                    return
+                else:
+                    logging.error("Non 200 status code received from bio.tools API")
+            except Exception as e:
+                logging.error(f"Error while trying to contact the bio.tools API:\n{e}")
+                time.sleep(5)
+
+        logging.critical("Could not contact the bio.tools API after 5 tries, aborting")
+        sys.exit(1)
 
     def return_project_list_json(self: Session) -> list:
         """Return the project list from the JSON data.

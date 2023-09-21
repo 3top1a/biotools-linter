@@ -16,8 +16,9 @@ content %}
         <br>
         <br>
 
-        Disclaimer: This tool does not cover all possible aspects or validations that can be performed on the data. It
-        should be used as an additional tool for evaluating the information retrieved from the bio.tools API.
+        Disclaimer: This tool does not cover all possible aspects or validations that can be performed on the data, and
+        is not always accurate, particularly if the site uses Cloudflare DDoS Mitigation or does not support HEAD
+        requests.
         Please use this tool responsibly and do not misuse or overwhelm the bio.tools API with excessive requests.
     </p>
 
@@ -60,8 +61,7 @@ content %}
                 }
 
                 // Add severity
-                if (severity_dropdown)
-                {
+                if (severity_dropdown) {
                     switch (severity_dropdown.value) {
                         case "High":
                             d.severity = 5

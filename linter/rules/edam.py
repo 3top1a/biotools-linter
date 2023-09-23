@@ -10,10 +10,10 @@ from message import Level, Message
 from .url import req_session
 
 initialized: bool = False
-# Dictionary whether class ID is obselete
+
 is_obsolete_dict: dict[str, bool] = {}
 not_recommended_dict: dict[str, bool] = {}
-deprication_comment_dict: dict[str, str] = {}
+deprecation_comment_dict: dict[str, str] = {}
 label_dict: dict[str, str] = {}
 
 def initialize() -> None:
@@ -51,7 +51,7 @@ def initialize() -> None:
 
             is_obsolete_dict[class_id] = obsolete
             label_dict[class_id] = label
-            deprication_comment_dict[class_id] = obsolete_comment
+            deprecation_comment_dict[class_id] = obsolete_comment
             not_recommended_dict[class_id] = not_recommended
 
 def filter_edam(key: str, value: str) -> list[Message] | None:
@@ -62,14 +62,14 @@ def filter_edam(key: str, value: str) -> list[Message] | None:
             reports.append(
                 Message(
                     "EDAM_OBSOLETE",
-                    f"EDAM {label_dict[value]} at {key} is obsolete. ({deprication_comment_dict[value]})",
+                    f'EDAM "{label_dict[value]}" at {key} is obsolete. ({deprecation_comment_dict[value]})',
                     key,
                     Level.ReportMedium))
         elif not_recommended_dict[value]:
                 reports.append(
                     Message(
                         "EDAM_NOT_RECOMMENDED",
-                        f"EDAM {label_dict[value]} at {key} is not recommended.",
+                        f'EDAM "{label_dict[value]}" at {key} is not recommended for usage.',
                         key,
                         Level.ReportLow))
     else:
@@ -87,7 +87,7 @@ def filter_edam(key: str, value: str) -> list[Message] | None:
         reports.append(
             Message(
                 "EDAM_GENERIC",
-                f"EDAM {label_dict[value]} at {key} is too generic, consider filling in a more specific value.",
+                f'EDAM "{label_dict[value]}" at {key} is too generic, consider filling in a more specific value.',
                 key,
                 Level.ReportMedium))
 

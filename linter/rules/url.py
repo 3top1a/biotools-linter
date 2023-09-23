@@ -66,15 +66,11 @@ def filter_url(key: str, value: str) -> list[Message] | None:
         reports = []
 
         # Make a request
-        # https://stackoverflow.com/questions/1731298/how-do-i-check-the-http-status-code-of-an-object-without-downloading-it#1731388
-        # The old way was using a get request, however some tools DOS'd the linter
-        # because it tried to download a 2GB+ zip file, so we just request the headers
-        # with HEAD and not the whole content of the file.
-        # It's also just faster
+        # It streams it and then closes it so it doesn't download the file
         try:
-            response = req_session.head(value, timeout=TIMEOUT, allow_redirects=True)
+            response = req_session.get(value, timeout=TIMEOUT, allow_redirects=True, stream=True)
 
-            response_no_auto_redirect = req_session.head(value, timeout=TIMEOUT, allow_redirects=False)
+            response_no_auto_redirect = req_session.get(value, timeout=TIMEOUT, allow_redirects=False, stream=True)
             if response_no_auto_redirect.is_permanent_redirect:
                 reports.append(
                     Message(
@@ -96,8 +92,8 @@ def filter_url(key: str, value: str) -> list[Message] | None:
             if not url_starts_with_https:
                 # Try to request with SSL
                 try:
-                    req_session.head(value.replace("http://", "https://"),
-                                    timeout=TIMEOUT)
+                    req_session.get(value.replace("http://", "https://"),
+                                    timeout=TIMEOUT, stream=True)
 
                 except:
                     # If that fails, the site does not use SSL at all

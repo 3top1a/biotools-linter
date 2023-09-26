@@ -1,3 +1,5 @@
+"""EDAMontology rules, learn more at https://edamontology.org/page ."""
+
 from __future__ import annotations
 
 import csv

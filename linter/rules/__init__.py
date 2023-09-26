@@ -6,6 +6,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from .edam import filter_edam
+from .publications import filter_pub
 from .url import filter_url
 
 if TYPE_CHECKING:
@@ -15,7 +16,7 @@ URL_REGEX = r"(http[s]?|ftp)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-f
 IMPORTANT_KEYS = ["name", "description",
                   "homepage", "biotoolsID", "biotoolsCURIE"]
 
-def delegate_filter(key: str, value: str) -> list[Message] | None:
+def delegate_key_value_filter(key: str, value: str) -> list[Message] | None:
     """Delegate to separate filter functions based on the key and value.
 
     Attributes
@@ -55,6 +56,17 @@ def delegate_filter(key: str, value: str) -> list[Message] | None:
         return None
     return output
 
+def delegate_whole_json_filter(json) -> list[Message] | None:
+    """Delegate to separate filter functions that filter the whole json, not just one key value pair."""
+    output = []
+
+    messages = filter_pub(json)
+    if messages is not None:
+        output.extend(messages)
+
+    if output is []:
+        return None
+    return output
 
 def filter_none(key: str, _value: str) -> Message | None:
     """Filter the key-value pair if the value is None or empty.

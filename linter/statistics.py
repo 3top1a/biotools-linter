@@ -72,6 +72,8 @@ def main():
     EDAM_NOT_RECOMMENDED = count_error("EDAM_NOT_RECOMMENDED")
     EDAM_INVALID = count_error("EDAM_INVALID")
     EDAM_GENERIC = count_error("EDAM_GENERIC")
+    DOI_BUT_NOT_PMID = count_error("DOI_BUT_NOT_PMID")
+    DOI_BUT_NOT_PMCID = count_error("DOI_BUT_NOT_PMCID")
 
     logging.info(
         "%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d",
@@ -88,6 +90,8 @@ def main():
         EDAM_NOT_RECOMMENDED,
         EDAM_INVALID,
         EDAM_GENERIC,
+        DOI_BUT_NOT_PMID,
+        DOI_BUT_NOT_PMCID,
     )
 
     with open(output_file) as json_file:
@@ -112,6 +116,8 @@ def main():
             "EDAM_NOT_RECOMMENDED": EDAM_NOT_RECOMMENDED,
             "EDAM_INVALID": EDAM_INVALID,
             "EDAM_GENERIC": EDAM_GENERIC,
+            "DOI_BUT_NOT_PMID": DOI_BUT_NOT_PMID,
+            "DOI_BUT_NOT_PMCID": DOI_BUT_NOT_PMCID,
         },
     }
     data["data"].append(new_data_entry)

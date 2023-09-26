@@ -1,6 +1,6 @@
 .vscode
 .ruff_cache
-flask_session
+EDAM.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

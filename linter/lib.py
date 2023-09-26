@@ -11,7 +11,8 @@ from typing import TYPE_CHECKING, ClassVar
 import requests
 from joblib import Parallel, delayed
 from message import Level, Message
-from rules import delegate_filter
+from rules import delegate_key_value_filter
+from rules import delegate_whole_json_filter
 from rules.edam import initialize
 
 if TYPE_CHECKING:
@@ -181,10 +182,11 @@ class Session:
         dictionary = flatten_json_to_single_dict(data_json,
                                                  parent_key=tool_name + "/")
 
+        # Put key value filters and whole json filters into queue
         futures = [
-            self.executor.submit(delegate_filter, key, value)
+            self.executor.submit(delegate_key_value_filter, key, value)
             for key, value in dictionary.items()
-        ]
+        ] + [self.executor.submit(delegate_whole_json_filter, data_json)]
 
         for f in futures:
             output = f.result()
@@ -264,7 +266,7 @@ class Session:
 
     def get_total_project_count(self: Session) -> int:
         """Return the total number (even not on page) of projects found."""
-        return len(self.return_project_list_json())
+        return next(iter(self.json.items()))[1]["count"]
 
 
 def flatten_json_to_single_dict(json_data: dict,

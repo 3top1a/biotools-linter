@@ -1,4 +1,4 @@
-"""URL rules."""
+"""URL rules that check for things like 404s or ssl certificates being expired."""
 
 from __future__ import annotations
 

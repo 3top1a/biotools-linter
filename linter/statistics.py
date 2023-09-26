@@ -75,25 +75,6 @@ def main():
     DOI_BUT_NOT_PMID = count_error("DOI_BUT_NOT_PMID")
     DOI_BUT_NOT_PMCID = count_error("DOI_BUT_NOT_PMCID")
 
-    logging.info(
-        "%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d",
-        URL_INVALID,
-        URL_PERMANENT_REDIRECT,
-        URL_BAD_STATUS,
-        URL_NO_SSL,
-        URL_UNUSED_SSL,
-        URL_TIMEOUT,
-        URL_SSL_ERROR,
-        URL_CONN_ERROR,
-        URL_LINTER_ERROR,
-        EDAM_OBSOLETE,
-        EDAM_NOT_RECOMMENDED,
-        EDAM_INVALID,
-        EDAM_GENERIC,
-        DOI_BUT_NOT_PMID,
-        DOI_BUT_NOT_PMCID,
-    )
-
     with open(output_file) as json_file:
         data = json.load(json_file)
 

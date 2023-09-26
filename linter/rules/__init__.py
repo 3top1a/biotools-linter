@@ -56,7 +56,7 @@ def delegate_key_value_filter(key: str, value: str) -> list[Message] | None:
         return None
     return output
 
-def delegate_whole_json_filter(json) -> list[Message] | None:
+def delegate_whole_json_filter(json: dict) -> list[Message] | None:
     """Delegate to separate filter functions that filter the whole json, not just one key value pair."""
     output = []
 
@@ -89,7 +89,7 @@ def filter_none(key: str, _value: str) -> Message | None:
 
     for ik in IMPORTANT_KEYS:
         if key.endswith(ik):
-            #TODO(3top1a) Needs to be more specific
+            #Needs to be more specific, removed for now
             pass
 
     return None

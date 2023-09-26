@@ -59,6 +59,8 @@ def main():
         cursor.execute("SELECT COUNT(*) FROM messages where code = %s", (e, ))
         return cursor.fetchone()[0]
 
+    # TODO(3top1a): Make a better system
+
     URL_INVALID = count_error("URL_INVALID")
     URL_PERMANENT_REDIRECT = count_error("URL_PERMANENT_REDIRECT")
     URL_BAD_STATUS = count_error("URL_BAD_STATUS")

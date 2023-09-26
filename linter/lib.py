@@ -11,8 +11,7 @@ from typing import TYPE_CHECKING, ClassVar
 import requests
 from joblib import Parallel, delayed
 from message import Level, Message
-from rules import delegate_key_value_filter
-from rules import delegate_whole_json_filter
+from rules import delegate_key_value_filter, delegate_whole_json_filter
 from rules.edam import initialize
 
 if TYPE_CHECKING:
@@ -88,8 +87,7 @@ class Session:
 
     def search_api(self: Session,
                    name: str,
-                   page: int = 1,
-                   im_feeling_lucky: bool = True) -> None:
+                   page: int = 1) -> None:
         """Retrieve JSON data from the biotools API.
 
         Attributes
@@ -119,10 +117,10 @@ class Session:
                 if response.ok:
                     self.json[name] = response.json()
                     return
-                else:
-                    logging.error("Non 200 status code received from bio.tools API")
+
+                logging.error("Non 200 status code received from bio.tools API")
             except Exception as e:
-                logging.error(f"Error while trying to contact the bio.tools API:\n{e}")
+                logging.exception(f"Error while trying to contact the bio.tools API:\n{e}")
                 time.sleep(5)
 
         logging.critical("Could not contact the bio.tools API after 5 tries, aborting")

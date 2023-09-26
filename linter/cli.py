@@ -174,7 +174,7 @@ def main(arguments: Sequence[str]) -> int:
         if export_db_connection:
             export_db_connection.commit()
 
-    def drop_rows_with_name(name: str):
+    def drop_rows_with_name(name: str) -> None:
         if export_db_connection is None:
             return
 

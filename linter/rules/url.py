@@ -95,7 +95,7 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                     req_session.get(value.replace("http://", "https://"),
                                     timeout=TIMEOUT, stream=True)
 
-                except:
+                except Exception:
                     # If that fails, the site does not use SSL at all
                     reports.append(
                         Message("URL_NO_SSL",

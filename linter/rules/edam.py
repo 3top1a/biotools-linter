@@ -93,7 +93,7 @@ def filter_edam(key: str, value: str) -> list[Message] | None:
                 key,
                 Level.ReportMedium))
 
-    # TODO(3top1a) make sure term is in correct key (data -!> operation)
+    # TODO(3top1a): make sure term is in correct key (data -!> operation)
 
     if reports == []:
         return None

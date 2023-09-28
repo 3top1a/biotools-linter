@@ -52,6 +52,14 @@ endblock %} {% block content %}
                 }],
                 labels: json.map(x => (new Date(Number.parseInt(x['time']) * 1000).toLocaleDateString("en-US")).toString()),
             },
+            options: {
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Total errors found'
+                    }
+                }
+            }
         });
 
         const unique_tools = document.getElementById('unique_tools');
@@ -73,6 +81,14 @@ endblock %} {% block content %}
                 ],
                 labels: json.map(x => (new Date(Number.parseInt(x['time']) * 1000).toLocaleDateString("en-US")).toString()),
             },
+            options: {
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Tools and tools with errors found'
+                    }
+                }
+            }
         });
 
         const error_types = document.getElementById('error_types');
@@ -89,7 +105,6 @@ endblock %} {% block content %}
         new Chart(error_types, {
             type: 'pie',
             plugins: [ChartDataLabels],
-            aspectRatio: 1,
             labels: error_names,
             data: {
                 labels: error_names,
@@ -103,15 +118,17 @@ endblock %} {% block content %}
 
             options: {
                 layout: {
-                    padding: 100,
+                    padding: 50,
                 },
                 plugins: {
                     datalabels: {
+                        // https://chartjs-plugin-datalabels.netlify.app/guide/positioning.html#anchoring
                         align: 'end',
                         anchor: 'end',
-                        color: function (context) {
+                        /*color: function (context) {
                             return context.dataset.backgroundColor;
-                        },
+                        },*/
+                        display: 'auto',
                         font: function (context) {
                             var w = context.chart.width;
                             return {
@@ -125,6 +142,11 @@ endblock %} {% block content %}
                     },
                     legend: {
                         display: false,
+                    },
+                    title: {
+                        display: true,
+                        text: 'Distribution of error types',
+                        padding: 30,
                     }
                 },
             }
@@ -151,11 +173,11 @@ endblock %} {% block content %}
 
         new Chart(error_line, {
             type: 'line',
-            aspectRatio: 1,
             data: {
                 labels: json.map(x => (new Date(Number.parseInt(x['time']) * 1000).toLocaleDateString("en-US")).toString()),
                 datasets: datasets,
             },
+            maintainAspectRatio: false,
             options: {
                 scales: {
                     y: {
@@ -168,6 +190,10 @@ endblock %} {% block content %}
                     },
                     'samples-filler-analyser': {
                         target: 'chart-analyser'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Error types with time'
                     }
                 },
                 interaction: {

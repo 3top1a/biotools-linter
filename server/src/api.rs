@@ -26,6 +26,26 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 use crate::db;
 use crate::ServerState;
 
+static ERROR_CODES: [&str; 17] = [
+    "URL_INVALID",
+    "URL_PERMANENT_REDIRECT",
+    "URL_BAD_STATUS",
+    "URL_NO_SSL",
+    "URL_UNUSED_SSL",
+    "URL_TIMEOUT",
+    "URL_SSL_ERROR",
+    "URL_CONN_ERROR",
+    "URL_LINTER_ERROR",
+    "EDAM_OBSOLETE",
+    "EDAM_NOT_RECOMMENDED",
+    "EDAM_INVALID",
+    "EDAM_GENERIC",
+    "DOI_BUT_NOT_PMID",
+    "DOI_BUT_NOT_PMCID",
+    "PMID_BUT_NOT_DOI",
+    "PMCID_BUT_NOT_DOI",
+];
+
 // Initialize and cache templates and regex
 lazy_static! {
     pub static ref TEMPLATES: Tera = {
@@ -253,7 +273,16 @@ pub async fn serve_statistics_api(State(state): State<ServerState>) -> Json<Stat
     let json_str =
         fs::read_to_string(state.stats_file_path).expect("Should have been able to read json file");
 
-    let json: Statistics = serde_json::from_str(&json_str).expect("Could not parse JSON");
+    let mut json: Statistics = serde_json::from_str(&json_str).expect("Could not parse JSON");
+
+    // Make entries have all error types even if they will be null
+    for entry in &mut json.data {
+        for code in ERROR_CODES.clone() {
+            if !entry.error_types.contains_key(code) {
+                entry.error_types.insert(code.to_owned(), Value::Null);
+            }
+        }
+    }
 
     return Json(json);
 }

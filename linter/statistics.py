@@ -1,4 +1,4 @@
-"""A file to generate statistics for the server."""
+"""A script to generate statistics for the server."""
 
 from __future__ import annotations
 
@@ -12,8 +12,27 @@ import lib
 import psycopg2
 from psycopg2.extensions import parse_dsn
 
+ERROR_TYPES = [
+    "URL_INVALID",
+    "URL_PERMANENT_REDIRECT",
+    "URL_BAD_STATUS",
+    "URL_NO_SSL",
+    "URL_UNUSED_SSL",
+    "URL_TIMEOUT",
+    "URL_SSL_ERROR",
+    "URL_CONN_ERROR",
+    "URL_LINTER_ERROR",
+    "EDAM_OBSOLETE",
+    "EDAM_NOT_RECOMMENDED",
+    "EDAM_INVALID",
+    "EDAM_GENERIC",
+    "DOI_BUT_NOT_PMID",
+    "DOI_BUT_NOT_PMCID",
+    "PMID_BUT_NOT_DOI",
+    "PMCID_BUT_NOT_DOI",
+]
 
-def main():
+def main() -> int:
     logging.basicConfig(force=True, level="INFO")
     formatter = logging.Formatter("%(levelname)s - %(message)s")
     console_handler = logging.StreamHandler()
@@ -23,8 +42,9 @@ def main():
     root_logger.addHandler(console_handler)
 
     if len(sys.argv) != 2:
-        logging.critical("Please specify output file")
-        return
+        logging.critical("Please specify output file. Must exist and cannot be blank, only empty JSON.")
+        logging.critical("Usage: python linter/statistics.py ~/data.json")
+        return 1
     output_file = sys.argv[1]
 
     if not os.path.exists(output_file):
@@ -59,25 +79,11 @@ def main():
         cursor.execute("SELECT COUNT(*) FROM messages where code = %s", (e, ))
         return cursor.fetchone()[0]
 
-    # TODO(3top1a): Make a better system
 
-    URL_INVALID = count_error("URL_INVALID")
-    URL_PERMANENT_REDIRECT = count_error("URL_PERMANENT_REDIRECT")
-    URL_BAD_STATUS = count_error("URL_BAD_STATUS")
-    URL_NO_SSL = count_error("URL_NO_SSL")
-    URL_UNUSED_SSL = count_error("URL_UNUSED_SSL")
-    URL_TIMEOUT = count_error("URL_TIMEOUT")
-    URL_SSL_ERROR = count_error("URL_SSL_ERROR")
-    URL_CONN_ERROR = count_error("URL_CONN_ERROR")
-    URL_LINTER_ERROR = count_error("URL_LINTER_ERROR")
-    EDAM_OBSOLETE = count_error("EDAM_OBSOLETE")
-    EDAM_NOT_RECOMMENDED = count_error("EDAM_NOT_RECOMMENDED")
-    EDAM_INVALID = count_error("EDAM_INVALID")
-    EDAM_GENERIC = count_error("EDAM_GENERIC")
-    DOI_BUT_NOT_PMID = count_error("DOI_BUT_NOT_PMID")
-    DOI_BUT_NOT_PMCID = count_error("DOI_BUT_NOT_PMCID")
-    PMID_BUT_NOT_DOI = count_error("PMID_BUT_NOT_DOI")
-    PMCID_BUT_NOT_DOI = count_error("PMCID_BUT_NOT_DOI")
+    error_code_and_count_dict = {}
+    for code in ERROR_TYPES:
+        error_code_and_count_dict[code] = count_error(code)
+        logging.info(f"{code}: {error_code_and_count_dict[code]}")
 
     with open(output_file) as json_file:
         data = json.load(json_file)
@@ -87,25 +93,7 @@ def main():
         "total_count_on_biotools": total_count_on_biotools,
         "total_errors": total_errors,
         "unique_tools": unique_tools,
-        "error_types": {
-            "URL_INVALID": URL_INVALID,
-            "URL_PERMANENT_REDIRECT": URL_PERMANENT_REDIRECT,
-            "URL_BAD_STATUS": URL_BAD_STATUS,
-            "URL_NO_SSL": URL_NO_SSL,
-            "URL_UNUSED_SSL": URL_UNUSED_SSL,
-            "URL_TIMEOUT": URL_TIMEOUT,
-            "URL_SSL_ERROR": URL_SSL_ERROR,
-            "URL_CONN_ERROR": URL_CONN_ERROR,
-            "URL_LINTER_ERROR": URL_LINTER_ERROR,
-            "EDAM_OBSOLETE": EDAM_OBSOLETE,
-            "EDAM_NOT_RECOMMENDED": EDAM_NOT_RECOMMENDED,
-            "EDAM_INVALID": EDAM_INVALID,
-            "EDAM_GENERIC": EDAM_GENERIC,
-            "DOI_BUT_NOT_PMID": DOI_BUT_NOT_PMID,
-            "DOI_BUT_NOT_PMCID": DOI_BUT_NOT_PMCID,
-            "PMID_BUT_NOT_DOI": PMID_BUT_NOT_DOI,
-            "PMCID_BUT_NOT_DOI": PMCID_BUT_NOT_DOI,
-        },
+        "error_types": error_code_and_count_dict,
     }
     data["data"].append(new_data_entry)
 
@@ -114,7 +102,8 @@ def main():
         json.dump(data, json_file, indent=2)
 
     logging.info("Appended to the json file")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

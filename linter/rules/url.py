@@ -66,7 +66,7 @@ def filter_url(key: str, value: str) -> list[Message] | None:
         reports = []
 
         # Make a request
-        # It streams it and then closes it so it doesn't download the file
+        # It streams it and then closes it so it doesn't download the file. Better than HEAD requests.
         try:
             response = req_session.get(value, timeout=TIMEOUT, allow_redirects=True, stream=True)
 

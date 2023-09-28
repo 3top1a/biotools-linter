@@ -76,6 +76,8 @@ def main():
     EDAM_GENERIC = count_error("EDAM_GENERIC")
     DOI_BUT_NOT_PMID = count_error("DOI_BUT_NOT_PMID")
     DOI_BUT_NOT_PMCID = count_error("DOI_BUT_NOT_PMCID")
+    PMID_BUT_NOT_DOI = count_error("PMID_BUT_NOT_DOI")
+    PMCID_BUT_NOT_DOI = count_error("PMCID_BUT_NOT_DOI")
 
     with open(output_file) as json_file:
         data = json.load(json_file)
@@ -101,6 +103,8 @@ def main():
             "EDAM_GENERIC": EDAM_GENERIC,
             "DOI_BUT_NOT_PMID": DOI_BUT_NOT_PMID,
             "DOI_BUT_NOT_PMCID": DOI_BUT_NOT_PMCID,
+            "PMID_BUT_NOT_DOI": PMID_BUT_NOT_DOI,
+            "PMCID_BUT_NOT_DOI": PMCID_BUT_NOT_DOI,
         },
     }
     data["data"].append(new_data_entry)

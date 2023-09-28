@@ -26,7 +26,7 @@ def filter_pub(json) -> list[Message] | None:
             # Check if DOI to PMID can be automatically converted
             pmid = doi_to_pmid(doi)
             if pmid:
-                output.append(Message("DOI_BUT_NOT_PMID", f"Publication DOI {doi} (https://www.doi.org/{doi}) has a PMID {pmid} (https://pubmed.ncbi.nlm.nih.gov/{pmid}/) but is not in database.", json["name"], Level.ReportMedium))
+                output.append(Message("DOI_BUT_NOT_PMID", f"Publication DOI {doi} (https://www.doi.org/{doi}) has a PMID {pmid} (https://pubmed.ncbi.nlm.nih.gov/{pmid}) but is not in database.", json["name"], Level.ReportMedium))
                 pass
 
             # If not, do not output
@@ -37,7 +37,23 @@ def filter_pub(json) -> list[Message] | None:
             # Check if DOI to PMID can be automatically converted
             pmcid = doi_to_pmcid(doi)
             if pmcid:
-                output.append(Message("DOI_BUT_NOT_PMCID", f"Publication DOI {doi} (https://www.doi.org/{doi}) has a PMCID {pmcid} (https://pubmed.ncbi.nlm.nih.gov/{pmcid}/) but is not in database.", json["name"], Level.ReportMedium))
+                output.append(Message("DOI_BUT_NOT_PMCID", f"Publication DOI {doi} (https://www.doi.org/{doi}) has a PMCID {pmcid} (https://pubmed.ncbi.nlm.nih.gov/{pmcid}) but is not in database.", json["name"], Level.ReportMedium))
+                pass
+
+            # If not, do not output
+            pass
+
+        # Check for PMID/PMCID but not DOI
+        if (pmcid or pmid) and not doi:
+            # Check if DOI to PMID can be automatically converted
+            doi_pmid = pmid_or_pmcid_to_doi(pmid)
+            doi_pmcid = pmid_or_pmcid_to_doi(pmcid)
+            if doi_pmid:
+                output.append(Message("PMID_BUT_NOT_DOI", f"Publication PMID {pmid} (https://pubmed.ncbi.nlm.nih.gov/{pmid}) has a DOI {doi_pmid} (https://www.doi.org/{doi_pmid}) but is not in database.", json["name"], Level.ReportMedium))
+                pass
+
+            if doi_pmcid:
+                output.append(Message("PMCID_BUT_NOT_DOI", f"Publication PMCID {pmcid} (https://pubmed.ncbi.nlm.nih.gov/{pmcid}) has a DOI {doi_pmcid} (https://www.doi.org/{doi_pmcid}) but is not in database.", json["name"], Level.ReportMedium))
                 pass
 
             # If not, do not output
@@ -90,3 +106,28 @@ def doi_to_pmcid(doi: str) -> str | None:
         return None
 
     return pub["pmcid"]
+
+def pmid_or_pmcid_to_doi(pc_c_id: str) -> str | None:
+    """Convert PMCID/PMID to doi.
+
+    Last time I checked `madap` had this so use it for testing.
+    """
+    url = f"https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/?tool=biotools-linter&email=251814@mail.muni.cz&ids={pc_c_id}&format=json"
+
+    result = req_session.get(url).json()
+
+    if result is None:
+        return None
+
+    if result["status"] != "ok":
+        return None
+
+    pub = result["records"][0]
+
+    if "live" in pub and pub["live"] == "false":
+        return None
+
+    if "doi" not in pub:
+        return None
+
+    return pub["doi"]

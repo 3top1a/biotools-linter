@@ -121,6 +121,15 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                     key,
                     Level.ReportHigh)) # High as it's inaccessible
 
+        except requests.TooManyRedirects:
+            # Timeout error
+            reports.append(
+                Message(
+                    "URL_TOO_MANY_REDIRECTS",
+                    f"URL {value} at {key} failed exceeded 30 redirects.",
+                    key,
+                    Level.ReportHigh))
+
         except requests.exceptions.SSLError as e:
             # SSL error
             reports.append(

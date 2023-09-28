@@ -30,6 +30,7 @@ ERROR_TYPES = [
     "DOI_BUT_NOT_PMCID",
     "PMID_BUT_NOT_DOI",
     "PMCID_BUT_NOT_DOI",
+    "URL_TOO_MANY_REDIRECTS",
 ]
 
 def main() -> int:

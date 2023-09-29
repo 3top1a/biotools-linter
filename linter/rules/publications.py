@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 
 from message import Level, Message
 
@@ -65,69 +66,81 @@ def filter_pub(json) -> list[Message] | None:
 
 def doi_to_pmid(doi: str) -> str | None:
     """Convert DOI to PMID."""
-    url = f"https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/?tool=biotools-linter&email=251814@mail.muni.cz&ids={doi}&format=json"
+    try:
+        url = f"https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/?tool=biotools-linter&email=251814@mail.muni.cz&ids={doi}&format=json"
 
-    result = req_session.get(url).json()
+        result = req_session.get(url).json()
 
-    if result is None:
+        if result is None:
+            return None
+
+        if result["status"] != "ok":
+            return None
+
+        pub = result["records"][0]
+
+        if "live" in pub and pub["live"] == "false":
+            return None
+
+        if "pmid" not in pub:
+            return None
+
+        return pub["pmid"]
+    except Exception as e:
+        logging.critical(f"Error while making API request to idconv: {e}")
         return None
-
-    if result["status"] != "ok":
-        return None
-
-    pub = result["records"][0]
-
-    if "live" in pub and pub["live"] == "false":
-        return None
-
-    if "pmid" not in pub:
-        return None
-
-    return pub["pmid"]
 
 def doi_to_pmcid(doi: str) -> str | None:
     """Convert DOI to PMCID."""
-    url = f"https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/?tool=biotools-linter&email=251814@mail.muni.cz&ids={doi}&format=json"
+    try:
+        url = f"https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/?tool=biotools-linter&email=251814@mail.muni.cz&ids={doi}&format=json"
 
-    result = req_session.get(url).json()
+        result = req_session.get(url).json()
 
-    if result is None:
+        if result is None:
+            return None
+
+        if result["status"] != "ok":
+            return None
+
+        pub = result["records"][0]
+
+        if "live" in pub and pub["live"] == "false":
+            return None
+
+        if "pmcid" not in pub:
+            return None
+
+        return pub["pmcid"]
+    except Exception as e:
+        logging.critical(f"Error while making API request to idconv: {e}")
         return None
-
-    if result["status"] != "ok":
-        return None
-
-    pub = result["records"][0]
-
-    if "live" in pub and pub["live"] == "false":
-        return None
-
-    if "pmcid" not in pub:
-        return None
-
-    return pub["pmcid"]
 
 def pmid_or_pmcid_to_doi(pc_c_id: str) -> str | None:
     """Convert PMCID/PMID to doi.
 
     Last time I checked `madap` had this so use it for testing.
     """
-    url = f"https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/?tool=biotools-linter&email=251814@mail.muni.cz&ids={pc_c_id}&format=json"
+    try:
+        url = f"https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/?tool=biotools-linter&email=251814@mail.muni.cz&ids={pc_c_id}&format=json"
 
-    result = req_session.get(url).json()
+        result = req_session.get(url).json()
 
-    if result is None:
+        if result is None:
+            return None
+
+        if result["status"] != "ok":
+            return None
+
+        pub = result["records"][0]
+
+        if "live" in pub and pub["live"] == "false":
+            return None
+
+        if "doi" not in pub:
+            return None
+
+        return pub["doi"]
+    except Exception as e:
+        logging.critical(f"Error while making API request to idconv: {e}")
         return None
-
-    if result["status"] != "ok":
-        return None
-
-    pub = result["records"][0]
-
-    if "live" in pub and pub["live"] == "false":
-        return None
-
-    if "doi" not in pub:
-        return None
-
-    return pub["doi"]

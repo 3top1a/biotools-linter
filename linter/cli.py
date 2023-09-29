@@ -25,6 +25,30 @@ if TYPE_CHECKING:
 REPORT = 15
 
 
+def drop_rows_with_tool_name(name: str, export_db_cursor: psycopg2.cursor) -> None:
+    if export_db_cursor is None:
+        return
+
+    delete_query = "DELETE FROM messages WHERE tool = %s;"
+    export_db_cursor.execute(delete_query, (name,))
+
+# Process the queue after linting, used for progressively sending to the database
+def insert_queue_into_database(queue: Queue, sql_cursor: psycopg2.cursor) -> None:
+    logging.info("Sending messages to database")
+
+    while not queue.empty():
+        item: Message = queue.get()
+
+        # Export
+        if sql_cursor and item.level != Level.LinterInternal:
+            insert_query = "INSERT INTO messages (time, tool, code, location, text, level) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;"
+            # Replace 'data' with your actual data variables
+            data = (int(
+                datetime.datetime.now(
+                    tz=datetime.timezone.utc).timestamp()), item.project,
+                    item.code, item.location, item.body, int(item.level))
+            sql_cursor.execute(insert_query, data)
+
 def main(arguments: Sequence[str]) -> int:
     """Execute the main functionality of the tool.
 
@@ -149,38 +173,6 @@ def main(arguments: Sequence[str]) -> int:
         create_table_query = "CREATE TABLE IF NOT EXISTS messages ( id SERIAL PRIMARY KEY, time BIGINT NOT NULL, tool TEXT NOT NULL, code TEXT NOT NULL, location TEXT NOT NULL, text TEXT NOT NULL, level INTEGER NOT NULL );"
         export_db_cursor.execute(create_table_query)
 
-    # Process the queue after linting, used for progressively sending to the database
-    def process_queue(queue: Queue, sql_cursor: psycopg2.cursor | None) -> None:
-        # Before processing
-        if sql_cursor:
-            logging.info("Sending messages to database")
-
-        while not queue.empty():
-            item: Message = queue.get()
-            if item.level == 1 and not returned_atleast_one_error:
-                pass
-
-            # Export
-            if sql_cursor and item.level != Level.LinterInternal:
-                insert_query = "INSERT INTO messages (time, tool, code, location, text, level) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;"
-                # Replace 'data' with your actual data variables
-                data = (int(
-                    datetime.datetime.now(
-                        tz=datetime.timezone.utc).timestamp()), item.project,
-                        item.code, item.location, item.body, int(item.level))
-                sql_cursor.execute(insert_query, data)
-
-        # After processing
-        if export_db_connection:
-            export_db_connection.commit()
-
-    def drop_rows_with_name(name: str) -> None:
-        if export_db_connection is None:
-            return
-
-        delete_query = "DELETE FROM messages WHERE tool = %s;"
-        export_db_cursor.execute(delete_query, (name,))
-
     # Start linting loop
     if lint_all:
         # Try to lint all projects on bio.tools
@@ -202,11 +194,12 @@ def main(arguments: Sequence[str]) -> int:
             # Delete old entries from table
             for tool in session.return_project_list_json():
                 name = tool["biotoolsID"]
-                drop_rows_with_name(name)
+                drop_rows_with_tool_name(name, export_db_cursor)
 
             session.lint_all_projects(return_q=return_queue, threads=threads)
             page += 1
-            process_queue(return_queue, export_db_cursor)
+            insert_queue_into_database(return_queue, export_db_cursor)
+            export_db_connection.commit()
     else:
         # Lint specific project(s)
         session.search_api(tool_name, page)
@@ -216,10 +209,11 @@ def main(arguments: Sequence[str]) -> int:
         # Delete old entries from table
         for tool in session.return_project_list_json():
             name = tool["biotoolsID"]
-            drop_rows_with_name(name)
+            drop_rows_with_tool_name(name, export_db_cursor)
 
         session.lint_all_projects(return_q=return_queue, threads=threads)
-        process_queue(return_queue, export_db_cursor)
+        insert_queue_into_database(return_queue, export_db_cursor)
+        export_db_connection.commit()
 
     if export_db_connection:
         export_db_connection.commit()

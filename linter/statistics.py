@@ -33,6 +33,14 @@ ERROR_TYPES = [
     "URL_TOO_MANY_REDIRECTS",
 ]
 
+SEVERITY_LEVELS = {
+    "LinterError": 2,
+    "ReportHigh": 5,
+    "ReportMedium": 6,
+    "ReportLow": 7,
+    "ReportCritical": 8,
+}
+
 def main() -> int:
     logging.basicConfig(force=True, level="INFO")
     formatter = logging.Formatter("%(levelname)s - %(message)s")
@@ -80,11 +88,21 @@ def main() -> int:
         cursor.execute("SELECT COUNT(*) FROM messages where code = %s", (e, ))
         return cursor.fetchone()[0]
 
+    # Count each severity
+    def count_severity(e: str) -> int:
+        cursor.execute("SELECT COUNT(*) FROM messages where level = %s", (e, ))
+        return cursor.fetchone()[0]
 
+    # Get error codes
     error_code_and_count_dict = {}
     for code in ERROR_TYPES:
         error_code_and_count_dict[code] = count_error(code)
         logging.info(f"{code}: {error_code_and_count_dict[code]}")
+
+    # Get severity
+    for sev_id_dict in SEVERITY_LEVELS:
+        SEVERITY_LEVELS[sev_id_dict] = count_severity(SEVERITY_LEVELS[sev_id_dict])
+        logging.info(f"{sev_id_dict}: {SEVERITY_LEVELS[sev_id_dict]}")
 
     with open(output_file) as json_file:
         data = json.load(json_file)
@@ -95,6 +113,7 @@ def main() -> int:
         "total_errors": total_errors,
         "unique_tools": unique_tools,
         "error_types": error_code_and_count_dict,
+        "severity": SEVERITY_LEVELS,
     }
     data["data"].append(new_data_entry)
 

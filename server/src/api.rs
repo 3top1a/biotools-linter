@@ -210,6 +210,7 @@ pub struct StatisticsEntry {
     pub total_errors: u64,
     pub unique_tools: u64,
     pub error_types: Map<String, Value>,
+    pub severity: Option<Map<String, Value>>,
 }
 
 /// Represents the response sent to web clients.

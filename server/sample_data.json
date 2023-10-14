@@ -79,6 +79,39 @@
         "EDAM_NOT_RECOMMENDED": 9923,
         "EDAM_INVALID": 52
       }
+    },
+    {
+      "time": 1697292961,
+      "total_count_on_biotools": 28485,
+      "total_errors": 86472,
+      "unique_tools": 22437,
+      "error_types": {
+        "URL_INVALID": 5,
+        "URL_PERMANENT_REDIRECT": 16877,
+        "URL_BAD_STATUS": 5413,
+        "URL_NO_SSL": 9177,
+        "URL_UNUSED_SSL": 18455,
+        "URL_TIMEOUT": 2200,
+        "URL_SSL_ERROR": 4498,
+        "URL_CONN_ERROR": 3882,
+        "URL_LINTER_ERROR": 5,
+        "EDAM_OBSOLETE": 1476,
+        "EDAM_NOT_RECOMMENDED": 9950,
+        "EDAM_INVALID": 52,
+        "EDAM_GENERIC": 826,
+        "DOI_BUT_NOT_PMID": 4190,
+        "DOI_BUT_NOT_PMCID": 5907,
+        "PMID_BUT_NOT_DOI": 3525,
+        "PMCID_BUT_NOT_DOI": 23,
+        "URL_TOO_MANY_REDIRECTS": 11
+      },
+      "severity": {
+        "LinterError": 5,
+        "ReportHigh": 10596,
+        "ReportMedium": 49044,
+        "ReportLow": 26827,
+        "ReportCritical": 0
+      }
     }
   ]
 }

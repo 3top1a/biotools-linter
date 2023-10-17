@@ -1473,3 +1473,11 @@ html.dark .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
 html.dark .dataTables_wrapper .dataTables_paginate .paginate_button:active {
   background: #3a3a3a;
 }
+
+.icon {
+  vertical-align: sub;
+  padding-right: .1rem;
+  width: 1em;
+  height: 1.1em;
+  margin-right: 0.2rem;
+}

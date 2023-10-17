@@ -13,3 +13,4 @@ Here are all other places the error needs to be places in:
 - `statistics.py` - Add the error code at line 15
 - `api.rs` - Add the error code at line 29 and increment the number
 - `test_lint.py` - Add a test, if possible
+- `server/docs/` - Write documentation

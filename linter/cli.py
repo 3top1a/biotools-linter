@@ -199,7 +199,8 @@ def main(arguments: Sequence[str]) -> int:
             session.lint_all_projects(return_q=return_queue, threads=threads)
             page += 1
             insert_queue_into_database(return_queue, export_db_cursor)
-            export_db_connection.commit()
+            if export_db_connection:
+                export_db_connection.commit()
     else:
         # Lint specific project(s)
         session.search_api(tool_name, page)
@@ -213,7 +214,8 @@ def main(arguments: Sequence[str]) -> int:
 
         session.lint_all_projects(return_q=return_queue, threads=threads)
         insert_queue_into_database(return_queue, export_db_cursor)
-        export_db_connection.commit()
+        if export_db_connection:
+            export_db_connection.commit()
 
     if export_db_connection:
         export_db_connection.commit()

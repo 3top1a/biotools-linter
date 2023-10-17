@@ -1,7 +1,7 @@
 use axum::{
-    extract::{Query, State},
-    response::Html,
-    Json,
+    extract::{Query, State, Path},
+    response::{Html, IntoResponse},
+    Json, http::StatusCode, Error,
 };
 use chrono::{DateTime, Utc};
 use db::DatabaseEntry;
@@ -12,7 +12,7 @@ use serde_json::{Map, Value};
 
 use std::{
     fs,
-    time::{Duration, UNIX_EPOCH},
+    time::{Duration, UNIX_EPOCH}, path::{PathBuf, Component}, str::FromStr,
 };
 use tera::{Context, Tera};
 use tokio::join;
@@ -341,4 +341,44 @@ pub async fn serve_search_api(
         },
         results: messages,
     })
+}
+
+pub async fn serve_documentation_page(Path(query_title): Path<String>, State(state): State<ServerState>,) -> Html<String> {
+    info!("Sending documentation for {}", query_title);
+    
+    // https://stackoverflow.com/questions/56366947/how-does-a-rust-pathbuf-prevent-directory-traversal-attacks
+    let mut p = PathBuf::from_str(&query_title).unwrap();
+    if p.components().into_iter().any(|x| x == Component::ParentDir) {
+        let c = Context::new();
+        return Html(TEMPLATES.render("error.html", &c).unwrap());
+    }
+
+    if p.to_str() == Some("") {
+        p = PathBuf::from_str("index.md").unwrap();
+    }
+
+    let p = p.with_extension("md");
+
+    
+    let markdown_path = PathBuf::from_str("documentation/").unwrap().join(p);
+    let markdown_string = fs::read_to_string(markdown_path).unwrap();
+    let parser = pulldown_cmark::Parser::new(&markdown_string);
+    let mut html_output = String::new();
+    pulldown_cmark::html::push_html(&mut html_output, parser);
+
+    let mut c = Context::new();
+    c.insert("content", &html_output);
+    Html(TEMPLATES.render("documentation.html", &c).unwrap())
+}
+
+pub async fn serve_documentation_index(State(state): State<ServerState>,) -> Html<String> {
+    let markdown_path = PathBuf::from_str("documentation/index.md").unwrap();
+    let markdown_string = fs::read_to_string(markdown_path).unwrap();
+    let parser = pulldown_cmark::Parser::new(&markdown_string);
+    let mut html_output = String::new();
+    pulldown_cmark::html::push_html(&mut html_output, parser);
+
+    let mut c = Context::new();
+    c.insert("content", &html_output);
+    Html(TEMPLATES.render("documentation.html", &c).unwrap())
 }

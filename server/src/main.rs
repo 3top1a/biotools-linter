@@ -5,7 +5,7 @@ mod test;
 use api::{
     ApiResponse, Message, __path_serve_search_api, __path_serve_statistics_api, serve_index_page,
     serve_search_api, serve_statistics_api, serve_statistics_page, Severity, Statistics,
-    StatisticsEntry,
+    StatisticsEntry, serve_documentation_page, serve_documentation_index,
 };
 use axum::{routing::get, Router};
 
@@ -105,6 +105,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn app(state: &ServerState) -> Router {
     Router::new()
         .route("/", get(serve_index_page))
+        .route("/docs/:query_title", get(serve_documentation_page))
+        .route("/docs/", get(serve_documentation_index))
+        .route("/docs", get(serve_documentation_index))
         .route("/statistics", get(serve_statistics_page))
         .route("/api/search", get(serve_search_api))
         .route("/api/statistics", get(serve_statistics_api))

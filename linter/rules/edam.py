@@ -85,6 +85,7 @@ def filter_edam(key: str, value: str) -> list[Message] | None:
     high_level = ["http://edamontology.org/data_0006", "http://edamontology.org/format_1915", "http://edamontology.org/operation_0004", "http://edamontology.org/topic_0003"]
 
     # make sure term is not high level (output: Data, input: Data)
+    # Maybe rewrite?
     if value in high_level:
         reports.append(
             Message(

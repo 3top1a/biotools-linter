@@ -107,7 +107,6 @@ class Session:
         logging.debug(f"Searching API for {name}")
 
         tries = 5
-        self.json = {}
         url = f"https://bio.tools/api/t/?q={name}&format=json&page={page!s}"
 
         while tries > 0:

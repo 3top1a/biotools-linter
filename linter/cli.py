@@ -69,7 +69,7 @@ def main(arguments: Sequence[str]) -> int:
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("name", help="Tool name", nargs="?")
+    parser.add_argument("name", help="Tool name. use `-` to read multiple tools from stdin", nargs="?")
     parser.add_argument(
         "--log-level",
         "-l",
@@ -86,7 +86,7 @@ def main(arguments: Sequence[str]) -> int:
     parser.add_argument(
         "--lint-all",
         action="store_true",
-        help="Lint all available projects returned by the biotools API")
+        help="Lint all tools in the biotools API")
     parser.add_argument("--page",
                         "-p",
                         default=1,
@@ -203,7 +203,14 @@ def main(arguments: Sequence[str]) -> int:
                 export_db_connection.commit()
     else:
         # Lint specific project(s)
-        session.search_api(tool_name, page)
+        if tool_name == '-':
+            # Pipe from stdin
+            for line in sys.stdin:
+                if line.strip() != "":
+                    session.search_api(line.strip(), page)
+        else:
+            session.search_api(tool_name, page)
+
         count = session.get_total_project_count()
         logging.info(f"Found {count} projects")
 

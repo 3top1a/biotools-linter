@@ -17,15 +17,19 @@ To see the automatically generated documentation of the API, see [this link](/ap
 - [URL_TIMEOUT](/docs/URL_TIMEOUT)
 - [URL_SSL_ERROR](/docs/URL_SSL_ERROR)
 - [URL_CONN_ERROR](/docs/URL_CONN_ERROR)
-
-Unfinished:
 - [URL_LINTER_ERROR](/docs/URL_LINTER_ERROR)
 - [URL_TOO_MANY_REDIRECTS](/docs/URL_TOO_MANY_REDIRECTS)
 - [EDAM_OBSOLETE](/docs/EDAM_OBSOLETE)
 - [EDAM_NOT_RECOMMENDED](/docs/EDAM_NOT_RECOMMENDED)
 - [EDAM_INVALID](/docs/EDAM_INVALID)
-- [EDAM_GENERIC](/docs/EDAM_GENERIC)
-- [DOI_BUT_NOT_PMID](/docs/DOI_BUT_NOT_PMID)
-- [DOI_BUT_NOT_PMCID](/docs/DOI_BUT_NOT_PMCID)
-- [PMID_BUT_NOT_DOI](/docs/PMID_BUT_NOT_DOI)
-- [PMCID_BUT_NOT_DOI](/docs/PMCID_BUT_NOT_DOI)
+- [DOI_BUT_NOT_PMID](/docs/PublishingIDConversions)
+- [DOI_BUT_NOT_PMCID](/docs/PublishingIDConversions)
+- [PMID_BUT_NOT_DOI](/docs/PublishingIDConversions)
+- [PMCID_BUT_NOT_DOI](/docs/PublishingIDConversions)
+
+Unfinished:
+- EDAM_GENERIC
+    - EDAM_GENERIC may be removed and substituted with a more advanced filter
+
+## Monitoring
+This server runs an instance of [Monitoror](https://monitoror.com/) for status monitoring. Is it available publicly at [this link](/dash/).

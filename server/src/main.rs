@@ -114,5 +114,6 @@ fn app(state: &ServerState) -> Router {
         .merge(SwaggerUi::new("/api/documentation").url("/api/openapi.json", ApiDoc::openapi()))
         .nest_service("/robots.txt", ServeFile::new("static/robots.txt"))
         .nest_service("/style.css", ServeFile::new("static/style.css"))
+        .nest_service("/sitemap.xml", ServeFile::new("static/sitemap.xml"))
         .with_state(state.clone())
 }

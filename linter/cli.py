@@ -187,9 +187,9 @@ def main(arguments: Sequence[str]) -> int:
             # Dump cache so it doesn't OOM
             session.clear_search()
 
-            session.search_api("*", page)
+            session.search_api_multiple_pages("*", page, page + 10)
             processed_tools += 10
-            logging.info(f"Page: {page}, Progress: {processed_tools / count}%")
+            logging.info(f"Page: {page} - {page + 10}, Progress: {processed_tools / count}%")
 
             # Delete old entries from table
             for tool in session.return_project_list_json():
@@ -197,7 +197,7 @@ def main(arguments: Sequence[str]) -> int:
                 drop_rows_with_tool_name(name, export_db_cursor)
 
             session.lint_all_projects(return_q=return_queue, threads=threads)
-            page += 1
+            page += 10
             insert_queue_into_database(return_queue, export_db_cursor)
             if export_db_connection:
                 export_db_connection.commit()

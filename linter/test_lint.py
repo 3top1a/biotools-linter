@@ -35,6 +35,10 @@ def test_session():
     assert not s.next_page_exists()
     assert not s.previous_page_exists()
 
+    # Multiple pages search
+    s.clear_search()
+    s.search_api_multiple_pages("*", 1, 5 + 1)
+    assert len(s.return_project_list_json()) == 50
 
 def test_cli():
     import cli as cli

@@ -125,6 +125,52 @@ class Session:
         logging.critical("Could not contact the bio.tools API after 5 tries, aborting")
         sys.exit(1)
 
+
+    def search_api_multiple_pages(self: Session,
+                   name: str,
+                   page_start: int = 1,
+                   page_end: int = 2) -> None:
+        """Retrieve JSON data from the biotools API.
+
+        Attributes
+        ----------
+            names (str): Multiple names to search for.
+            page_start (int): At what page to start (inclusive)
+            page_end (int): At which page to stop (exclusive, use +1)
+
+        Returns
+        -------
+            None
+
+        Raises
+        ------
+            None
+        """
+        logging.debug(f"Searching API for {name}")
+
+        try:
+            for page in range(page_start, page_end):
+                tries = 5
+                url = f"https://bio.tools/api/t/?q={name}&format=json&page={page!s}"
+
+                while tries > 0:
+                    tries -= 1
+                    try:
+                        response = requests.get(url, timeout=TIMEOUT)
+                        if response.ok:
+                            # HACK to avoid overwriting the entire dictionary it just adds the page number to the end to make it unique
+                            self.json[f"{name}{page}"] = response.json()
+                            break
+                        else:
+                            logging.error(f"Non 200 status code received from bio.tools API: {response.status_code}")
+                    except Exception as e:
+                        logging.exception(f"Error while trying to contact the bio.tools API:\n{e}")
+                        time.sleep(5)
+        except Exception as e:
+            logging.critical(f"Could not contact the bio.tools API after 5 tries, aborting: {e}")
+            sys.exit(1)
+
+
     def return_project_list_json(self: Session) -> list:
         """Return the project list from the JSON data.
 

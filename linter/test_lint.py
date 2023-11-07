@@ -40,6 +40,17 @@ def test_session():
     s.search_api_multiple_pages("*", 1, 5 + 1)
     assert len(s.return_project_list_json()) == 50
 
+    s.clear_search()
+    s.search_api_multiple_pages("bioto", 1, 5 + 1)
+    assert len(s.return_project_list_json()) == 2
+
+    s.clear_search()
+    for x in range(0, 2):
+        print(x * 10)
+        print(x * 10 + 10)
+        s.search_api_multiple_pages("cli", x * 10 + 1, x * 10 + 10 + 1)
+    assert len(s.return_project_list_json()) == 131
+
 def test_cli():
     import cli as cli
     # "end to end" CLI test, runs the CLI as if it was ran from the command line

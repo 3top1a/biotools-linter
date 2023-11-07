@@ -157,6 +157,9 @@ class Session:
                     tries -= 1
                     try:
                         response = requests.get(url, timeout=TIMEOUT)
+                        if 'detail' in response.json() and response.json()['detail'] == 'Invalid page. That page contains no results.':
+                            logging.warning(f"Page {page} doesn't exist, ending search")
+                            return
                         if response.ok:
                             # HACK to avoid overwriting the entire dictionary it just adds the page number to the end to make it unique
                             self.json[f"{name}{page}"] = response.json()

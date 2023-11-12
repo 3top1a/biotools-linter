@@ -96,7 +96,14 @@ content %}
                     return (`<a target="_blank" href="https://bio.tools/tool/${data}" rel="nofollow">${data}</a>`);
                 }
             },
-            { data: 'code', title: 'Code' },
+            { data: 'code', title: 'Code',
+                render: function (data, type, row) {
+                    if (data == "PMCID_BUT_NOT_DOI" || data == "PMID_BUT_NOT_DOI" || data == "DOI_BUT_NOT_PMCID" || data == "DOI_BUT_NOT_PMID") {
+                        return (`<a target="_blank" href="/docs/PublishingIDConversions" rel="nofollow">${data}</a>`);
+                    }
+                    return (`<a target="_blank" href="/docs/${data}" rel="nofollow">${data}</a>`);
+                }
+            },
             { data: 'text', title: 'Error' },
             {
                 data: 'severity',

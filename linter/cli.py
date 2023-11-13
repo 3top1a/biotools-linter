@@ -45,7 +45,7 @@ def insert_queue_into_database(queue: Queue, sql_cursor: psycopg2.cursor) -> Non
             # Replace 'data' with your actual data variables
             data = (int(
                 datetime.datetime.now(
-                    tz=datetime.timezone.utc).timestamp()), item.project,
+                    tz=datetime.timezone.utc).timestamp()), item.tool,
                     item.code, item.location, item.body, int(item.level))
             sql_cursor.execute(insert_query, data)
 
@@ -97,7 +97,7 @@ def main(arguments: Sequence[str]) -> int:
         default=4,
         type=int,
         help=
-        "How many threads to use when linting, eg. 8 threads will lint 8 projects at the same time",
+        "How many threads to use when linting, eg. 8 threads will lint 8 tools at the same time",
     )
     parser.add_argument(
         "--exit-on-error",
@@ -175,7 +175,7 @@ def main(arguments: Sequence[str]) -> int:
 
     # Start linting loop
     if lint_all:
-        # Try to lint all projects on bio.tools
+        # Try to lint all tools on bio.tools
         page = page if page else 1
         processed_tools = 10 * (page - 1)
 
@@ -185,24 +185,24 @@ def main(arguments: Sequence[str]) -> int:
 
         while session.next_page_exists() or page == 1:
             # Dump cache so it doesn't OOM
-            session.clear_search()
+            session.clear_cache()
 
             session.search_api_multiple_pages("*", page, page + 10)
             processed_tools += 10
-            logging.info(f"Page: {page} - {page + 10}, Progress: {processed_tools / count}%")
+            logging.info(f"Page: {page} => {page + 10}, Progress: {processed_tools / count}%")
 
             # Delete old entries from table
-            for tool in session.return_project_list_json():
+            for tool in session.return_tool_list_json():
                 name = tool["biotoolsID"]
                 drop_rows_with_tool_name(name, export_db_cursor)
 
-            session.lint_all_projects(return_q=return_queue, threads=threads)
+            session.lint_all_tools(return_q=return_queue, threads=threads)
             page += 10
             insert_queue_into_database(return_queue, export_db_cursor)
             if export_db_connection:
                 export_db_connection.commit()
     else:
-        # Lint specific project(s)
+        # Lint specific tools(s)
         if tool_name == '-':
             # Pipe from stdin
             for line in sys.stdin:
@@ -211,15 +211,15 @@ def main(arguments: Sequence[str]) -> int:
         else:
             session.search_api(tool_name, page)
 
-        count = session.get_total_project_count()
-        logging.info(f"Found {count} projects")
+        count = session.get_total_tool_count()
+        logging.info(f"Found {count} tools")
 
         # Delete old entries from table
-        for tool in session.return_project_list_json():
+        for tool in session.return_tool_list_json():
             name = tool["biotoolsID"]
             drop_rows_with_tool_name(name, export_db_cursor)
 
-        session.lint_all_projects(return_q=return_queue, threads=threads)
+        session.lint_all_tools(return_q=return_queue, threads=threads)
         insert_queue_into_database(return_queue, export_db_cursor)
         if export_db_connection:
             export_db_connection.commit()

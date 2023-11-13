@@ -27,7 +27,7 @@ class Message:
 
     """Message returned by the linter upwards to lib and cli."""
 
-    project: str # Project will be filled-in in lib/lint_specific_project
+    tool: str # Tool (biotools id) will be filled-in in lib/lint_specific_tool
     level: Level
     code: str
     body: str
@@ -42,7 +42,7 @@ class Message:
 
     def print_message(self: Message, message_queue: None | queue.Queue = None) -> None:
         """Print the message."""
-        message = f"{self.project}: [{self.code}] {self.body}"
+        message = f"{self.tool}: [{self.code}] {self.body}"
 
         logging.log(REPORT, message)
         if message_queue is not None:

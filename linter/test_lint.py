@@ -6,50 +6,50 @@ def test_session():
     s = lib.Session()
 
     # Broad search
-    s.clear_search()
+    s.clear_cache()
     s.search_api("e")
-    assert s.get_total_project_count() > 1
+    assert s.get_total_tool_count() > 1
     assert s.next_page_exists()
     assert not s.previous_page_exists()
     last_json = s.json
 
     # Broad search, page 10
-    s.clear_search()
+    s.clear_cache()
     s.search_api("e", 10)
-    assert s.get_total_project_count() > 1
+    assert s.get_total_tool_count() > 1
     assert s.next_page_exists()
     assert s.previous_page_exists()
     assert s.json != last_json
 
     # Exact search
-    s.clear_search()
+    s.clear_cache()
     s.search_api("msmc")
-    assert s.get_total_project_count() == 1
+    assert s.get_total_tool_count() == 1
     assert not s.next_page_exists()
     assert not s.previous_page_exists()
 
     # Invalid search
-    s.clear_search()
+    s.clear_cache()
     s.search_api("aaaaaaaaaaaaaaaaaaaaa")
-    assert s.get_total_project_count() == 0
+    assert s.get_total_tool_count() == 0
     assert not s.next_page_exists()
     assert not s.previous_page_exists()
 
     # Multiple pages search
-    s.clear_search()
+    s.clear_cache()
     s.search_api_multiple_pages("*", 1, 5 + 1)
-    assert len(s.return_project_list_json()) == 50
+    assert len(s.return_tool_list_json()) == 50
 
-    s.clear_search()
+    s.clear_cache()
     s.search_api_multiple_pages("bioto", 1, 5 + 1)
-    assert len(s.return_project_list_json()) == 2
+    assert len(s.return_tool_list_json()) == 2
 
-    s.clear_search()
+    s.clear_cache()
     for x in range(0, 2):
         print(x * 10)
         print(x * 10 + 10)
         s.search_api_multiple_pages("cli", x * 10 + 1, x * 10 + 10 + 1)
-    assert len(s.return_project_list_json()) == 131
+    assert len(s.return_tool_list_json()) == 131
 
 def test_cli():
     import cli as cli

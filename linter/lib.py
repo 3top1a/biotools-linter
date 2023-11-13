@@ -25,26 +25,12 @@ class Session:
 
     """Session for interacting with the biotools API and performing data processing.
 
-    Attributes
-    ----------
-        jsons (dict): Dictonary of a seach query and the resulting JSON
+    Once initialized, it can search the bio.tools API for a specific term (for one page or multiple) or an exact tool name (TODO).
+    The results are put into the session's `json` cache that can be cleared using `clear_cache()`.
+    You can lint a single JSON dictionary using `lint_specific_tool_json` or lint all tools in the cache using `lint_all_tools`.
+    As these functions are async, the results must be retrieved using a Queue.
 
-    Methods
-    -------
-        __init__(self, page: int = 1, json: dict = {}) -> None:
-            Initializes a new Session instance.
-        search_api(self, name: str, page: int = 1) -> None:
-            Retrieves JSON data from the biotools API.
-        return_project_list_json(self) -> list:
-            Returns the project list from the JSON data.
-        lint_specific_project(self, data_json: dict, return_q: typing.Optional[queue.Queue] = None) -> None:
-            Performs linting on a specific project.
-        lint_all_projects(self, return_q: typing.Optional[queue.Queue] = None) -> None:
-            Performs linting on all projects in the JSON data.
-        next_page_exists(self) -> bool:
-            Checks if the next page exists in the JSON data.
-        previous_page_exists(self) -> bool:
-            Checks if the previous page exists in the JSON data.
+
     """
 
     json: dict = ClassVar[dict[dict]]
@@ -80,7 +66,7 @@ class Session:
 
         initialize()
 
-    def clear_search(self: Session) -> None:
+    def clear_cache(self: Session) -> None:
         """Reset multiple search. Call before `search_api`."""
         self.json = {}
         self.cache = {}
@@ -174,12 +160,12 @@ class Session:
             sys.exit(1)
 
 
-    def return_project_list_json(self: Session) -> list:
-        """Return the project list from the JSON data.
+    def return_tool_list_json(self: Session) -> list:
+        """Return JSON of all tools currently cached.
 
         Returns
         -------
-            list: The project list.
+            list: Tools that have been searched.
 
         Raises
         ------
@@ -194,19 +180,15 @@ class Session:
 
         return output
 
-    def lint_specific_project(self: Session,
+    def lint_specific_tool_json(self: Session,
                               data_json: dict,
                               return_q: queue.Queue | None = None) -> None:
-        """Perform linting on a specific project.
+        """Perform linting on a specific tool JSON.
 
         Attributes
         ----------
-            data_json (dict): The JSON data of the project.
+            data_json (dict): The JSON data of the tool.
             return_q (typing.Optional[queue.Queue]): The queue to store linting results (default: None).
-
-        Returns
-        -------
-            bool: True if cache was used
 
         Raises
         ------
@@ -214,7 +196,7 @@ class Session:
         """
         if len(data_json) == 0:
             logging.critical("Received empty JSON!")
-            return None
+            return
 
         tool_name = data_json["name"]
 
@@ -223,7 +205,7 @@ class Session:
 
         logging.info(
             f"Linting {tool_name} at https://bio.tools/{data_json['biotoolsID']}")
-        logging.debug(f"Project JSON returned {len(data_json)} keys")
+        logging.debug(f"Tool {tool_name} returned {len(data_json)} JSON keys")
 
         dictionary = flatten_json_to_single_dict(data_json,
                                                  parent_key=tool_name + "/")
@@ -238,8 +220,8 @@ class Session:
             output = f.result()
             for message in output:
                 if type(message) == Message:
-                    # Add the project name to the message
-                    message.project = data_json["biotoolsID"]
+                    # Add the tool name to the message
+                    message.tool = data_json["biotoolsID"]
 
                     message.print_message()
                     if return_q is not None:
@@ -249,12 +231,10 @@ class Session:
             m = Message("LINT-F", "Finished linting", "", level=Level.LinterInternal)
             return_q.put(m)
 
-        return False
-
-    def lint_all_projects(self: Session,
+    def lint_all_tools(self: Session,
                           return_q: queue.Queue | None = None,
                           threads: int = 1) -> None:
-        """Perform linting on all projects in the JSON data.
+        """Perform linting on all tools in cache. Uses multiple threads using a ThreadPoolExecutor.
 
         Attributes
         ----------
@@ -268,18 +248,19 @@ class Session:
         ------
             None
         """
-        logging.debug(f"Linting all projects with {threads} threads")
+        logging.debug(f"Linting all tools with {threads} threads")
 
         self.executor = ThreadPoolExecutor(threads)
 
         Parallel(n_jobs=threads,
                  prefer="threads",
                  require="sharedmem")(
-                     delayed(self.lint_specific_project)(project, return_q)
-                     for project in self.return_project_list_json())
+                     delayed(self.lint_specific_tool)(tool, return_q)
+                     for tool in self.return_tool_list_json())
+
 
     def next_page_exists(self: Session) -> bool:
-        """Check if the next page exists in any project.
+        """Check if the next page exists in any search cache.
 
         Returns
         -------
@@ -294,8 +275,9 @@ class Session:
                 return query["next"] is not None
         return False
 
+
     def previous_page_exists(self: Session) -> bool:
-        """Check if the previous page exists in any project.
+        """Check if the previous page exists in any search cache.
 
         Returns
         -------
@@ -310,8 +292,9 @@ class Session:
                 return query["previous"] is not None
         return False
 
-    def get_total_project_count(self: Session) -> int:
-        """Return the total number (even not on page) of projects found."""
+
+    def get_total_tool_count(self: Session) -> int:
+        """Return the total number of tools in cache."""
         return next(iter(self.json.items()))[1]["count"]
 
 
@@ -335,11 +318,13 @@ def flatten_json_to_single_dict(json_data: dict,
 
     ```
     {
-        'parent.a': 1,
-        'parent.b.alpha': 1,
-        'parent.b.beta': 2
+        'json.a': 1,
+        'json.b.alpha': 1,
+        'json.b.beta': 2
     }
     ```
+
+    assuming the parent is `json` and seperator is `.`.
 
     Attributes
     ----------

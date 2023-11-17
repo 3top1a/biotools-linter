@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from .edam import filter_edam
+from .edam import edam_filter
 from .publications import filter_pub
 from .url import filter_url
 
@@ -44,7 +44,7 @@ def delegate_key_value_filter(key: str, value: str) -> list[Message] | None:
         return output
 
     if "://edamontology.org/" in value:
-        messages = filter_edam(key, value)
+        messages = edam_filter.filter_edam(key, value)
         if messages is not None:
             output.extend(messages)
     else:

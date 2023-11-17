@@ -12,7 +12,7 @@ import requests
 from joblib import Parallel, delayed
 from message import Level, Message
 from rules import delegate_key_value_filter, delegate_whole_json_filter
-from rules.edam import initialize
+from rules.edam import edam_filter
 
 if TYPE_CHECKING:
     import queue
@@ -63,8 +63,6 @@ class Session:
 
         self.json = json
         self.cache = cache
-
-        initialize()
 
     def clear_cache(self: Session) -> None:
         """Reset multiple search. Call before `search_api`."""
@@ -255,7 +253,7 @@ class Session:
         Parallel(n_jobs=threads,
                  prefer="threads",
                  require="sharedmem")(
-                     delayed(self.lint_specific_tool)(tool, return_q)
+                     delayed(self.lint_specific_tool_json)(tool, return_q)
                      for tool in self.return_tool_list_json())
 
 

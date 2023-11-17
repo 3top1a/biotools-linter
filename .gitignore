@@ -1,6 +1,7 @@
 .vscode
 .ruff_cache
 EDAM.csv
+EDAM.owl
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

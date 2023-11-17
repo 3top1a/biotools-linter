@@ -4,3 +4,4 @@ colorlog
 joblib
 psycopg2
 colorlog
+owlready2

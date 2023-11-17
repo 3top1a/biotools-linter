@@ -35,9 +35,9 @@ class Session:
     json: dict = ClassVar[dict[dict]]
     executor: None | ThreadPoolExecutor = None
 
-    def __init__(self: Session,
-                 json: dict | None = None,
-                 cache: dict | None = None) -> None:
+    def __init__(
+        self: Session, json: dict | None = None, cache: dict | None = None,
+    ) -> None:
         """Initialize a new Session instance.
 
         Attributes
@@ -68,9 +68,7 @@ class Session:
         self.json = {}
         self.cache = {}
 
-    def search_api(self: Session,
-                   name: str,
-                   page: int = 1) -> None:
+    def search_api(self: Session, name: str, page: int = 1) -> None:
         """Retrieve JSON data from the biotools API.
 
         Attributes
@@ -89,30 +87,27 @@ class Session:
         """
         logging.debug(f"Searching API for {name}")
 
-        tries = 5
         url = f"https://bio.tools/api/t/?q={name}&format=json&page={page!s}"
 
-        while tries > 0:
-            tries -= 1
-            try:
-                response = requests.get(url, timeout=TIMEOUT)
-                if response.ok:
-                    self.json[name] = response.json()
-                    return
+        try:
+            response = requests.get(url, timeout=TIMEOUT)
+            if response.ok:
+                self.json[name] = response.json()
+                return
 
-                logging.error("Non 200 status code received from bio.tools API")
-            except Exception as e:
-                logging.exception(f"Error while trying to contact the bio.tools API:\n{e}")
-                time.sleep(5)
+            logging.error("Non 200 status code received from bio.tools API")
+        except Exception as e:
+            logging.exception(
+                f"Error while trying to contact the bio.tools API:\n{e}",
+            )
+            time.sleep(5)
 
         logging.critical("Could not contact the bio.tools API after 5 tries, aborting")
         sys.exit(1)
 
-
-    def search_api_multiple_pages(self: Session,
-                   name: str,
-                   page_start: int = 1,
-                   page_end: int = 2) -> None:
+    def search_api_multiple_pages(
+        self: Session, name: str, page_start: int = 1, page_end: int = 2,
+    ) -> None:
         """Retrieve JSON data from the biotools API.
 
         Attributes
@@ -131,31 +126,31 @@ class Session:
         """
         logging.debug(f"Searching API for {name}")
 
-        try:
-            for page in range(page_start, page_end):
-                tries = 5
-                url = f"https://bio.tools/api/t/?q={name}&format=json&page={page!s}"
+        for page in range(page_start, page_end):
+            url = f"https://bio.tools/api/t/?q={name}&format=json&page={page!s}"
 
-                while tries > 0:
-                    tries -= 1
-                    try:
-                        response = requests.get(url, timeout=TIMEOUT)
-                        if "detail" in response.json() and response.json()["detail"] == "Invalid page. That page contains no results.":
-                            logging.warning(f"Page {page} doesn't exist, ending search")
-                            return
-                        if response.ok:
-                            # HACK to avoid overwriting the entire dictionary it just adds the page number to the end to make it unique
-                            self.json[f"{name}{page}"] = response.json()
-                            break
+            try:
+                response = requests.get(url, timeout=TIMEOUT)
+                if (
+                    "detail" in response.json()
+                    and response.json()["detail"]
+                    == "Invalid page. That page contains no results."
+                ):
+                    logging.warning(f"Page {page} doesn't exist, ending search")
+                    return
 
-                        logging.error(f"Non 200 status code received from bio.tools API: {response.status_code}")
-                    except Exception as e:
-                        logging.exception(f"Error while trying to contact the bio.tools API:\n{e}")
-                        time.sleep(5)
-        except Exception as e:
-            logging.critical(f"Could not contact the bio.tools API after 5 tries, aborting: {e}")
-            sys.exit(1)
+                if response.ok:
+                    # To avoid overwriting the entire dictionary it just adds the page number to the end to make it unique
+                    self.json[f"{name}{page}"] = response.json()
+                    continue
 
+                logging.error(
+                    f"Non 200 status code received from bio.tools API: {response.status_code}",
+                )
+            except Exception as e:
+                logging.exception(
+                    f"Error while trying to contact the bio.tools API:\n{e}",
+                )
 
     def return_tool_list_json(self: Session) -> list:
         """Return JSON of all tools currently cached.
@@ -177,9 +172,9 @@ class Session:
 
         return output
 
-    def lint_specific_tool_json(self: Session,
-                              data_json: dict,
-                              return_q: queue.Queue | None = None) -> None:
+    def lint_specific_tool_json(
+        self: Session, data_json: dict, return_q: queue.Queue | None = None,
+    ) -> None:
         """Perform linting on a specific tool JSON.
 
         Attributes
@@ -201,11 +196,11 @@ class Session:
             self.executor = ThreadPoolExecutor()
 
         logging.info(
-            f"Linting {tool_name} at https://bio.tools/{data_json['biotoolsID']}")
+            f"Linting {tool_name} at https://bio.tools/{data_json['biotoolsID']}",
+        )
         logging.debug(f"Tool {tool_name} returned {len(data_json)} JSON keys")
 
-        dictionary = flatten_json_to_single_dict(data_json,
-                                                 parent_key=tool_name + "/")
+        dictionary = flatten_json_to_single_dict(data_json, parent_key=tool_name + "/")
 
         # Put key value filters and whole json filters into queue
         futures = [
@@ -228,9 +223,9 @@ class Session:
             m = Message("LINT-F", "Finished linting", "", level=Level.LinterInternal)
             return_q.put(m)
 
-    def lint_all_tools(self: Session,
-                          return_q: queue.Queue | None = None,
-                          threads: int = 1) -> None:
+    def lint_all_tools(
+        self: Session, return_q: queue.Queue | None = None, threads: int = 1,
+    ) -> None:
         """Perform linting on all tools in cache. Uses multiple threads using a ThreadPoolExecutor.
 
         Attributes
@@ -249,12 +244,10 @@ class Session:
 
         self.executor = ThreadPoolExecutor(threads)
 
-        Parallel(n_jobs=threads,
-                 prefer="threads",
-                 require="sharedmem")(
-                     delayed(self.lint_specific_tool_json)(tool, return_q)
-                     for tool in self.return_tool_list_json())
-
+        Parallel(n_jobs=threads, prefer="threads", require="sharedmem")(
+            delayed(self.lint_specific_tool_json)(tool, return_q)
+            for tool in self.return_tool_list_json()
+        )
 
     def next_page_exists(self: Session) -> bool:
         """Check if the next page exists in any search cache.
@@ -272,7 +265,6 @@ class Session:
                 return query["next"] is not None
         return False
 
-
     def previous_page_exists(self: Session) -> bool:
         """Check if the previous page exists in any search cache.
 
@@ -289,15 +281,14 @@ class Session:
                 return query["previous"] is not None
         return False
 
-
     def get_total_tool_count(self: Session) -> int:
         """Return the total number of tools in cache."""
         return next(iter(self.json.items()))[1]["count"]
 
 
-def flatten_json_to_single_dict(json_data: dict,
-                                parent_key: str = "",
-                                separator: str = "/") -> dict:
+def flatten_json_to_single_dict(
+    json_data: dict, parent_key: str = "", separator: str = "/",
+) -> dict:
     """Recursively extract values from JSON.
 
     For example,
@@ -344,13 +335,13 @@ def flatten_json_to_single_dict(json_data: dict,
             index = json_data.index(x)
 
             out.update(
-                flatten_json_to_single_dict(x,
-                                            f"{parent_key}{separator}{index}"))
+                flatten_json_to_single_dict(x, f"{parent_key}{separator}{index}"),
+            )
     elif isinstance(json_data, dict):
         for key, value in json_data.items():
             out.update(
-                flatten_json_to_single_dict(value,
-                                            f"{parent_key}{separator}{key}"))
+                flatten_json_to_single_dict(value, f"{parent_key}{separator}{key}"),
+            )
     else:
         value = str(json_data)
         if value == "None":

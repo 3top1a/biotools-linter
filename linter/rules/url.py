@@ -6,13 +6,16 @@ import logging
 import re
 
 import requests
+import urllib3
 from message import Level, Message
 from requests.adapters import HTTPAdapter
+from urllib3 import Retry
 
 # Initialize (here so it inits once)
 user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 (Bio.tools linter, github.com/3top1a/biotools-linter)"
 req_session = requests.Session()
-adapter = HTTPAdapter(pool_connections=100, pool_maxsize=100)
+retries = Retry(total=5, backoff_factor=1, status_forcelist=[ 502, 503, 504 ], read=0)
+adapter = HTTPAdapter(pool_connections=100, pool_maxsize=100, max_retries=retries)
 req_session.mount("http://", adapter)
 req_session.mount("https://", adapter)
 # Change the UA so it doesn't get rate limited
@@ -112,7 +115,7 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                             key,
                             Level.ReportMedium)) # Medium since your browser should auto-upgrade
 
-        except requests.Timeout:
+        except requests.Timeout | urllib3.exceptions.ReadTimeoutError:
             # Timeout error
             reports.append(
                 Message(

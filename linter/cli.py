@@ -25,15 +25,15 @@ if TYPE_CHECKING:
 REPORT = 15
 
 
-def drop_rows_with_tool_name(name: str, export_db_cursor: psycopg2.cursor) -> None:
+def db_drop_rows_with_tool_name(name: str, export_db_cursor: psycopg2.cursor) -> None:
     if export_db_cursor is None:
         return
 
     delete_query = "DELETE FROM messages WHERE tool = %s;"
     export_db_cursor.execute(delete_query, (name,))
 
-# Process the queue after linting, used for progressively sending to the database
-def insert_queue_into_database(queue: Queue, sql_cursor: psycopg2.cursor) -> None:
+
+def db_insert_queue_into_database(queue: Queue, sql_cursor: psycopg2.cursor) -> None:
     logging.info("Sending messages to database")
 
     while not queue.empty():
@@ -43,84 +43,27 @@ def insert_queue_into_database(queue: Queue, sql_cursor: psycopg2.cursor) -> Non
         if sql_cursor and item.level != Level.LinterInternal:
             insert_query = "INSERT INTO messages (time, tool, code, location, text, level) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;"
             # Replace 'data' with your actual data variables
-            data = (int(
-                datetime.datetime.now(
-                    tz=datetime.timezone.utc).timestamp()), item.tool,
-                    item.code, item.location, item.body, int(item.level))
+            data = (
+                int(datetime.datetime.now(tz=datetime.timezone.utc).timestamp()),
+                item.tool,
+                item.code,
+                item.location,
+                item.body,
+                int(item.level),
+            )
             sql_cursor.execute(insert_query, data)
 
-def main(arguments: Sequence[str]) -> int:
-    """Execute the main functionality of the tool.
 
-    Attributes
-    ----------
-        arguments (dict): A dictionary containing command-line arguments.
+def configure_logging(color: bool, log_level: int) -> None:
+    """Configure logging.
 
-    Returns
-    -------
-        None
-
-    Raises
-    ------
-        None
-
+    Args:
+    ----
+        color (bool): Show colors or not
+        log_level (int): What level to log
     """
-    # Configure parser
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("name", help="Tool name. use `-` to read multiple tools from stdin", nargs="?")
-    parser.add_argument(
-        "--log-level",
-        "-l",
-        choices=["DEBUG", "INFO", "REPORT", "WARNING", "ERROR"],
-        default="REPORT",
-        help="Set the logging level (default: REPORT)")
-    parser.add_argument(
-        "--db",
-        default=None,
-        required=False,
-        help=
-        "Database connection (postgres://username:passwd@IP/database). Can also be in DATABASE_URL variable",
-    )
-    parser.add_argument(
-        "--lint-all",
-        action="store_true",
-        help="Lint all tools in the biotools API")
-    parser.add_argument("--page",
-                        "-p",
-                        default=1,
-                        type=int,
-                        help="Sets the page of the search")
-    parser.add_argument(
-        "--threads",
-        default=4,
-        type=int,
-        help=
-        "How many threads to use when linting, eg. 8 threads will lint 8 tools at the same time",
-    )
-    parser.add_argument(
-        "--exit-on-error",
-        action="store_true",
-        help="Return error code 1 if there are any errors found")
-    parser.add_argument(
-        "--no-color",
-        action="store_false",
-        help="Don't print colored output")
-
-    args = parser.parse_args(arguments)
-    exit_on_error = args.exit_on_error
-    database_creds = os.environ[
-        "DATABASE_URL"] if "DATABASE_URL" in os.environ else args.db
-    lint_all = args.lint_all
-    threads = args.threads
-    color = args.no_color
-    tool_name = args.name
-    page = args.page
-
-    # Configure logging
     logging.addLevelName(REPORT, "REPORT")
-    logging.basicConfig(level=args.log_level, force=True)
+    logging.basicConfig(level=log_level, force=True)
     if color:
         formatter = colorlog.ColoredFormatter(
             "%(log_color)s%(message)s",
@@ -148,25 +91,121 @@ def main(arguments: Sequence[str]) -> int:
         root_logger.removeHandler(root_logger.handlers[0])
         root_logger.addHandler(console_handler)
 
+
+def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
+    """Parse CLI arguments.
+
+    Args:
+    ----
+        arguments (Sequence[str]): Input argument sequence
+
+    Returns:
+    -------
+        argparse.Namespace: Output arguments
+    """
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "name",
+        help="Tool name. use `-` to read multiple tools from stdin",
+        nargs="?",
+    )
+    parser.add_argument(
+        "--log-level",
+        "-l",
+        choices=["DEBUG", "INFO", "REPORT", "WARNING", "ERROR"],
+        default="REPORT",
+        help="Set the logging level (default: REPORT)",
+    )
+    parser.add_argument(
+        "--db",
+        default=None,
+        required=False,
+        help="Database connection (postgres://username:passwd@IP/database). Can also be in DATABASE_URL variable",
+    )
+    parser.add_argument(
+        "--lint-all",
+        action="store_true",
+        help="Lint all tools in the biotools API",
+    )
+    parser.add_argument(
+        "--page",
+        "-p",
+        default=1,
+        type=int,
+        help="Sets the page of the search",
+    )
+    parser.add_argument(
+        "--threads",
+        default=4,
+        type=int,
+        help="How many threads to use when linting, eg. 8 threads will lint 8 tools at the same time",
+    )
+    parser.add_argument(
+        "--exit-on-error",
+        action="store_true",
+        help="Return error code 1 if there are any errors found",
+    )
+    parser.add_argument(
+        "--no-color",
+        action="store_false",
+        help="Don't print colored output",
+    )
+
+    return parser.parse_args(arguments)
+
+
+def main(args: Sequence[str]) -> int:
+    """Execute the main functionality of the tool.
+
+    Attributes
+    ----------
+        arguments (dict): A dictionary containing command-line arguments.
+
+    Returns
+    -------
+        None
+
+    Raises
+    ------
+        None
+
+    """
+    args = parse_arguments(args)
+
+    exit_on_error = args.exit_on_error
+    database_credentials = (
+        os.environ["DATABASE_URL"] if "DATABASE_URL" in os.environ else args.db
+    )
+    lint_all = args.lint_all
+    threads = args.threads
+    tool_name = args.name
+    page = args.page
+
+    # Configure logging
+    configure_logging(args.no_color, args.log_level)
+
+    # Check for correct arguments
     # Require name or --lint-all
     if tool_name is None and lint_all is False:
         logging.critical("Please specify tools name or pass in --lint-all")
         return 1
-
     # Require page > 0
     if page <= 0:
         logging.critical("Please specify a valid page")
         return 1
 
     session = Session()
-    return_queue = Queue()
-    returned_atleast_one_error: bool = False
+    message_queue = Queue()
+    returned_at_least_one_error: bool = False
 
     # Initialize exporting, create table if it doesn't exist
     export_db_connection: psycopg2.connection | None = None
     export_db_cursor = None
-    if database_creds:
-        export_db_connection = psycopg2.connect(**parse_dsn(database_creds))
+    if database_credentials:
+        export_db_connection = psycopg2.connect(**parse_dsn(database_credentials))
         export_db_cursor = export_db_connection.cursor()
 
         # Create table query
@@ -189,21 +228,23 @@ def main(arguments: Sequence[str]) -> int:
 
             session.search_api_multiple_pages("*", page, page + 10)
             processed_tools += 10
-            logging.info(f"Page: {page} => {page + 10}, Progress: {processed_tools / count}%")
+            logging.info(
+                f"Page: {page} => {page + 10}, Progress: {processed_tools / count}%"
+            )
 
             # Delete old entries from table
             for tool in session.return_tool_list_json():
                 name = tool["biotoolsID"]
-                drop_rows_with_tool_name(name, export_db_cursor)
+                db_drop_rows_with_tool_name(name, export_db_cursor)
 
-            session.lint_all_tools(return_q=return_queue, threads=threads)
+            session.lint_all_tools(return_q=message_queue, threads=threads)
             page += 10
-            insert_queue_into_database(return_queue, export_db_cursor)
+            db_insert_queue_into_database(message_queue, export_db_cursor)
             if export_db_connection:
                 export_db_connection.commit()
     else:
         # Lint specific tools(s)
-        if tool_name == '-':
+        if tool_name == "-":
             # Pipe from stdin
             for line in sys.stdin:
                 if line.strip() != "":
@@ -217,10 +258,10 @@ def main(arguments: Sequence[str]) -> int:
         # Delete old entries from table
         for tool in session.return_tool_list_json():
             name = tool["biotoolsID"]
-            drop_rows_with_tool_name(name, export_db_cursor)
+            db_drop_rows_with_tool_name(name, export_db_cursor)
 
-        session.lint_all_tools(return_q=return_queue, threads=threads)
-        insert_queue_into_database(return_queue, export_db_cursor)
+        session.lint_all_tools(return_q=message_queue, threads=threads)
+        db_insert_queue_into_database(message_queue, export_db_cursor)
         if export_db_connection:
             export_db_connection.commit()
 
@@ -229,13 +270,11 @@ def main(arguments: Sequence[str]) -> int:
         export_db_connection.close()
 
     if session.next_page_exists():
-        logging.info(
-            f"You can also search the next page (page {int(page) + 1})")
+        logging.info(f"You can also search the next page (page {int(page) + 1})")
     if session.previous_page_exists():
-        logging.info(
-            f"You can also search the previous page (page {int(page) - 1})")
+        logging.info(f"You can also search the previous page (page {int(page) - 1})")
 
-    if returned_atleast_one_error and exit_on_error:
+    if returned_at_least_one_error and exit_on_error:
         return 1
     return 0
 

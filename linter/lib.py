@@ -12,7 +12,6 @@ import requests
 from joblib import Parallel, delayed
 from message import Level, Message
 from rules import delegate_key_value_filter, delegate_whole_json_filter
-from rules.edam import edam_filter
 
 if TYPE_CHECKING:
     import queue
@@ -141,15 +140,15 @@ class Session:
                     tries -= 1
                     try:
                         response = requests.get(url, timeout=TIMEOUT)
-                        if 'detail' in response.json() and response.json()['detail'] == 'Invalid page. That page contains no results.':
+                        if "detail" in response.json() and response.json()["detail"] == "Invalid page. That page contains no results.":
                             logging.warning(f"Page {page} doesn't exist, ending search")
                             return
                         if response.ok:
                             # HACK to avoid overwriting the entire dictionary it just adds the page number to the end to make it unique
                             self.json[f"{name}{page}"] = response.json()
                             break
-                        else:
-                            logging.error(f"Non 200 status code received from bio.tools API: {response.status_code}")
+
+                        logging.error(f"Non 200 status code received from bio.tools API: {response.status_code}")
                     except Exception as e:
                         logging.exception(f"Error while trying to contact the bio.tools API:\n{e}")
                         time.sleep(5)
@@ -322,7 +321,7 @@ def flatten_json_to_single_dict(json_data: dict,
     }
     ```
 
-    assuming the parent is `json` and seperator is `.`.
+    assuming the parent is `json` and separator is `.`.
 
     Attributes
     ----------

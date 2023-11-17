@@ -27,7 +27,7 @@ class EdamFilter:
         self.download_file("EDAM.owl", "https://edamontology.org/EDAM.owl")
 
         self.parse_csv("EDAM.csv")
-        self.load_ontology("EDAM.owl")
+        self.ontology = owlready2.get_ontology("EDAM.owl").load()
 
     def download_file(self: EdamFilter, filename: str, url: str) -> None:
         """Download file helper."""
@@ -40,7 +40,13 @@ class EdamFilter:
             with open(filename, "w") as file:
                 file.write(response.text)
 
-    def parse_csv(self, filename):
+    def parse_csv(self: EdamFilter, filename: str) -> None:
+        """Parse EDAM CSV.
+
+        Args:
+        ----
+            filename (str): CSV file location
+        """
         with open(filename) as csv_file:
             csv_reader = csv.reader(csv_file)
             next(csv_reader, None)  # skip the headers
@@ -52,9 +58,6 @@ class EdamFilter:
                     self.label_dict[class_id] = label
                     self.deprecation_comment_dict[class_id] = obsolete_comment
                     self.not_recommended_dict[class_id] = not_recommended
-
-    def load_ontology(self: EdamFilter, filename: str):
-        self.ontology = owlready2.get_ontology(filename).load()
 
     def filter_edam(self: EdamFilter, key: str, value: str) -> list[Message] | None:
         reports = []
@@ -99,5 +102,6 @@ class EdamFilter:
         if reports == []:
             return None
         return reports
+
 
 edam_filter = EdamFilter()

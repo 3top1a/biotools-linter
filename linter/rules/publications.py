@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import logging
 
 from message import Level, Message
@@ -6,7 +7,7 @@ from message import Level, Message
 from .url import req_session
 
 
-def filter_pub(json) -> list[Message] | None:
+def filter_pub(json: dict) -> list[Message] | None:
     if json is None:
         return None
 
@@ -28,10 +29,6 @@ def filter_pub(json) -> list[Message] | None:
             pmid = doi_to_pmid(doi)
             if pmid:
                 output.append(Message("DOI_BUT_NOT_PMID", f"Publication DOI {doi} (https://www.doi.org/{doi}) has a PMID {pmid} (https://pubmed.ncbi.nlm.nih.gov/{pmid}) but is not in database.", json["name"], Level.ReportMedium))
-                pass
-
-            # If not, do not output
-            pass
 
         # Check for DOI but not PMID
         if doi and not pmcid:
@@ -39,10 +36,6 @@ def filter_pub(json) -> list[Message] | None:
             pmcid = doi_to_pmcid(doi)
             if pmcid:
                 output.append(Message("DOI_BUT_NOT_PMCID", f"Publication DOI {doi} (https://www.doi.org/{doi}) has a PMCID {pmcid} (https://pubmed.ncbi.nlm.nih.gov/{pmcid}) but is not in database.", json["name"], Level.ReportMedium))
-                pass
-
-            # If not, do not output
-            pass
 
         # Check for PMID/PMCID but not DOI
         if (pmcid or pmid) and not doi:
@@ -51,14 +44,9 @@ def filter_pub(json) -> list[Message] | None:
             doi_pmcid = pmid_or_pmcid_to_doi(pmcid)
             if doi_pmid:
                 output.append(Message("PMID_BUT_NOT_DOI", f"Publication PMID {pmid} (https://pubmed.ncbi.nlm.nih.gov/{pmid}) has a DOI {doi_pmid} (https://www.doi.org/{doi_pmid}) but is not in database.", json["name"], Level.ReportMedium))
-                pass
 
             if doi_pmcid:
                 output.append(Message("PMCID_BUT_NOT_DOI", f"Publication PMCID {pmcid} (https://pubmed.ncbi.nlm.nih.gov/{pmcid}) has a DOI {doi_pmcid} (https://www.doi.org/{doi_pmcid}) but is not in database.", json["name"], Level.ReportMedium))
-                pass
-
-            # If not, do not output
-            pass
 
     if output == []:
         return None
@@ -126,21 +114,17 @@ def pmid_or_pmcid_to_doi(pc_c_id: str) -> str | None:
 
         result = req_session.get(url).json()
 
-        if result is None:
-            return None
+        if result and result["status"] == "ok":
+            pub = result["records"][0]
 
-        if result["status"] != "ok":
-            return None
+            if "live" in pub and pub["live"] == "false":
+                return None
 
-        pub = result["records"][0]
+            if "doi" not in pub:
+                return None
 
-        if "live" in pub and pub["live"] == "false":
-            return None
-
-        if "doi" not in pub:
-            return None
-
-        return pub["doi"]
+            return pub["doi"]
     except Exception as e:
         logging.critical(f"Error while making API request to idconv: {e}")
-        return None
+
+    return None

@@ -3,7 +3,12 @@
 
 def test_session():
     import lib as lib
+    from lib import flatten_json_to_single_dict
+    import json
     s = lib.Session()
+
+    assert not s.next_page_exists()
+    assert not s.previous_page_exists()
 
     # Broad search
     s.clear_cache()
@@ -51,6 +56,52 @@ def test_session():
         s.search_api_multiple_pages("cli", x * 10 + 1, x * 10 + 10 + 1)
     assert len(s.return_tool_list_json()) == 131
 
+    example_json = {
+        "a" : {
+            "0": "1",
+            "1": "8",
+            "2": "42",
+        },
+        "the answer": "5",
+        "list": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+        ]
+    }
+    example_output = {
+        '//a/0': '1',
+        '//a/1': '8',
+        '//a/2': '42',
+        '//the answer': '5',
+        '//list/0': '1',
+        '//list/1': '2',
+        '//list/2': '3',
+        '//list/3': '4',
+        '//list/4': '5',
+    }
+    assert flatten_json_to_single_dict(example_json, "/", "/") == example_output
+
+    tool_json = """
+{
+  "name": "test",
+  "description": "test",
+  "biotoolsID": "test",
+  "biotoolsCURIE": "biotools:test",
+  "documentation": [
+    {
+      "url": "https://httpbin.org/status/404"
+    }
+  ]
+}
+"""
+    from queue import Queue
+    q = Queue()
+    s.lint_specific_tool_json(json.loads(tool_json), q)
+    assert q.get().code == "URL_BAD_STATUS"
+
 def test_cli():
     import cli as cli
     # "end to end" CLI test, runs the CLI as if it was ran from the command line
@@ -71,8 +122,15 @@ def test_urls():
     # Ok
     assert rules.filter_url("test", "https://httpbin.org/status/200") == None
 
+    # Invalid URLs
+    assert rules.filter_url("test", "ftp://ftp.gnu.org/gnu/") == None
+    assert rules.filter_url("test", "test") == None
+
     # URL_INVALID
     assert rules.filter_url("url", "also test")[0].code == "URL_INVALID"
+
+    # URL_CONN_ERROR
+    assert rules.filter_url("url", "https://gsjdhfskjhfklajshdfkashdfkashdfklashdfjakhsdflkahsfd.sdfsdf")[0].code == "URL_CONN_ERROR"
 
     # URL_PERMANENT_REDIRECT
     assert rules.filter_url(
@@ -127,8 +185,11 @@ def test_publications():
     import json
     
     assert doi_to_pmid("10.1093/BIOINFORMATICS/BTAA581") == "32573681"
+    assert doi_to_pmid("test") == None
     assert doi_to_pmcid("10.1093/BIOINFORMATICS/BTAA581") == "PMC8034561"
+    assert doi_to_pmcid("test") == None
     assert pmid_or_pmcid_to_doi("PMC8034561") == "10.1093/bioinformatics/btaa581"
+    assert pmid_or_pmcid_to_doi("test") == None
 
     json_bad = """
     {

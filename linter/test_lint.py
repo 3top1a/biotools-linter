@@ -89,6 +89,7 @@ def test_urls():
         "test", "http://httpbin.org/status/202")[0].code == "URL_UNUSED_SSL"
 
     # URL_NO_SSL
+    # Takes extreme amount of time (33s), need to make it faster 
     assert rules.filter_url("test",
                             "http://httpforever.com/")[0].code == "URL_NO_SSL"
 

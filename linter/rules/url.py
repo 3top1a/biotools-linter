@@ -95,8 +95,9 @@ def filter_url(key: str, value: str) -> list[Message] | None:
             if not url_starts_with_https:
                 # Try to request with SSL
                 try:
+                    # Takes extreme amount of time, need to refactor
                     req_session.get(value.replace("http://", "https://"),
-                                    timeout=TIMEOUT, stream=True)
+                                    stream=True)
 
                 except Exception:
                     # If that fails, the site does not use SSL at all
@@ -115,7 +116,7 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                             key,
                             Level.ReportMedium)) # Medium since your browser should auto-upgrade
 
-        except requests.Timeout | urllib3.exceptions.ReadTimeoutError:
+        except requests.Timeout:
             # Timeout error
             reports.append(
                 Message(

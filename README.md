@@ -1,6 +1,7 @@
 # biotools-linter
 [![Maintainability](https://api.codeclimate.com/v1/badges/f6231730ee0c525f5517/maintainability)](https://codeclimate.com/github/3top1a/biotools-linter/maintainability)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/4417259e25564ceea82b6d014aed64d2)](https://app.codacy.com/gh/3top1a/biotools-linter/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+[![Codacy Badge](https://app.codacy.com/project/badge/Coverage/4417259e25564ceea82b6d014aed64d2)](https://app.codacy.com/gh/3top1a/biotools-linter/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_coverage)
 
 This is a rule-based checker for the [bio.tools](https://bio.tools/) database. The script searches the bio.tools API for a given tool name and checks various properties of the tool's JSON data, such as invalid URL links.
 

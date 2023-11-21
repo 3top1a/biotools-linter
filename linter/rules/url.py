@@ -45,10 +45,8 @@ def filter_url(key: str, value: str) -> list[Message] | None:
     """
     # Wrap it in one big try block in case anything errors
     try:
-
-        # Exit if it is a ftp address
-        if value.startswith("ftp://"):
-            return None
+        logging.debug(f"Checking URL: {value}")
+        reports = []
 
         # Exit if does not match URL or key doesn't end with url/uri
         if not re.match(
@@ -56,7 +54,13 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                 value) and not key.endswith("url") and not key.endswith("uri"):
             return None
 
+        # Exit if it is a ftp address
+        if value.startswith("ftp://"):
+            logging.debug(f"URL `{value}` points to an ftp server and cannot be checked")
+            return None
+
         # If the URL doesn't match the regex but is in a url/uri entry, throw an error
+        # For example, this errors when invisible unicode characters are in the URL
         if not re.match(URL_REGEX, value) and (key.endswith(("url", "uri"))):
             return [
                 Message(
@@ -65,16 +69,12 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                     key,
                     Level.ReportHigh)]
 
-        logging.debug(f"Checking URL: {value}")
-        reports = []
-
         # Make a request
         # It streams it and then closes it so it doesn't download the file. Better than HEAD requests.
         try:
-            response = req_session.get(value, timeout=TIMEOUT, allow_redirects=True, stream=True)
+            response = req_session.get(value, timeout=TIMEOUT, allow_redirects=False, stream=True)
 
-            response_no_auto_redirect = req_session.get(value, timeout=TIMEOUT, allow_redirects=False, stream=True)
-            if response_no_auto_redirect.is_permanent_redirect:
+            if response.is_permanent_redirect:
                 reports.append(
                     Message(
                         "URL_PERMANENT_REDIRECT",
@@ -95,7 +95,7 @@ def filter_url(key: str, value: str) -> list[Message] | None:
             if not url_starts_with_https:
                 # Try to request with SSL
                 try:
-                    # Takes extreme amount of time, need to refactor
+                    # Takes extreme amount of time if no such site exists, need to refactor
                     req_session.get(value.replace("http://", "https://"),
                                     stream=True)
 

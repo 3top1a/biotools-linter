@@ -3,18 +3,16 @@
 from __future__ import annotations
 
 import logging
+import queue
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar
 
 import requests
 from joblib import Parallel, delayed
 from message import Level, Message
 from rules import delegate_key_value_filter, delegate_whole_json_filter
-
-if TYPE_CHECKING:
-    import queue
 
 REPORT: int = 15  # Report log level is between debug and info
 TIMEOUT = 20  # Seconds

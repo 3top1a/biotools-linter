@@ -102,6 +102,26 @@ def test_urls():
     assert rules.filter_url(
         "test", "https://expired.badssl.com/")[0].code == "URL_SSL_ERROR"
 
+# Test messages.py
+def test_messages():
+    import rules
+    from message import Message, Level
+    from queue import Queue
+
+    q = Queue()
+
+    msg = Message(code="001", body="Test message", location="//name", level=Level.LinterError)
+    assert msg.code == "001"
+    assert msg.body == "Test message"
+    assert msg.location == "//name"
+    assert msg.level == Level.LinterError
+    assert msg.tool == None # Should be set in lib.py
+    msg.print_message(q)
+    assert q.get() == "None: [001] Test message"
+
+    rules.filter_url("url", "also test")[0].print_message(q)
+    assert q.get() == "None: [URL_INVALID] URL also test at url does not match a valid URL (there may be hidden unicode)."
+
 def test_publications():
     from rules.publications import doi_to_pmid, doi_to_pmcid, pmid_or_pmcid_to_doi, filter_pub
     import json

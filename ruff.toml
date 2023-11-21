@@ -1,4 +1,4 @@
 select = ["ALL"]
 
-ignore = ["D211", "D213", "G004", "E501", "ANN401", "TRY401", "PLR0911", "FBT001", "FBT002", "C901", "INP001", "PLR0912", "PLR0915"]
+ignore = ["D211", "D213", "G004", "E501", "ANN401", "TRY401", "PLR0911", "FBT001", "FBT002", "C901", "INP001", "PLR0912", "PLR0915", "TCH003", "TCH002"]
 exclude = ["test_lint.py"]

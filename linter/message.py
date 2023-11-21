@@ -2,11 +2,8 @@
 from __future__ import annotations
 
 import logging
+import queue
 from enum import IntEnum
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    import queue
 
 REPORT = 15
 
@@ -39,6 +36,7 @@ class Message:
         self.body = body
         self.level = level
         self.location = location
+        self.tool = None
 
     def print_message(self: Message, message_queue: None | queue.Queue = None) -> None:
         """Print the message."""

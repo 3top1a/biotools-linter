@@ -3,14 +3,12 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+
+from message import Message
 
 from .edam import edam_filter
 from .publications import filter_pub
 from .url import filter_url
-
-if TYPE_CHECKING:
-    from message import Message
 
 URL_REGEX = r"(http[s]?|ftp)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
 IMPORTANT_KEYS = ["name", "description",

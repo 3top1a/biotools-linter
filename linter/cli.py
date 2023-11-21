@@ -8,19 +8,14 @@ import datetime
 import logging
 import os
 import sys
+from collections.abc import Sequence
 from queue import Queue
-from typing import TYPE_CHECKING
 
 import colorlog
 import psycopg2
 from lib import Session
-from message import Level
+from message import Level, Message
 from psycopg2.extensions import parse_dsn
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
-
-    from message import Message
 
 REPORT = 15
 

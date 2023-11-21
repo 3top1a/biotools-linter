@@ -8,6 +8,16 @@ from .url import req_session
 
 
 def filter_pub(json: dict) -> list[Message] | None:
+    """Run publication checks.
+
+    Args:
+    ----
+        json (dict): The entire tool's JSON, not small parts like other filters
+
+    Returns:
+    -------
+        list[Message] | None: Errors
+    """
     if json is None:
         return None
 

@@ -101,3 +101,59 @@ def test_urls():
     # URL_SSL_ERROR
     assert rules.filter_url(
         "test", "https://expired.badssl.com/")[0].code == "URL_SSL_ERROR"
+
+def test_publications():
+    from rules.publications import doi_to_pmid, doi_to_pmcid, pmid_or_pmcid_to_doi, filter_pub
+    import json
+    
+    assert doi_to_pmid("10.1093/BIOINFORMATICS/BTAA581") == "32573681"
+    assert doi_to_pmcid("10.1093/BIOINFORMATICS/BTAA581") == "PMC8034561"
+    assert pmid_or_pmcid_to_doi("PMC8034561") == "10.1093/bioinformatics/btaa581"
+
+    json_bad = """
+    {
+        "name": "test",
+        "description": "test",
+        "biotoolsID": "test",
+        "biotoolsCURIE": "biotools:test",
+        "publication": [
+            {
+                "doi": "10.1093/bioinformatics/btaa581",
+                "pmid": null,
+                "pmcid": null,
+                "type": [
+                    "Primary"
+                ],
+                "version": null,
+                "note": null
+            }
+        ]
+    }
+    """
+    output = filter_pub(json.loads(json_bad))
+    assert len(output) == 2
+    assert output[0].code == "DOI_BUT_NOT_PMID"
+    assert output[1].code == "DOI_BUT_NOT_PMCID"
+
+    json_good = """
+    {
+        "name": "test",
+        "description": "test",
+        "biotoolsID": "test",
+        "biotoolsCURIE": "biotools:test",
+        "publication": [
+            {
+                "doi": "10.1093/bioinformatics/btaa581",
+                "pmid": "32573681",
+                "pmcid": "PMC8034561",
+                "type": [
+                    "Primary"
+                ],
+                "version": null,
+                "note": null
+            }
+        ]
+    }
+    """
+    output = filter_pub(json.loads(json_good))
+    assert output == None

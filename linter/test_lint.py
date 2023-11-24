@@ -105,12 +105,13 @@ def test_session():
 def test_cli():
     import cli as cli
     # "end to end" CLI test, runs the CLI as if it was ran from the command line
-    assert cli.main(["msmc,metexplore"]) == 0
-    assert cli.main(["msmc,metexplore", "--threads", "16"]) == 0
+    # Any use of certain tool names are only for testing purposes and not in bad faith
+    assert cli.main(["msmc"]) == 0
+    assert cli.main(["metexplore", "--threads", "16", "--no-color"]) == 0
+    assert cli.main(["msmc", "--threads", "16", "--exit-on-error"]) == 1
 
     # Fails
     assert cli.main(["*", "--threads", "16", "-p", "0"]) == 1
-
 
 # Test url.py
 def test_urls():

@@ -19,6 +19,8 @@
   --preformatted: #444;
   --marked: #ffdd33;
   --disabled: #efefef;
+  --success: #74c365;
+  --failure: #ff2946;
 }
 
 /* Reset box-sizing */

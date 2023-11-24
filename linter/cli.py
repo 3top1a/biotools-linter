@@ -28,11 +28,25 @@ def db_drop_rows_with_tool_name(name: str, export_db_cursor: psycopg2.cursor) ->
     export_db_cursor.execute(delete_query, (name,))
 
 
-def db_insert_queue_into_database(queue: Queue, sql_cursor: psycopg2.cursor) -> None:
+def db_insert_queue_into_database(queue: Queue, sql_cursor: psycopg2.cursor | None) -> bool:
+    """Insert message queue into database.
+
+    Args:
+    ----
+        queue (Queue): Queue
+        sql_cursor (psycopg2.cursor | None): SQL database cursor
+
+    Returns:
+    -------
+        bool (bool): True if any messages have been received.
+    """
     logging.info("Sending messages to database")
+
+    return_value = False
 
     while not queue.empty():
         item: Message = queue.get()
+        return_value = True
 
         # Export
         if sql_cursor and item.level != Level.LinterInternal:
@@ -48,6 +62,7 @@ def db_insert_queue_into_database(queue: Queue, sql_cursor: psycopg2.cursor) -> 
             )
             sql_cursor.execute(insert_query, data)
 
+    return return_value
 
 def configure_logging(color: bool, log_level: int) -> None:
     """Configure logging.
@@ -136,7 +151,7 @@ def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
         "--threads",
         default=4,
         type=int,
-        help="How many threads to use when linting, eg. 8 threads will lint 8 tools at the same time",
+        help="How many threads to use when linting, eg. 8 threads will lint 8 tools at the same time. Default is 4",
     )
     parser.add_argument(
         "--exit-on-error",
@@ -234,7 +249,7 @@ def main(args: Sequence[str]) -> int:
 
             session.lint_all_tools(return_q=message_queue, threads=threads)
             page += 10
-            db_insert_queue_into_database(message_queue, export_db_cursor)
+            returned_at_least_one_error = db_insert_queue_into_database(message_queue, export_db_cursor)
             if export_db_connection:
                 export_db_connection.commit()
     else:
@@ -248,6 +263,11 @@ def main(args: Sequence[str]) -> int:
             session.search_api(tool_name, page)
 
         count = session.get_total_tool_count()
+
+        if count == 0:
+            logging.critical(f"Found {count} tools, exiting")
+            return 1
+
         logging.info(f"Found {count} tools")
 
         # Delete old entries from table
@@ -256,7 +276,7 @@ def main(args: Sequence[str]) -> int:
             db_drop_rows_with_tool_name(name, export_db_cursor)
 
         session.lint_all_tools(return_q=message_queue, threads=threads)
-        db_insert_queue_into_database(message_queue, export_db_cursor)
+        returned_at_least_one_error = db_insert_queue_into_database(message_queue, export_db_cursor)
         if export_db_connection:
             export_db_connection.commit()
 

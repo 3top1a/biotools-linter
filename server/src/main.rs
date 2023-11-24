@@ -3,16 +3,25 @@ mod db;
 mod test;
 
 use api::{
-    ApiResponse, Message, __path_serve_search_api, __path_serve_statistics_api, serve_index_page,
-    serve_search_api, serve_statistics_api, serve_statistics_page, Severity, Statistics,
-    StatisticsEntry, serve_documentation_page, serve_documentation_index,
+    ApiResponse, Message, __path_serve_search_api, __path_serve_statistics_api, relint_api,
+    serve_documentation_index, serve_documentation_page, serve_index_page, serve_search_api,
+    serve_statistics_api, serve_statistics_page, RelintParams, RelintResult, Severity, Statistics,
+    StatisticsEntry, __path_relint_api,
 };
-use axum::{routing::get, Router};
+use axum::{
+    routing::{get, post},
+    Router,
+};
 
 use dotenv::dotenv;
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
-use std::{net::SocketAddr, path::PathBuf};
+use std::{
+    collections::HashMap,
+    net::SocketAddr,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
 use env_logger::Env;
 use tower_http::services::ServeFile;
@@ -43,14 +52,23 @@ pub struct ServerState {
     pub pool: Pool<Postgres>,
     /// Path to the statistics file used for graphs, generated with linter/statistics.py
     pub stats_file_path: PathBuf,
+    /// Dictionary of IPs and tools that are being currently relinted
+    pub ips: Arc<Mutex<HashMap<String, String>>>,
 }
 
 /// Auto generated API Documentation
 /// Remember to add additional paths and schemas
 #[derive(OpenApi)]
 #[openapi(
-    paths(serve_search_api, serve_statistics_api),
-    components(schemas(ApiResponse, Message, Statistics, StatisticsEntry, Severity))
+    paths(serve_search_api, serve_statistics_api, relint_api),
+    components(schemas(
+        ApiResponse,
+        Message,
+        Statistics,
+        StatisticsEntry,
+        Severity,
+        RelintResult
+    ))
 )]
 struct ApiDoc;
 
@@ -85,6 +103,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let state = ServerState {
         pool,
         stats_file_path,
+        ips: Arc::new(Mutex::new(HashMap::new())),
     };
 
     let routes = app(&state);
@@ -111,6 +130,7 @@ fn app(state: &ServerState) -> Router {
         .route("/statistics", get(serve_statistics_page))
         .route("/api/search", get(serve_search_api))
         .route("/api/statistics", get(serve_statistics_api))
+        .route("/api/lint", post(relint_api))
         .merge(SwaggerUi::new("/api/documentation").url("/api/openapi.json", ApiDoc::openapi()))
         .nest_service("/robots.txt", ServeFile::new("static/robots.txt"))
         .nest_service("/style.css", ServeFile::new("static/style.css"))

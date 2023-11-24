@@ -1,7 +1,8 @@
 use axum::{
-    extract::{Query, State, Path},
+    extract::{ConnectInfo, Path, Query, State},
+    http::{HeaderMap, Request, StatusCode},
     response::{Html, IntoResponse},
-    Json, http::StatusCode, Error,
+    Error, Extension, Json,
 };
 use chrono::{DateTime, Utc};
 use db::DatabaseEntry;
@@ -12,12 +13,17 @@ use serde_json::{Map, Value};
 
 use std::{
     fs,
-    time::{Duration, UNIX_EPOCH}, path::{PathBuf, Component}, str::FromStr,
+    net::SocketAddr,
+    path::{Component, PathBuf},
+    process::Command,
+    str::FromStr,
+    sync::Arc,
+    time::{Duration, UNIX_EPOCH},
 };
 use tera::{Context, Tera};
 use tokio::join;
 
-use tracing::info;
+use tracing::{error, info};
 
 use utoipa::{IntoParams, ToSchema};
 
@@ -310,7 +316,10 @@ pub async fn serve_search_api(
     let query = params.query;
     let severity = params.severity;
 
-    info!("Listing API page {} query {:?} severity {:?}", page, query, severity);
+    info!(
+        "Listing API page {} query {:?} severity {:?}",
+        page, query, severity
+    );
 
     let (messages, total_count) = match query.clone() {
         None => {
@@ -343,12 +352,18 @@ pub async fn serve_search_api(
     })
 }
 
-pub async fn serve_documentation_page(Path(query_title): Path<String>, State(state): State<ServerState>,) -> Html<String> {
+pub async fn serve_documentation_page(
+    Path(query_title): Path<String>,
+    State(state): State<ServerState>,
+) -> Html<String> {
     info!("Sending documentation for {}", query_title);
-    
+
     // https://stackoverflow.com/questions/56366947/how-does-a-rust-pathbuf-prevent-directory-traversal-attacks
     let mut p = PathBuf::from_str(&query_title).unwrap();
-    if p.components().into_iter().any(|x| x == Component::ParentDir) {
+    if p.components()
+        .into_iter()
+        .any(|x| x == Component::ParentDir)
+    {
         let c = Context::new();
         return Html(TEMPLATES.render("error.html", &c).unwrap());
     }
@@ -359,7 +374,6 @@ pub async fn serve_documentation_page(Path(query_title): Path<String>, State(sta
 
     let p = p.with_extension("md");
 
-    
     let markdown_path = PathBuf::from_str("documentation/").unwrap().join(p);
     let markdown_string = fs::read_to_string(markdown_path).unwrap();
     let parser = pulldown_cmark::Parser::new(&markdown_string);
@@ -371,7 +385,97 @@ pub async fn serve_documentation_page(Path(query_title): Path<String>, State(sta
     Html(TEMPLATES.render("documentation.html", &c).unwrap())
 }
 
-pub async fn serve_documentation_index(State(state): State<ServerState>,) -> Html<String> {
+/// Relint callback from client
+#[derive(Deserialize, IntoParams)]
+pub struct RelintParams {
+    tool: String,
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct RelintResult {
+    result: String,
+}
+#[utoipa::path(post, path = "/api/lint", params(RelintParams))]
+pub async fn relint_api(
+    headers: HeaderMap,
+    socket_addr: ConnectInfo<SocketAddr>,
+    Query(params): Query<RelintParams>,
+    State(state): State<ServerState>,
+) -> StatusCode {
+    let input = params.tool.trim();
+    info!("Relinting tool `{input}`");
+
+    let python_script = "../linter/cli.py";
+    let mut ips = state.ips.lock().unwrap();
+
+    // Get sender IP, prioritize X-Real-IP because of nginx
+    let ip: String = match headers.contains_key("X-Real-IP") {
+        true => headers
+            .get("X-Real-IP")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string(),
+        false => socket_addr.ip().to_string(),
+    };
+
+    if ips.contains_key(&ip) {
+        info!("IP is already linting, aborting");
+        return StatusCode::TOO_MANY_REQUESTS;
+    }
+    if ips.values().any(|v| v == input) {
+        info!("Tool is already being linted, aborting");
+        return StatusCode::TOO_MANY_REQUESTS;
+    }
+
+    // Escape injection attacks
+    // Regex taken from https://biotools.readthedocs.io/en/latest/api_usage_guide.html?highlight=biotoolsid#biotoolsid
+    let re = Regex::new(r"^[_\-.0-9a-zA-Z]*$").unwrap();
+    if !re.is_match(&input) {
+        info!("Input did not pass regex, aborting");
+        return StatusCode::INTERNAL_SERVER_ERROR;
+    }
+
+    if input.contains("--lint-all") {
+        info!("Input contains -lint-all, aborting");
+        return StatusCode::INTERNAL_SERVER_ERROR;
+    }
+
+    // Insert IP and tool into server state
+    ips.insert(ip.clone(), input.to_string());
+
+    // Drop ips for concurrent requests
+    std::mem::drop(ips);
+
+    // Command takes arguments as literals so shell expansions is automatically escaped
+    let output = Command::new("python3")
+        .arg(python_script)
+        .arg(input)
+        .arg("--no-color")
+        .output();
+
+    info!("Output from python: {:?}", output);
+
+    let mut ips = state.ips.lock().unwrap();
+    ips.remove(&ip);
+
+    if let Ok(output) = output {
+        return match output.status.success() {
+            true => StatusCode::OK,
+            false => {
+                error!("{:#?}", output);
+
+                return StatusCode::INTERNAL_SERVER_ERROR;
+            }
+        };
+    }
+
+    error!("{:#?}", output);
+
+    return StatusCode::INTERNAL_SERVER_ERROR;
+}
+
+pub async fn serve_documentation_index(State(state): State<ServerState>) -> Html<String> {
     let markdown_path = PathBuf::from_str("documentation/index.md").unwrap();
     let markdown_string = fs::read_to_string(markdown_path).unwrap();
     let parser = pulldown_cmark::Parser::new(&markdown_string);

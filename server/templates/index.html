@@ -7,7 +7,8 @@ content %}
 <article>
     <h1>Biotools database linter</h1>
     <p>
-        This website serves to help <a href="https://bio.tools/">bio.tools database</a> editors and maintainers help with data quality by searching for
+        This website serves to help <a href="https://bio.tools/">bio.tools database</a> editors and maintainers help
+        with data quality by searching for
         common quantifiable errors.
 
         Currently serving <code>{{error_count}}</code> errors for
@@ -51,6 +52,66 @@ content %}
             // Add options
             ['Low', 'Medium', 'High', 'Linter Error'].forEach(d => {
                 severity_dropdown.add(new Option(d));
+            });
+
+        },
+        "drawCallback": function (settings) {
+            // Bind relint-* buttons
+            function handleRelint(buttonId) {
+                document.querySelectorAll(`#${buttonId}`).forEach(button => {
+                    button.disabled = true;
+                    button.textContent = "Processing";
+                });
+
+                let url = '/api/lint?' + new URLSearchParams({
+                    "tool": buttonId.substring(7),
+                })
+
+                fetch(url, {
+                    method: 'POST',
+                })
+                    .then((response) => {
+                        if (response.status == 200) {
+                            // Success
+                            document.querySelectorAll(`#${buttonId}`).forEach(button => {
+                                button.disabled = false
+                                button.textContent = "Success"
+                                button.style.backgroundColor = "#74c365";
+                                // Remove event listeners
+                                button.outerHTML = button.outerHTML;
+                            });
+
+                            // TODO Change to some banner
+                            alert("Relint successful, please refresh page");
+                        }
+                        else {
+                            // Error
+                            console.error('Error:', error);
+                            document.querySelectorAll(`#${buttonId}`).forEach(button => {
+                                button.disabled = false
+                                button.textContent = "Failure"
+                                button.style.backgroundColor = "#ff2946";
+                                // Remove event listeners
+                                button.outerHTML = button.outerHTML;
+                            });
+                        }
+                    })
+                    .catch((error) => {
+                        // Error
+                        console.error('Error:', error);
+                        document.querySelectorAll(`#${buttonId}`).forEach(button => {
+                            button.disabled = false
+                            button.textContent = "Failure"
+                            button.style.backgroundColor = "#ff2946";
+                            // Remove event listeners
+                            button.outerHTML = button.outerHTML;
+                        });
+                    });
+            }
+            document.querySelectorAll('button').forEach(button => {
+                button.addEventListener('click', function () {
+                    handleRelint(button.id);
+                });
             });
         },
         ajax: {
@@ -96,7 +157,8 @@ content %}
                     return (`<a target="_blank" href="https://bio.tools/tool/${data}" rel="nofollow">${data}</a>`);
                 }
             },
-            { data: 'code', title: 'Code',
+            {
+                data: 'code', title: 'Code',
                 render: function (data, type, row) {
                     if (data == "PMCID_BUT_NOT_DOI" || data == "PMID_BUT_NOT_DOI" || data == "DOI_BUT_NOT_PMCID" || data == "DOI_BUT_NOT_PMID") {
                         return (`<a target="_blank" href="/docs/PublishingIDConversions" rel="nofollow">${data}</a>`);
@@ -138,12 +200,14 @@ content %}
                 data: 'tool',
                 title: 'Links',
                 render: function (data, type, row) {
-                    return (`<a target="_blank" href="https://bio.tools/api/tool/${data}" rel="nofollow">JSON</a>
-                <a target="_blank" href="https://bio.tools/${data}/edit" rel="nofollow">Edit</a>`);
+                    return (`
+                    <a target="_blank" href="https://bio.tools/api/tool/${data}" rel="nofollow">JSON</a>
+                    <a target="_blank" href="https://bio.tools/${data}/edit" rel="nofollow">Edit</a>
+                    <button id="relint-${data}">Relint</button>
+                `);
                 }
             },
         ]
     });
-
 </script>
 {% endblock %}

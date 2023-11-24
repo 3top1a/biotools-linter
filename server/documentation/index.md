@@ -27,11 +27,6 @@ To see the automatically generated documentation of the API, see [this link](/ap
 - [PMID\_BUT\_NOT\_DOI](/docs/PublishingIDConversions)
 - [PMCID\_BUT\_NOT\_DOI](/docs/PublishingIDConversions)
 
-Unfinished:
-
-- EDAM\_GENERIC
-  - EDAM\_GENERIC may be removed and substituted with a more advanced filter
-
 ## Monitoring
 
 This server runs an instance of [Monitoror](https://monitoror.com/) for status monitoring. Is it available publicly at [this link](/dash/).

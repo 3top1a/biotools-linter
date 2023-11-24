@@ -405,7 +405,6 @@ pub async fn relint_api(
     let input = params.tool.trim();
     info!("Relinting tool `{input}`");
 
-    let python_script = "../linter/cli.py";
     let mut ips = state.ips.lock().unwrap();
 
     // Get sender IP, prioritize X-Real-IP because of nginx
@@ -447,11 +446,14 @@ pub async fn relint_api(
     // Drop ips for concurrent requests
     std::mem::drop(ips);
 
+    let python_script = "lint_from_server.sh";
+
     // Command takes arguments as literals so shell expansions is automatically escaped
-    let output = Command::new("python3")
+    let output = Command::new("bash")
         .arg(python_script)
         .arg(input)
         .arg("--no-color")
+        .current_dir("../")
         .output();
 
     info!("Output from python: {:?}", output);

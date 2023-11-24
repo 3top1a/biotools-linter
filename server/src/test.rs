@@ -32,6 +32,7 @@ mod tests {
         let state = ServerState {
             pool,
             stats_file_path: "./sample_data.json".into(),
+            ips: Arc::new(Mutex::new(HashMap::new())),
         };
 
         let routes = app(&state);

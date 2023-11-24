@@ -9,12 +9,12 @@ fi
 
 if [ -f "venv/bin/activate" ]
 then
-    source env/bin/activate
+    source venv/bin/activate
 fi
 
 if [ -f ".env" ]
 then
-    source env/bin/activate
+    source .env
 fi
 
 python3 linter/cli.py $@

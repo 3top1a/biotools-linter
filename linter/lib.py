@@ -34,7 +34,7 @@ class Session:
     executor: None | ThreadPoolExecutor = None
 
     def __init__(
-        self: Session, json: dict | None = None, cache: dict | None = None,
+        self: Session, json: dict | None = None,
     ) -> None:
         """Initialize a new Session instance.
 
@@ -42,7 +42,6 @@ class Session:
         ----------
             page (int): The current page number.
             json (dict): The JSON data retrieved from the API.
-            cache (dict): Cache.
 
         Returns
         -------
@@ -55,16 +54,11 @@ class Session:
         if json is None:
             json = {}
 
-        if cache is None:
-            cache = {}
-
         self.json = json
-        self.cache = cache
 
     def clear_cache(self: Session) -> None:
         """Reset multiple search. Call before `search_api`."""
         self.json = {}
-        self.cache = {}
 
     def search_api(self: Session, name: str, page: int = 1) -> None:
         """Retrieve JSON data from the biotools API.
@@ -136,7 +130,9 @@ class Session:
                 }
                 self.json[name] = json
                 return
-            logging.error("Exact tool could not be found")
+            elif response.status_code == 404:
+                logging.error("Exact tool could not be found")
+                return
         except Exception as e:
             logging.exception(
                 f"Error while trying to contact the bio.tools API:\n{e}",

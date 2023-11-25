@@ -116,7 +116,7 @@ def test_cli():
     assert cli.main(["metexplore", "--threads", "16", "--no-color"]) == 0
     assert cli.main(["msmc", "--threads", "16", "--exit-on-error"]) == 1
 
-    # Fails
+    # Fails, as page can't be 0
     assert cli.main(["*", "--threads", "16", "-p", "0"]) == 1
 
 # Test url.py
@@ -127,11 +127,11 @@ def test_urls():
     import rules
 
     # Ok
-    assert rules.filter_url("test", "https://httpbin.org/status/200") == None
+    assert rules.filter_url("test", "https://httpbin.org/status/200") is None
 
     # Invalid URLs
-    assert rules.filter_url("test", "ftp://ftp.gnu.org/gnu/") == None
-    assert rules.filter_url("test", "test") == None
+    assert rules.filter_url("test", "ftp://ftp.gnu.org/gnu/") is None
+    assert rules.filter_url("test", "test") is None
 
     # URL_INVALID
     assert rules.filter_url("url", "also test")[0].code == "URL_INVALID"
@@ -162,7 +162,7 @@ def test_urls():
     # It seems httpstat.us has gone offline?
     #assert rules.filter_url(
     #    "test", "https://httpstat.us/200?sleep=60000")[0].code == "URL_TIMEOUT"
-    
+
     # URL_SSL_ERROR
     assert rules.filter_url(
         "test", "https://expired.badssl.com/")[0].code == "URL_SSL_ERROR"
@@ -180,7 +180,7 @@ def test_messages():
     assert msg.body == "Test message"
     assert msg.location == "//name"
     assert msg.level == Level.LinterError
-    assert msg.tool == None # Should be set in lib.py
+    assert msg.tool is None # Should be set in lib.py
     msg.print_message(q)
     assert q.get() == "None: [001] Test message"
 
@@ -192,11 +192,11 @@ def test_publications():
     import json
     
     assert doi_to_pmid("10.1093/BIOINFORMATICS/BTAA581") == "32573681"
-    assert doi_to_pmid("test") == None
+    assert doi_to_pmid("test") is None
     assert doi_to_pmcid("10.1093/BIOINFORMATICS/BTAA581") == "PMC8034561"
-    assert doi_to_pmcid("test") == None
+    assert doi_to_pmcid("test") is None
     assert pmid_or_pmcid_to_doi("PMC8034561") == "10.1093/bioinformatics/btaa581"
-    assert pmid_or_pmcid_to_doi("test") == None
+    assert pmid_or_pmcid_to_doi("test") is None
 
     json_bad = """
     {
@@ -244,4 +244,4 @@ def test_publications():
     }
     """
     output = filter_pub(json.loads(json_good))
-    assert output == None
+    assert output is None

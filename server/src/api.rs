@@ -31,6 +31,37 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 use crate::db;
 use crate::ServerState;
 
+/// Macro to log important information on a http method
+/// Needs `headers: HeaderMap` in argument
+macro_rules! info_statement {
+    ($headers:tt, $name:tt, $($arg:tt)*) => {
+        // Get sender IP, prioritize X-Real-IP because of nginx
+        let ip: String = match $headers.contains_key("X-Real-IP") {
+            true => $headers
+                .get("X-Real-IP")
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string(),
+            false => String::from("?"),
+        };
+
+        let ua: String = match $headers.contains_key("User-Agent") {
+            true => $headers
+                .get("User-Agent")
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string(),
+            false => String::from("?"),
+        };
+
+        let custom_message = format!($($arg)*);
+        
+        info!("HTTP {} ({custom_message}) FROM IP `{ip}` UA `{ua}`", $name);
+    };
+}
+
 static ERROR_CODES: [&str; 18] = [
     "URL_INVALID",
     "URL_PERMANENT_REDIRECT",
@@ -238,7 +269,9 @@ pub struct RelintParams {
 }
 
 /// Serve the main page
-pub async fn serve_index_page(State(state): State<ServerState>) -> Html<String> {
+pub async fn serve_index_page(headers: HeaderMap, State(state): State<ServerState>) -> Html<String> {
+    info_statement!(headers, "WWW-INDEX", "");
+    
     // Simple statistics, multiple futures executing at once
     let (error_count, oldest_entry_unix, tool_count, critical_count) = tokio::join!(
         db::count_total_messages(&state.pool),
@@ -263,15 +296,18 @@ pub async fn serve_index_page(State(state): State<ServerState>) -> Html<String> 
 }
 
 /// Serve the stats page
-pub async fn serve_statistics_page() -> Html<String> {
+pub async fn serve_statistics_page(headers: HeaderMap) -> Html<String> {
+    info_statement!(headers, "WWW-STATISTICS", "");
+
     let c = Context::new();
     Html(TEMPLATES.render("statistics.html", &c).unwrap())
 }
 
 pub async fn serve_documentation_page(
+    headers: HeaderMap,
     Path(query_title): Path<String>,
 ) -> Html<String> {
-    info!("Sending documentation for {}", query_title);
+    info_statement!(headers, "WWW-DOCUMENTATION", "{query_title}");
 
     // https://stackoverflow.com/questions/56366947/how-does-a-rust-pathbuf-prevent-directory-traversal-attacks
     let mut p = PathBuf::from_str(&query_title).unwrap();
@@ -300,7 +336,9 @@ pub async fn serve_documentation_page(
     Html(TEMPLATES.render("documentation.html", &c).unwrap())
 }
 
-pub async fn serve_documentation_index() -> Html<String> {
+pub async fn serve_documentation_index(headers: HeaderMap) -> Html<String> {
+    info_statement!(headers, "WWW-DOCUMENTATION", "");
+    
     let markdown_path = PathBuf::from_str("documentation/index.md").unwrap();
     let markdown_string = fs::read_to_string(markdown_path).unwrap();
     let parser = pulldown_cmark::Parser::new(&markdown_string);
@@ -323,9 +361,8 @@ pub async fn serve_documentation_index() -> Html<String> {
     params(
  ),
  )]
-pub async fn serve_statistics_api(State(state): State<ServerState>) -> Json<Statistics> {
-    // Get parameters
-    info!("Listing statistics API");
+pub async fn serve_statistics_api(headers: HeaderMap, State(state): State<ServerState>) -> Json<Statistics> {
+    info_statement!(headers, "API-STATISTICS", "");
 
     let json_str =
         fs::read_to_string(state.stats_file_path).expect("Should have been able to read json file");
@@ -357,18 +394,16 @@ pub async fn serve_statistics_api(State(state): State<ServerState>) -> Json<Stat
 ),
 )]
 pub async fn serve_search_api(
+    headers: HeaderMap,
     State(state): State<ServerState>,
     Query(params): Query<APIQuery>,
 ) -> Json<ApiResponse> {
     // Get parameters
-    let page = params.page.unwrap_or(0);
     let query = params.query;
+    let page = params.page.unwrap_or(0);
     let severity = params.severity;
-
-    info!(
-        "Listing API page {} query {:?} severity {:?}",
-        page, query, severity
-    );
+    
+    info_statement!(headers, "API-SEARCH", "{:?}, {}, {:?}", query, page ,severity);
 
     let (messages, total_count) = match query.clone() {
         None => {
@@ -401,6 +436,7 @@ pub async fn serve_search_api(
     })
 }
 
+/// Relint a specific tool
 #[utoipa::path(post, path = "/api/lint", params(RelintParams))]
 pub async fn relint_api(
     headers: HeaderMap,
@@ -409,7 +445,7 @@ pub async fn relint_api(
     State(state): State<ServerState>,
 ) -> StatusCode {
     let input = params.tool.trim();
-    info!("Relinting tool `{input}`");
+    info_statement!(headers, "API-RELINT", "{}", input);
 
     let mut ips = state.ips.lock().unwrap();
 
@@ -462,7 +498,7 @@ pub async fn relint_api(
         .current_dir("../")
         .output();
 
-    info!("Output from python: {:?}", output);
+    info!("Output from script: {:?}", output);
 
     let mut ips = state.ips.lock().unwrap();
     ips.remove(&ip);

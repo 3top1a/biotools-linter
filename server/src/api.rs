@@ -1,8 +1,8 @@
 use axum::{
     extract::{ConnectInfo, Path, Query, State},
-    http::{HeaderMap, Request, StatusCode},
-    response::{Html, IntoResponse},
-    Error, Extension, Json,
+    http::{HeaderMap, StatusCode},
+    response::Html,
+    Json,
 };
 use chrono::{DateTime, Utc};
 use db::DatabaseEntry;
@@ -17,7 +17,6 @@ use std::{
     path::{Component, PathBuf},
     process::Command,
     str::FromStr,
-    sync::Arc,
     time::{Duration, UNIX_EPOCH},
 };
 use tera::{Context, Tera};
@@ -59,8 +58,7 @@ lazy_static! {
         match Tera::new("templates/*.html") {
             Ok(t) => t,
             Err(e) => {
-                println!("Parsing error(s): {e}");
-                ::std::process::exit(1);
+                panic!("Parsing error(s): {e}");
             }
         }
     };
@@ -114,7 +112,6 @@ impl From<i32> for Severity {
         }
     }
 }
-
 impl From<Severity> for i32 {
     fn from(value: Severity) -> Self {
         match value {
@@ -142,6 +139,7 @@ pub struct APIQuery {
     /// desired page number when retrieving results.
     #[param(style = Simple, minimum = 0)]
     page: Option<i64>,
+
     /// Optional severity
     severity: Option<Severity>,
 }
@@ -203,12 +201,13 @@ impl From<DatabaseEntry> for Message {
     }
 }
 
-/// Statistics data
+/// Statistics data sent from the API
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct Statistics {
     pub data: Vec<StatisticsEntry>,
 }
 
+/// A single statistics entry
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct StatisticsEntry {
     pub time: u64,
@@ -230,6 +229,12 @@ pub struct ApiResponse {
     pub previous: Option<String>,
     /// A list of results matching the query.
     pub results: Vec<Message>,
+}
+
+/// Relint parameters
+#[derive(Deserialize, IntoParams)]
+pub struct RelintParams {
+    tool: String,
 }
 
 /// Serve the main page
@@ -261,6 +266,50 @@ pub async fn serve_index_page(State(state): State<ServerState>) -> Html<String> 
 pub async fn serve_statistics_page() -> Html<String> {
     let c = Context::new();
     Html(TEMPLATES.render("statistics.html", &c).unwrap())
+}
+
+pub async fn serve_documentation_page(
+    Path(query_title): Path<String>,
+) -> Html<String> {
+    info!("Sending documentation for {}", query_title);
+
+    // https://stackoverflow.com/questions/56366947/how-does-a-rust-pathbuf-prevent-directory-traversal-attacks
+    let mut p = PathBuf::from_str(&query_title).unwrap();
+    if p.components()
+        .into_iter()
+        .any(|x| x == Component::ParentDir)
+    {
+        let c = Context::new();
+        return Html(TEMPLATES.render("error.html", &c).unwrap());
+    }
+
+    if p.to_str() == Some("") {
+        p = PathBuf::from_str("index.md").unwrap();
+    }
+
+    let p = p.with_extension("md");
+
+    let markdown_path = PathBuf::from_str("documentation/").unwrap().join(p);
+    let markdown_string = fs::read_to_string(markdown_path).unwrap();
+    let parser = pulldown_cmark::Parser::new(&markdown_string);
+    let mut html_output = String::new();
+    pulldown_cmark::html::push_html(&mut html_output, parser);
+
+    let mut c = Context::new();
+    c.insert("content", &html_output);
+    Html(TEMPLATES.render("documentation.html", &c).unwrap())
+}
+
+pub async fn serve_documentation_index() -> Html<String> {
+    let markdown_path = PathBuf::from_str("documentation/index.md").unwrap();
+    let markdown_string = fs::read_to_string(markdown_path).unwrap();
+    let parser = pulldown_cmark::Parser::new(&markdown_string);
+    let mut html_output = String::new();
+    pulldown_cmark::html::push_html(&mut html_output, parser);
+
+    let mut c = Context::new();
+    c.insert("content", &html_output);
+    Html(TEMPLATES.render("documentation.html", &c).unwrap())
 }
 
 /// Serve statistics JSON data
@@ -352,49 +401,6 @@ pub async fn serve_search_api(
     })
 }
 
-pub async fn serve_documentation_page(
-    Path(query_title): Path<String>,
-    State(state): State<ServerState>,
-) -> Html<String> {
-    info!("Sending documentation for {}", query_title);
-
-    // https://stackoverflow.com/questions/56366947/how-does-a-rust-pathbuf-prevent-directory-traversal-attacks
-    let mut p = PathBuf::from_str(&query_title).unwrap();
-    if p.components()
-        .into_iter()
-        .any(|x| x == Component::ParentDir)
-    {
-        let c = Context::new();
-        return Html(TEMPLATES.render("error.html", &c).unwrap());
-    }
-
-    if p.to_str() == Some("") {
-        p = PathBuf::from_str("index.md").unwrap();
-    }
-
-    let p = p.with_extension("md");
-
-    let markdown_path = PathBuf::from_str("documentation/").unwrap().join(p);
-    let markdown_string = fs::read_to_string(markdown_path).unwrap();
-    let parser = pulldown_cmark::Parser::new(&markdown_string);
-    let mut html_output = String::new();
-    pulldown_cmark::html::push_html(&mut html_output, parser);
-
-    let mut c = Context::new();
-    c.insert("content", &html_output);
-    Html(TEMPLATES.render("documentation.html", &c).unwrap())
-}
-
-/// Relint callback from client
-#[derive(Deserialize, IntoParams)]
-pub struct RelintParams {
-    tool: String,
-}
-
-#[derive(Serialize, Deserialize, ToSchema)]
-pub struct RelintResult {
-    result: String,
-}
 #[utoipa::path(post, path = "/api/lint", params(RelintParams))]
 pub async fn relint_api(
     headers: HeaderMap,
@@ -446,11 +452,11 @@ pub async fn relint_api(
     // Drop ips for concurrent requests
     std::mem::drop(ips);
 
-    let python_script = "lint_from_server.sh";
+    let script = "lint_from_server.sh";
 
     // Command takes arguments as literals so shell expansions is automatically escaped
     let output = Command::new("bash")
-        .arg(python_script)
+        .arg(script)
         .arg(input)
         .arg("--no-color")
         .current_dir("../")
@@ -475,16 +481,4 @@ pub async fn relint_api(
     error!("{:#?}", output);
 
     return StatusCode::INTERNAL_SERVER_ERROR;
-}
-
-pub async fn serve_documentation_index(State(state): State<ServerState>) -> Html<String> {
-    let markdown_path = PathBuf::from_str("documentation/index.md").unwrap();
-    let markdown_string = fs::read_to_string(markdown_path).unwrap();
-    let parser = pulldown_cmark::Parser::new(&markdown_string);
-    let mut html_output = String::new();
-    pulldown_cmark::html::push_html(&mut html_output, parser);
-
-    let mut c = Context::new();
-    c.insert("content", &html_output);
-    Html(TEMPLATES.render("documentation.html", &c).unwrap())
 }

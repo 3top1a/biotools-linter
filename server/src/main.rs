@@ -5,8 +5,8 @@ mod test;
 use api::{
     ApiResponse, Message, __path_serve_search_api, __path_serve_statistics_api, relint_api,
     serve_documentation_index, serve_documentation_page, serve_index_page, serve_search_api,
-    serve_statistics_api, serve_statistics_page, RelintParams, RelintResult, Severity, Statistics,
-    StatisticsEntry, __path_relint_api,
+    serve_statistics_api, serve_statistics_page, Severity, Statistics, StatisticsEntry,
+    __path_relint_api,
 };
 use axum::{
     routing::{get, post},
@@ -61,14 +61,7 @@ pub struct ServerState {
 #[derive(OpenApi)]
 #[openapi(
     paths(serve_search_api, serve_statistics_api, relint_api),
-    components(schemas(
-        ApiResponse,
-        Message,
-        Statistics,
-        StatisticsEntry,
-        Severity,
-        RelintResult
-    ))
+    components(schemas(ApiResponse, Message, Statistics, StatisticsEntry, Severity,))
 )]
 struct ApiDoc;
 

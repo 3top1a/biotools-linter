@@ -495,6 +495,7 @@ pub async fn relint_api(
         .arg(script)
         .arg(input)
         .arg("--no-color")
+        .arg("--exact")
         .current_dir("../")
         .output();
 

@@ -50,6 +50,12 @@ def test_session():
     assert len(s.return_tool_list_json()) == 2
 
     s.clear_cache()
+    s.search_api_exact_match("s")
+    assert len(s.return_tool_list_json()) == 0
+    s.search_api_exact_match("msmc")
+    assert len(s.return_tool_list_json()) == 1
+
+    s.clear_cache()
     for x in range(0, 2):
         print(x * 10)
         print(x * 10 + 10)

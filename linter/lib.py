@@ -73,7 +73,6 @@ class Session:
         ----------
             names (str): Multiple names to search for.
             page (int): The page number to retrieve (default: 1).
-            im_feeling_lucky (bool): Return only one result if the name is an exact match
 
         Returns
         -------
@@ -94,6 +93,50 @@ class Session:
                 return
 
             logging.error("Non 200 status code received from bio.tools API")
+        except Exception as e:
+            logging.exception(
+                f"Error while trying to contact the bio.tools API:\n{e}",
+            )
+            time.sleep(5)
+
+        logging.critical("Could not contact the bio.tools API after 5 tries, aborting")
+        sys.exit(1)
+
+    def search_api_exact_match(self: Session, name: str) -> None:
+        """Retrieve JSON data from the biotools API.
+
+        Attributes
+        ----------
+            names (str): Exact name of the tool.
+
+        Returns
+        -------
+            None
+
+        Raises
+        ------
+            None
+        """
+        logging.debug(f'Searching API for "{name}"')
+
+        url = f"https://bio.tools/api/t/{name}?format=json"
+
+        try:
+            response = requests.get(url, timeout=TIMEOUT)
+            if response.ok:
+                json = response.json()
+                # Need to wrap it so its compatible with the rest of the code
+                json = {
+                    "count": 1,
+                    "next": None,
+                    "previous": None,
+                    "list": [
+                        json,
+                    ],
+                }
+                self.json[name] = json
+                return
+            logging.error("Exact tool could not be found")
         except Exception as e:
             logging.exception(
                 f"Error while trying to contact the bio.tools API:\n{e}",

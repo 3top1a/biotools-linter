@@ -27,7 +27,6 @@ def db_drop_rows_with_tool_name(name: str, export_db_cursor: psycopg2.cursor) ->
     delete_query = "DELETE FROM messages WHERE tool = %s;"
     export_db_cursor.execute(delete_query, (name,))
 
-
 def db_insert_queue_into_database(queue: Queue, sql_cursor: psycopg2.cursor | None) -> bool:
     """Insert message queue into database.
 
@@ -113,6 +112,7 @@ def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
     -------
         argparse.Namespace: Output arguments
     """
+    # TODO Better argument help strings
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -139,6 +139,11 @@ def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
         "--lint-all",
         action="store_true",
         help="Lint all tools in the biotools API",
+    )
+    parser.add_argument(
+        "--exact",
+        action="store_true",
+        help="Treat the input as an exact tool name, do not search",
     )
     parser.add_argument(
         "--page",
@@ -192,6 +197,7 @@ def main(args: Sequence[str]) -> int:
     lint_all = args.lint_all
     threads = args.threads
     tool_name = args.name
+    exact = args.exact
     page = args.page
 
     # Configure logging
@@ -259,6 +265,8 @@ def main(args: Sequence[str]) -> int:
             for line in sys.stdin:
                 if line.strip() != "":
                     session.search_api(line.strip(), page)
+        elif exact:
+            session.search_api_exact_match(tool_name)
         else:
             session.search_api(tool_name, page)
 

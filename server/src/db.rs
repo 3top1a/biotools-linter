@@ -44,6 +44,21 @@ pub async fn count_critical_messages(pool: &Pool<Postgres>) -> i64 {
         .unwrap()
 }
 
+pub async fn get_messages_all(
+    pool: &Pool<Postgres>,
+) -> Vec<Message> {
+    let rows = sqlx::query_as!(
+        DatabaseEntry,
+        "SELECT time,tool,code,location,text,level FROM messages",
+    )
+    .fetch_all(pool)
+    .await
+    .unwrap();
+
+    // Process output from database entry to message
+    rows.into_iter().map(Message::from).collect()
+}
+
 pub async fn get_messages_paginated(
     pool: &Pool<Postgres>,
     page: i64,

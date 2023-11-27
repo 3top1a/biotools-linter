@@ -519,3 +519,19 @@ pub async fn relint_api(
 
     return StatusCode::INTERNAL_SERVER_ERROR;
 }
+
+/// Relint a specific tool
+#[utoipa::path(post, path = "/api/download", params(RelintParams))]
+pub async fn download_api(
+    headers: HeaderMap,
+    State(state): State<ServerState>,
+) -> String {
+    info_statement!(headers, "API-DOWNLOAD", "");
+    
+    let messages = db::get_messages_all(&state.pool).await;
+
+    let header = String::from("time,timestamp,tool,code,text,severity\n");
+    let data = messages.into_iter().map(|x| format!("{},{},{},{},\"{}\",{}\n", x.time, x.timestamp, x.tool, x.code, x.text, x.severity as i32)).reduce(|acc, e| acc + &e).unwrap();
+
+    header + &data
+}

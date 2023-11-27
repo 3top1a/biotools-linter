@@ -57,7 +57,7 @@ macro_rules! info_statement {
         };
 
         let custom_message = format!($($arg)*);
-        
+
         info!("HTTP {} ({custom_message}) FROM IP `{ip}` UA `{ua}`", $name);
     };
 }
@@ -269,9 +269,12 @@ pub struct RelintParams {
 }
 
 /// Serve the main page
-pub async fn serve_index_page(headers: HeaderMap, State(state): State<ServerState>) -> Html<String> {
+pub async fn serve_index_page(
+    headers: HeaderMap,
+    State(state): State<ServerState>,
+) -> Html<String> {
     info_statement!(headers, "WWW-INDEX", "");
-    
+
     // Simple statistics, multiple futures executing at once
     let (error_count, oldest_entry_unix, tool_count, critical_count) = tokio::join!(
         db::count_total_messages(&state.pool),
@@ -338,7 +341,7 @@ pub async fn serve_documentation_page(
 
 pub async fn serve_documentation_index(headers: HeaderMap) -> Html<String> {
     info_statement!(headers, "WWW-DOCUMENTATION", "");
-    
+
     let markdown_path = PathBuf::from_str("documentation/index.md").unwrap();
     let markdown_string = fs::read_to_string(markdown_path).unwrap();
     let parser = pulldown_cmark::Parser::new(&markdown_string);
@@ -361,7 +364,10 @@ pub async fn serve_documentation_index(headers: HeaderMap) -> Html<String> {
     params(
  ),
  )]
-pub async fn serve_statistics_api(headers: HeaderMap, State(state): State<ServerState>) -> Json<Statistics> {
+pub async fn serve_statistics_api(
+    headers: HeaderMap,
+    State(state): State<ServerState>,
+) -> Json<Statistics> {
     info_statement!(headers, "API-STATISTICS", "");
 
     let json_str =
@@ -402,8 +408,15 @@ pub async fn serve_search_api(
     let query = params.query;
     let page = params.page.unwrap_or(0);
     let severity = params.severity;
-    
-    info_statement!(headers, "API-SEARCH", "{:?}, {}, {:?}", query, page ,severity);
+
+    info_statement!(
+        headers,
+        "API-SEARCH",
+        "{:?}, {}, {:?}",
+        query,
+        page,
+        severity
+    );
 
     let (messages, total_count) = match query.clone() {
         None => {
@@ -522,16 +535,22 @@ pub async fn relint_api(
 
 /// Relint a specific tool
 #[utoipa::path(post, path = "/api/download", params(RelintParams))]
-pub async fn download_api(
-    headers: HeaderMap,
-    State(state): State<ServerState>,
-) -> String {
+pub async fn download_api(headers: HeaderMap, State(state): State<ServerState>) -> String {
     info_statement!(headers, "API-DOWNLOAD", "");
-    
+
     let messages = db::get_messages_all(&state.pool).await;
 
     let header = String::from("time,timestamp,tool,code,text,severity\n");
-    let data = messages.into_iter().map(|x| format!("{},{},{},{},\"{}\",{}\n", x.time, x.timestamp, x.tool, x.code, x.text, x.severity as i32)).reduce(|acc, e| acc + &e).unwrap();
+    let data = messages
+        .into_iter()
+        .map(|x| {
+            format!(
+                "{},{},{},{},\"{}\",{}\n",
+                x.time, x.timestamp, x.tool, x.code, x.text, x.severity as i32
+            )
+        })
+        .reduce(|acc, e| acc + &e)
+        .unwrap();
 
     header + &data
 }

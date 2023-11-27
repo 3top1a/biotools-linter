@@ -24,10 +24,10 @@ use std::{
 };
 
 use env_logger::{Builder, Env};
+use std::io::Write;
 use tower_http::services::ServeFile;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
-use std::io::Write;
 
 #[macro_use]
 extern crate lazy_static;
@@ -70,16 +70,18 @@ struct ApiDoc;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize tracing
     let mut builder = Builder::from_env(Env::default().default_filter_or("info"));
-    builder.format(|buf, record| {
-        writeln!(
-            buf,
-            "{} {}:{} - {}",
-            chrono::Utc::now().format("%Y-%m-%d %H:%M:%S"),
-            record.file().unwrap_or("<unknown>"),
-            record.line().unwrap_or(0),
-            record.args()
-        )
-    }).init();
+    builder
+        .format(|buf, record| {
+            writeln!(
+                buf,
+                "{} {}:{} - {}",
+                chrono::Utc::now().format("%Y-%m-%d %H:%M:%S"),
+                record.file().unwrap_or("<unknown>"),
+                record.line().unwrap_or(0),
+                record.args()
+            )
+        })
+        .init();
 
     dotenv().ok();
 

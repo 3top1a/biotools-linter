@@ -67,7 +67,7 @@ content %}
             {
                 text: 'Download all',
                 action: function (e, dt, node, config) {
-                    download(`/api/download?query=${value}`);
+                    download(`/api/download`);
                 }
             },
         ],
@@ -148,9 +148,11 @@ content %}
                     });
             }
             document.querySelectorAll('button').forEach(button => {
-                button.addEventListener('click', function () {
-                    handleRelint(button.id);
-                });
+                if (button.id.startsWith("relint-")) {
+                    button.addEventListener('click', function () {
+                        handleRelint(button.id);
+                    });
+                }
             });
         },
         ajax: {

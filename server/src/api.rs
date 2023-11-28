@@ -11,6 +11,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
+use axum::response::IntoResponse;
 use std::{
     fs,
     net::SocketAddr,
@@ -24,6 +25,7 @@ use tokio::join;
 
 use tracing::{error, info};
 
+use axum::http::header;
 use utoipa::{IntoParams, ToSchema};
 
 use serde_repr::{Deserialize_repr, Serialize_repr};
@@ -173,6 +175,12 @@ pub struct APIQuery {
 
     /// Optional severity
     severity: Option<Severity>,
+}
+
+#[derive(Deserialize, IntoParams)]
+pub struct DownloadParams {
+    /// A search string used to filter messages (optional).
+    query: Option<String>,
 }
 
 /// Represents a single result in the API response.
@@ -533,12 +541,25 @@ pub async fn relint_api(
     return StatusCode::INTERNAL_SERVER_ERROR;
 }
 
-/// Relint a specific tool
-#[utoipa::path(post, path = "/api/download", params(RelintParams))]
-pub async fn download_api(headers: HeaderMap, State(state): State<ServerState>) -> String {
-    info_statement!(headers, "API-DOWNLOAD", "");
+/// Download data as csv
+#[utoipa::path(get,
+    path = "/api/download",
+    params(DownloadParams),
+    responses(
+        (status = 200, description = "Downloaded CSV"),
+    ),
+)]
+pub async fn download_api(
+    headers: HeaderMap,
+    State(state): State<ServerState>,
+    Query(params): Query<DownloadParams>,
+) -> impl IntoResponse {
+    info_statement!(headers, "API-DOWNLOAD", "{:?}", params.query);
 
-    let messages = db::get_messages_all(&state.pool).await;
+    let messages = match params.query {
+        Some(query) => db::get_messages_all_search(&state.pool, &query).await,
+        None => db::get_messages_all(&state.pool).await,
+    };
 
     let header = String::from("time,timestamp,tool,code,text,severity\n");
     let data = messages
@@ -552,5 +573,9 @@ pub async fn download_api(headers: HeaderMap, State(state): State<ServerState>) 
         .reduce(|acc, e| acc + &e)
         .unwrap();
 
-    header + &data
+    (
+        StatusCode::OK,
+        [(header::CONTENT_TYPE, "text/csv")],
+        header + &data,
+    )
 }

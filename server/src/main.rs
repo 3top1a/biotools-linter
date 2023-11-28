@@ -3,10 +3,10 @@ mod db;
 mod test;
 
 use api::{
-    ApiResponse, Message, __path_serve_search_api, __path_serve_statistics_api, relint_api,
-    serve_documentation_index, serve_documentation_page, serve_index_page, serve_search_api,
-    serve_statistics_api, serve_statistics_page, Severity, Statistics, StatisticsEntry,
-    __path_relint_api, download_api,
+    ApiResponse, Message, __path_download_api, __path_serve_search_api,
+    __path_serve_statistics_api, relint_api, serve_documentation_index, serve_documentation_page,
+    serve_index_page, serve_search_api, serve_statistics_api, serve_statistics_page, Severity,
+    Statistics, StatisticsEntry, __path_relint_api, download_api,
 };
 use axum::{
     routing::{get, post},
@@ -61,7 +61,8 @@ pub struct ServerState {
 /// Remember to add additional paths and schemas
 #[derive(OpenApi)]
 #[openapi(
-    paths(serve_search_api, serve_statistics_api, relint_api),
+    info(description = "", title = "Biotools linter"),
+    paths(serve_search_api, serve_statistics_api, relint_api, download_api),
     components(schemas(ApiResponse, Message, Statistics, StatisticsEntry, Severity,))
 )]
 struct ApiDoc;

@@ -1,7 +1,12 @@
 [package]
 name = "biotools_linter_server"
 edition = "2021"
-version = "0.1.0"
+version = "1.0.0"
+authors = ["Filip Rusz <251814@muni.com>"]
+documentation = "https://biotools-linter.biodata.ceitec.cz/docs"
+homepage = "https://biotools-linter.biodata.ceitec.cz/"
+repository = "https://github.com/rust-lang/cargo/"
+license = "MIT"
 
 [dependencies]
 dotenv = "0.15.0"

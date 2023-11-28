@@ -561,13 +561,13 @@ pub async fn download_api(
         None => db::get_messages_all(&state.pool).await,
     };
 
-    let header = String::from("time,timestamp,tool,code,text,severity\n");
+    let header = String::from("time,timestamp,tool,code,severity,text\n");
     let data = messages
         .into_iter()
         .map(|x| {
             format!(
-                "{},{},{},{},\"{}\",{}\n",
-                x.time, x.timestamp, x.tool, x.code, x.text, x.severity as i32
+                "{},{},{},{},{},\"{}\"\n",
+                x.time, x.timestamp, x.tool, x.code, x.severity as i32, x.text.replace('\n', "")
             )
         })
         .reduce(|acc, e| acc + &e)

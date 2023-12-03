@@ -76,6 +76,7 @@ pub async fn get_messages_paginated(
     page: i64,
     severity: Option<Severity>,
 ) -> Vec<Message> {
+    // This is a huge hack so I don't have to construct SQL queries manually
     let (min_severity, max_severity): (i32, i32) = match severity {
         Some(s) => {
             let x = s.into();

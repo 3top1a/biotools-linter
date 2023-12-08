@@ -244,3 +244,62 @@ def test_publications():
     """
     output = filter_pub(json.loads(json_good))
     assert output is None
+
+def test_edam():
+    from rules.edam import EdamFilter
+    import json
+    
+    f = EdamFilter()
+    
+    # EDAM_OBSOLETE
+    assert f.filter_edam_key_value_pair('test', 'http://edamontology.org/operation_3202')[0].code == "EDAM_OBSOLETE"
+    
+    # EDAM_NOT_RECOMMENDED
+    assert f.filter_edam_key_value_pair('test', 'http://edamontology.org/operation_0337')[0].code == "EDAM_NOT_RECOMMENDED"
+    
+    # EDAM_INVALID
+    assert f.filter_edam_key_value_pair('test', 'tttttttttttt')[0].code == "EDAM_INVALID"
+    
+    input = """{
+    "name": "test",
+    "toolType": [
+        "Web service"
+    ],
+      "function": [
+    {
+    "operation": [
+        {
+            "uri": "http://edamontology.org/operation_4008",
+            "term": "Protein design"
+        }
+        ],
+        "input": [
+        {
+            "data": {
+            "uri": "http://edamontology.org/data_1460",
+            "term": "Protein structure"
+            },
+            "format": []
+        },
+        {
+            "data": {
+            "uri": "http://edamontology.org/data_2976",
+            "term": "Protein sequence"
+            },
+            "format": []
+        }
+        ],
+        "output": [],
+        "note": null,
+        "cmd": null
+        }
+    ],
+    "topic": [
+        {
+        "uri": "http://edamontology.org/topic_3307",
+        "term": "Computational biology"
+        }
+    ]
+    }"""
+    
+    assert f.filter_whole_json(json.loads(input))[0].code == "EDAM_TOPIC_DISCREPANCY"

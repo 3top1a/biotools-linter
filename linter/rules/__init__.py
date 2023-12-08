@@ -1,4 +1,9 @@
-"""Rule delegator."""
+"""Rule delegator.
+
+Exposes two methods:
+- delegate_key_value_filter() for delegating specific JSON pairs
+- delegate_whole_json_filter() for delegating the entire tools JSON
+"""
 
 from __future__ import annotations
 
@@ -42,7 +47,7 @@ def delegate_key_value_filter(key: str, value: str) -> list[Message] | None:
         return output
 
     if "://edamontology.org/" in value:
-        messages = edam_filter.filter_edam(key, value)
+        messages = edam_filter.filter_edam_key_value_pair(key, value)
         if messages is not None:
             output.extend(messages)
     else:
@@ -56,15 +61,19 @@ def delegate_key_value_filter(key: str, value: str) -> list[Message] | None:
 
 def delegate_whole_json_filter(json: dict) -> list[Message] | None:
     """Delegate to separate filter functions that filter the whole json, not just one key value pair."""
-    output = []
+    messages = []
 
-    messages = filter_pub(json)
-    if messages is not None:
-        output.extend(messages)
+    out = filter_pub(json)
+    if out is not None:
+        messages.extend(out)
 
-    if output is []:
+    out = edam_filter.filter_whole_json(json)
+    if out is not None:
+        messages.extend(out)
+
+    if messages is []:
         return None
-    return output
+    return messages
 
 def filter_none(key: str, _value: str) -> Message | None:
     """Filter the key-value pair if the value is None or empty.

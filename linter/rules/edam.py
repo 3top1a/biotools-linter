@@ -166,10 +166,47 @@ class EdamFilter:
                     reports.append(
                         Message(
                             "EDAM_TOPIC_DISCREPANCY",
-                            f"EDAM {self.label_dict[parent_uri]} ({parent_uri}) has topic {self.label_dict[property_uri]} ({property_uri}) but not in tool annotation",
+                            f"EDAM {self.label_dict[parent_uri]} ({parent_uri}) has topic {self.label_dict[property_uri]} ({property_uri}) but not in tool annotation.",
                             location,
                             Level.ReportMedium,
                         ))
+        return reports
+
+    def check_operation(
+        self: EdamFilter, edam_class: dict, operations_json: list, location: str
+    ) -> list[Message]:
+        reports = []
+
+        # Combines inputs and outputs of all operations and flattens the 2d arrays
+        json_inputs = sum([x["input"] for x in operations_json], [])
+        json_outputs = sum([x["output"] for x in operations_json], [])
+
+        for edam_property in edam_class.is_a:
+            if not hasattr(edam_property, "property"):
+                continue
+
+            if edam_property.property == self.ontology["has_input"]:
+                if edam_property.value not in json_inputs:
+                    parent_uri = f"http://edamontology.org/{edam_class.name}"
+                    property_uri = f"http://edamontology.org/{edam_property.value.name}"
+                    reports.append(
+                        Message(
+                            "EDAM_INPUT_DISCREPANCY",
+                            f"EDAM operation {self.label_dict[parent_uri]} ({parent_uri}) has input {self.label_dict[property_uri]} ({property_uri}) but not in tool annotation.",
+                            location,
+                            Level.ReportMedium,
+                        ))
+                if edam_property.value not in json_outputs:
+                    parent_uri = f"http://edamontology.org/{edam_class.name}"
+                    property_uri = f"http://edamontology.org/{edam_property.value.name}"
+                    reports.append(
+                        Message(
+                            "EDAM_OUTPUT_DISCREPANCY",
+                            f"EDAM operation {self.label_dict[parent_uri]} ({parent_uri}) has output {self.label_dict[property_uri]} ({property_uri}) but not in tool annotation.",
+                            location,
+                            Level.ReportMedium,
+                        ))
+
         return reports
 
     def filter_whole_json(self: EdamFilter, json: dict) -> list[Message] | None:
@@ -188,6 +225,7 @@ class EdamFilter:
             edam_class = self.get_class_from_uri(value)
             if edam_class:
                 reports.extend(self.check_topics(edam_class, json["topic"], pair))
+                reports.extend(self.check_operation(edam_class, json["function"], pair))
 
         if reports == []:
             return None

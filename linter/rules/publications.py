@@ -85,7 +85,7 @@ def doi_to_pmid(doi: str) -> str | None:
 
         return pub["pmid"]
     except Exception as e:
-        logging.critical(f"Error while making API request to idconv: {e}")
+        logging.critical(f"Error while making API request to idconv for {doi}: {e}")
         return None
 
 def doi_to_pmcid(doi: str) -> str | None:
@@ -111,7 +111,7 @@ def doi_to_pmcid(doi: str) -> str | None:
 
         return pub["pmcid"]
     except Exception as e:
-        logging.critical(f"Error while making API request to idconv: {e}")
+        logging.critical(f"Error while making API request to idconv for {doi}: {e}")
         return None
 
 def pmid_or_pmcid_to_doi(pc_c_id: str) -> str | None:
@@ -135,6 +135,6 @@ def pmid_or_pmcid_to_doi(pc_c_id: str) -> str | None:
 
             return pub["doi"]
     except Exception as e:
-        logging.critical(f"Error while making API request to idconv: {e}")
+        logging.critical(f"Error while making API request to idconv for {pc_c_id}: {e}")
 
     return None

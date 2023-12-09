@@ -44,7 +44,6 @@ def filter_url(key: str, value: str) -> list[Message] | None:
     """
     # Wrap it in one big try block in case anything errors
     try:
-        logging.debug(f"Checking URL: {value}")
         reports = []
 
         # Exit if does not match URL or key doesn't end with url/uri
@@ -52,6 +51,8 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                 URL_REGEX,
                 value) and not key.endswith("url") and not key.endswith("uri"):
             return None
+
+        logging.debug(f"Checking URL: {value}")
 
         # Exit if it is a ftp address
         if value.startswith("ftp://"):

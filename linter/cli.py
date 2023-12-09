@@ -27,6 +27,7 @@ def db_drop_rows_with_tool_name(name: str, export_db_cursor: psycopg2.cursor) ->
     delete_query = "DELETE FROM messages WHERE tool = %s;"
     export_db_cursor.execute(delete_query, (name,))
 
+
 def db_insert_queue_into_database(queue: Queue, sql_cursor: psycopg2.cursor | None) -> bool:
     """Insert message queue into database.
 
@@ -63,6 +64,7 @@ def db_insert_queue_into_database(queue: Queue, sql_cursor: psycopg2.cursor | No
 
     return return_value
 
+
 def configure_logging(color: bool, log_level: int) -> None:
     """Configure logging.
 
@@ -74,8 +76,9 @@ def configure_logging(color: bool, log_level: int) -> None:
     logging.addLevelName(REPORT, "REPORT")
     logging.basicConfig(level=log_level, force=True)
     if color:
+        log_format = "%(log_color)s%(asctime)s %(name)s %(levelname)s %(filename)s@%(lineno)d - %(message)s" if log_level == 10 else "%(log_color)s%(message)s"
         formatter = colorlog.ColoredFormatter(
-            "%(log_color)s%(message)s",
+            log_format,
             log_colors={
                 "DEBUG": "thin",
                 "INFO": "reset",

@@ -125,19 +125,34 @@ def test_urls():
     # Also big props to https://httpbin.org, http://httpforever.com and https://httpstat.us
 
     import rules
+    import time
+
+    start_time = time.time()
 
     # Ok
     assert rules.filter_url("test", "https://httpbin.org/status/200") is None
+
+    print(f"URL - OK: {time.time() - start_time}")
+    start_time = time.time()
 
     # Invalid URLs
     assert rules.filter_url("test", "ftp://ftp.gnu.org/gnu/") is None
     assert rules.filter_url("test", "test") is None
 
+    print(f"URL - Invalid URLs: {time.time() - start_time}")
+    start_time = time.time()
+
     # URL_INVALID
     assert rules.filter_url("url", "also test")[0].code == "URL_INVALID"
 
+    print(f"URL - URL_INVALID: {time.time() - start_time}")
+    start_time = time.time()
+
     # URL_CONN_ERROR
     assert rules.filter_url("url", "https://gsjdhfskjhfklajshdfkashdfkashdfklashdfjakhsdflkahsfd.sdfsdf")[0].code == "URL_CONN_ERROR"
+
+    print(f"URL - URL_CONN_ERROR: {time.time() - start_time}")
+    start_time = time.time()
 
     # URL_PERMANENT_REDIRECT
     assert rules.filter_url(
@@ -145,26 +160,43 @@ def test_urls():
         "https://httpbin.org/redirect-to?url=https%3A%2F%2Fwww.example.com&status_code=308"
     )[0].code == "URL_PERMANENT_REDIRECT"
 
+    print(f"URL - URL_PERMANENT_REDIRECT: {time.time() - start_time}")
+    start_time = time.time()
+
     # URL_BAD_STATUS
     assert rules.filter_url(
         "test", "https://httpbin.org/status/404")[0].code == "URL_BAD_STATUS"
 
+    print(f"URL - URL_BAD_STATUS: {time.time() - start_time}")
+    start_time = time.time()
+
     # URL_UNUSED_SSL
     assert rules.filter_url(
         "test", "http://httpbin.org/status/202")[0].code == "URL_UNUSED_SSL"
+
+    print(f"URL - URL_UNUSED_SSL: {time.time() - start_time}")
+    start_time = time.time()
 
     # URL_NO_SSL
     # Takes extreme amount of time (33s), need to make it faster 
     assert rules.filter_url("test",
                             "http://httpforever.com/")[0].code == "URL_NO_SSL"
 
+    print(f"URL - URL_NO_SSL: {time.time() - start_time}")
+    start_time = time.time()
+
     # URL_TIMEOUT
     assert rules.filter_url(
         "test", "https://httpstat.us/200?sleep=60000")[0].code == "URL_TIMEOUT"
 
+    print(f"URL - URL_TIMEOUT: {time.time() - start_time}")
+    start_time = time.time()
+
     # URL_SSL_ERROR
     assert rules.filter_url(
         "test", "https://expired.badssl.com/")[0].code == "URL_SSL_ERROR"
+
+    print(f"URL - URL_SSL_ERROR: {time.time() - start_time}")
 
 # Test messages.py
 def test_messages():
@@ -303,3 +335,38 @@ def test_edam():
     }"""
     
     assert f.filter_whole_json(json.loads(input))[0].code == "EDAM_TOPIC_DISCREPANCY"
+
+def test_benchmark():
+    # Benchmark some stuff to make it faster
+    
+    import time
+    import rules
+
+    start_time = time.time()
+
+    assert rules.filter_url("test", "https://httpbin.org/status/200") is None
+
+    print(f"URL - OK: {time.time() - start_time}")
+    start_time = time.time()
+
+    assert rules.filter_url("test", "ftp://ftp.gnu.org/gnu/") is None
+    assert rules.filter_url("test", "test") is None
+
+    print(f"URL - Invalid URLs: {time.time() - start_time}")
+    start_time = time.time()
+
+    # URL_CONN_ERROR
+    assert rules.filter_url("url", "https://gsjdhfskjhfklajshdfkashdfkashdfklashdfjakhsdflkahsfd.sdfsdf")[0].code == "URL_CONN_ERROR"
+
+    print(f"URL - URL_CONN_ERROR: {time.time() - start_time}")
+    start_time = time.time()
+    
+    assert rules.filter_url(
+        "test",
+        "https://httpbin.org/redirect-to?url=https%3A%2F%2Fwww.example.com&status_code=308"
+    )[0].code == "URL_PERMANENT_REDIRECT"
+    
+    print(f"URL - URL_PERMANENT_REDIRECT: {time.time() - start_time}")
+    start_time = time.time()
+    
+    

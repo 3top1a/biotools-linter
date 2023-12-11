@@ -83,6 +83,7 @@ $ cargo run --release -- --port 8080 --stats /home/x/data.json
 
 ## Architecture
 ![Architecture drawing](architecture.drawio.svg)
+![Project structure diagram generated with repo-visualizer](diagram.svg)
 
 ## Disclaimer
 This tool is meant to be a rule-based checker for bio.tools data and does not cover all possible aspects or validations that can be performed on the data. It should be used as an additional tool for evaluating the information retrieved from the bio.tools API.

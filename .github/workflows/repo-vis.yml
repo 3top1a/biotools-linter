@@ -8,8 +8,11 @@ on:
 
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  build:
+  update-diagram:
     runs-on: ubuntu-latest
 
     steps:
@@ -17,8 +20,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@master
     - name: Update diagram
-      uses: githubocto/repo-visualizer@0.7.1
+      uses: githubocto/repo-visualizer@main
       with:
-        output_file: "diagram.svg"
-        excluded_paths: "server/.sqlx,.github"
+        excluded_paths: "server/.sqlx,.github,diagram.svg"
         commit_message: "[action] Updated diagram [skip ci]"

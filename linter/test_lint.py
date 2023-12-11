@@ -297,33 +297,22 @@ def test_edam():
     "toolType": [
         "Web service"
     ],
-      "function": [
-    {
-    "operation": [
+    "function": [
         {
-            "uri": "http://edamontology.org/operation_4008",
-            "term": "Protein design"
-        }
-        ],
-        "input": [
-        {
-            "data": {
-            "uri": "http://edamontology.org/data_1460",
-            "term": "Protein structure"
-            },
-            "format": []
-        },
-        {
-            "data": {
-            "uri": "http://edamontology.org/data_2976",
-            "term": "Protein sequence"
-            },
-            "format": []
-        }
-        ],
-        "output": [],
-        "note": null,
-        "cmd": null
+            "operation": [
+                {
+                    "uri": "http://edamontology.org/operation_4008",
+                    "term": "Protein design"
+                },
+                {
+                    "uri": "http://edamontology.org/operation_0337",
+                    "term": "Visualization"
+                }
+            ],
+            "input": [],
+            "output": [],
+            "note": null,
+            "cmd": null
         }
     ],
     "topic": [
@@ -334,7 +323,10 @@ def test_edam():
     ]
     }"""
     
+    assert len(f.filter_whole_json(json.loads(input))) == 3
     assert f.filter_whole_json(json.loads(input))[0].code == "EDAM_TOPIC_DISCREPANCY"
+    assert f.filter_whole_json(json.loads(input))[1].code == "EDAM_INPUT_DISCREPANCY"
+    assert f.filter_whole_json(json.loads(input))[2].code == "EDAM_OUTPUT_DISCREPANCY"
 
 def test_benchmark():
     # Benchmark some stuff to make it faster

@@ -246,6 +246,7 @@ content %}
             {
                 data: 'code', title: 'Code',
                 render: function (data, type, row) {
+                    // All Publishing ID conversions have a single docs page
                     if (data == "PMCID_BUT_NOT_DOI" || data == "PMID_BUT_NOT_DOI" || data == "DOI_BUT_NOT_PMCID" || data == "DOI_BUT_NOT_PMID") {
                         return (`<a target="_blank" href="/docs/PublishingIDConversions" rel="nofollow">${data}</a>`);
                     }

@@ -26,6 +26,9 @@ To see the automatically generated documentation of the API, see [this link](/ap
 - [DOI\_BUT\_NOT\_PMCID](/docs/PublishingIDConversions)
 - [PMID\_BUT\_NOT\_DOI](/docs/PublishingIDConversions)
 - [PMCID\_BUT\_NOT\_DOI](/docs/PublishingIDConversions)
+- [EDAM\_TOPIC\_DISCREPANCY](/docs/EDAM_TOPIC_DISCREPANCY)
+- [EDAM\_INPUT\_DISCREPANCY](/docs/EDAM_INPUT_DISCREPANCY)
+- [EDAM\_OUTPUT\_DISCREPANCY](/docs/EDAM_OUTPUT_DISCREPANCY)
 
 ## Monitoring
 

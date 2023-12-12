@@ -360,5 +360,3 @@ def test_benchmark():
     
     print(f"URL - URL_PERMANENT_REDIRECT: {time.time() - start_time}")
     start_time = time.time()
-    
-    

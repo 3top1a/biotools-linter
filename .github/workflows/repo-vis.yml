@@ -1,8 +1,5 @@
 name: Diagram
 
-on:
-  push:
-
 permissions:
   contents: write
 

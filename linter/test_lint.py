@@ -1,14 +1,16 @@
 """Unit tests. Use with pytest."""
 
-
 def test_session():
     import lib as lib
     from lib import flatten_json_to_single_dict
     import json
     s = lib.Session()
+    import time
 
     assert not s.next_page_exists()
     assert not s.previous_page_exists()
+
+    start_time = time.time()
 
     # Broad search
     s.clear_cache()
@@ -18,6 +20,9 @@ def test_session():
     assert not s.previous_page_exists()
     last_json = s.json
 
+    print(f"LIB - Broad: {time.time() - start_time}")
+    start_time = time.time()
+
     # Broad search, page 10
     s.clear_cache()
     s.search_api("e", 10)
@@ -26,12 +31,18 @@ def test_session():
     assert s.previous_page_exists()
     assert s.json != last_json
 
+    print(f"LIB - Broad p10: {time.time() - start_time}")
+    start_time = time.time()
+
     # Exact search
     s.clear_cache()
     s.search_api("msmc")
     assert s.get_total_tool_count() == 1
     assert not s.next_page_exists()
     assert not s.previous_page_exists()
+
+    print(f"LIB - exact: {time.time() - start_time}")
+    start_time = time.time()
 
     # Invalid search
     s.clear_cache()
@@ -40,14 +51,23 @@ def test_session():
     assert not s.next_page_exists()
     assert not s.previous_page_exists()
 
+    print(f"LIB - Invalid: {time.time() - start_time}")
+    start_time = time.time()
+
     # Multiple pages search
     s.clear_cache()
     s.search_api_multiple_pages("*", 1, 5 + 1)
     assert len(s.return_tool_list_json()) == 50
 
+    print(f"LIB - Multiple pages 1: {time.time() - start_time}")
+    start_time = time.time()
+
     s.clear_cache()
     s.search_api_multiple_pages("bioto", 1, 5 + 1)
     assert len(s.return_tool_list_json()) == 2
+
+    print(f"LIB - Multiple pages 2: {time.time() - start_time}")
+    start_time = time.time()
 
     s.clear_cache()
     s.search_api_exact_match("s")
@@ -55,10 +75,11 @@ def test_session():
     s.search_api_exact_match("msmc")
     assert len(s.return_tool_list_json()) == 1
 
+    print(f"LIB - Multiple pages 3: {time.time() - start_time}")
+    start_time = time.time()
+
     s.clear_cache()
     for x in range(0, 2):
-        print(x * 10)
-        print(x * 10 + 10)
         s.search_api_multiple_pages("cli", x * 10 + 1, x * 10 + 10 + 1)
     assert len(s.return_tool_list_json()) == 131
 

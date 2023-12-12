@@ -14,9 +14,23 @@ from joblib import Parallel, delayed
 from message import Level, Message
 from rules import delegate_key_value_filter, delegate_whole_json_filter
 from utils import flatten_json_to_single_dict
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 REPORT: int = 15  # Report log level is between debug and info
-TIMEOUT = 20  # Seconds
+TIMEOUT = 60  # Custom timeout for biotools API, it's longer so it doesn't silently crash
+retries = 5
+session = requests.Session()
+retry = Retry(
+    total=retries,
+    read=retries,
+    connect=retries,
+    backoff_factor=0.3,
+    status_forcelist=(500, 502, 504),
+)
+adapter = HTTPAdapter(max_retries=retry)
+session.mount('http://', adapter)
+session.mount('https://', adapter)
 
 
 class Session:
@@ -82,7 +96,7 @@ class Session:
         url = f"https://bio.tools/api/t/?q={name}&format=json&page={page!s}"
 
         try:
-            response = requests.get(url, timeout=TIMEOUT)
+            response = session.get(url, timeout=TIMEOUT)
             if response.ok:
                 self.json[name] = response.json()
                 return
@@ -117,7 +131,7 @@ class Session:
         url = f"https://bio.tools/api/t/{name}?format=json"
 
         try:
-            response = requests.get(url, timeout=TIMEOUT)
+            response = session.get(url, timeout=TIMEOUT)
             if response.ok:
                 json = response.json()
                 # Need to wrap it so its compatible with the rest of the code
@@ -162,24 +176,26 @@ class Session:
         ------
             None
         """
-        logging.debug(f"Searching API for {name}")
+        # Temporarily set to info to debug production crashes
+        logging.info(f"Searching API for {name}")
 
         for page in range(page_start, page_end):
             url = f"https://bio.tools/api/t/?q={name}&format=json&page={page!s}"
 
             try:
-                response = requests.get(url, timeout=TIMEOUT)
+                response = session.get(url, timeout=TIMEOUT)
                 if (
                     "detail" in response.json()
                     and response.json()["detail"]
                     == "Invalid page. That page contains no results."
                 ):
                     logging.warning(f"Page {page} doesn't exist, ending search")
-                    return
+                    continue
 
                 if response.ok:
                     # To avoid overwriting the entire dictionary it just adds the page number to the end to make it unique
                     self.json[f"{name}{page}"] = response.json()
+                    pages_complete += 1
                     continue
 
                 logging.error(
@@ -189,7 +205,7 @@ class Session:
                 logging.exception(
                     f"Error while trying to contact the bio.tools API:\n{e}",
                 )
-
+        
     def return_tool_list_json(self: Session) -> list:
         """Return JSON of all tools currently cached.
 

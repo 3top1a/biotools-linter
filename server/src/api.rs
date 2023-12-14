@@ -175,8 +175,11 @@ pub struct APIQuery {
     #[param(style = Simple, minimum = 0)]
     page: Option<i64>,
 
-    /// Optional severity
+    /// Optional severity filter
     severity: Option<Severity>,
+
+    /// Optional error code filter
+    code: Option<String>
 }
 
 #[derive(Deserialize, IntoParams)]
@@ -418,6 +421,7 @@ pub async fn serve_search_api(
     let query = params.query;
     let page = params.page.unwrap_or(0);
     let severity = params.severity;
+    let code = params.code;
 
     info_statement!(
         headers,
@@ -428,17 +432,22 @@ pub async fn serve_search_api(
         severity
     );
 
+    let code = match code {
+        None => "%%".to_owned(),
+        Some(x) => x
+    };
+
     let (messages, total_count) = match query.clone() {
         None => {
             join!(
-                db::get_messages_paginated(&state.pool, page, severity.clone()),
-                db::count_messages_paginated(&state.pool, severity.clone())
+                db::get_messages_paginated(&state.pool, page, severity.clone(), code.clone()),
+                db::count_messages_paginated(&state.pool, severity.clone(), code)
             )
         }
         Some(query) => {
             join!(
-                db::get_messages_paginated_search(&state.pool, page, &query, severity.clone()),
-                db::count_messages_paginated_search(&state.pool, &query, severity.clone())
+                db::get_messages_paginated_search(&state.pool, page, &query, severity.clone(), code.clone()),
+                db::count_messages_paginated_search(&state.pool, &query, severity.clone(), code)
             )
         }
     };

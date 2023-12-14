@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT COUNT(*) FROM messages WHERE (tool ILIKE $1 OR code ILIKE $1) AND level BETWEEN $2 AND $3",
+  "query": "SELECT COUNT(*) FROM messages WHERE (tool ILIKE $1 OR code ILIKE $1) AND level BETWEEN $2 AND $3 AND code ILIKE $4",
   "describe": {
     "columns": [
       {
@@ -13,12 +13,13 @@
       "Left": [
         "Text",
         "Int4",
-        "Int4"
+        "Int4",
+        "Text"
       ]
     },
     "nullable": [
       null
     ]
   },
-  "hash": "e073ce1d0180c7a98691716ca01b0f24810466bc4b89189091b34216f13fb478"
+  "hash": "8efa96d60245a2f88d510b35207bfb90428aaaed72e061e02c3d26fe4697d517"
 }

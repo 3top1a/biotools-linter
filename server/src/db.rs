@@ -75,6 +75,7 @@ pub async fn get_messages_paginated(
     pool: &Pool<Postgres>,
     page: i64,
     severity: Option<Severity>,
+    code: String,
 ) -> Vec<Message> {
     // This is a huge hack so I don't have to construct SQL queries manually
     let (min_severity, max_severity): (i32, i32) = match severity {
@@ -87,9 +88,10 @@ pub async fn get_messages_paginated(
 
     let rows = sqlx::query_as!(
         DatabaseEntry,
-        "SELECT time,tool,code,location,text,level FROM messages WHERE level BETWEEN $1 AND $2 LIMIT 100 OFFSET $3",
+        "SELECT time,tool,code,location,text,level FROM messages WHERE level BETWEEN $1 AND $2 AND code ILIKE $3 LIMIT 100 OFFSET $4",
         min_severity,
         max_severity,
+        code,
         (page as i64) * 100,
     )
     .fetch_all(pool)
@@ -105,6 +107,7 @@ pub async fn get_messages_paginated_search(
     page: i64,
     query: &String,
     severity: Option<Severity>,
+    code: String,
 ) -> Vec<Message> {
     let (min_severity, max_severity): (i32, i32) = match severity {
         Some(s) => {
@@ -116,11 +119,12 @@ pub async fn get_messages_paginated_search(
 
     let rows = sqlx::query_as!(
         DatabaseEntry,
-        "SELECT time,tool,code,location,text,level FROM messages WHERE (tool ILIKE $1 OR code ILIKE $1) AND level BETWEEN $3 AND $4 LIMIT 100 OFFSET $2",
+        "SELECT time,tool,code,location,text,level FROM messages WHERE (tool ILIKE $1 OR code ILIKE $1) AND level BETWEEN $3 AND $4 AND code ILIKE $5 LIMIT 100 OFFSET $2",
         format!("%{}%", html_escape::encode_text(query)),
         (page as i64) * 100,
         min_severity,
         max_severity,
+        code
     )
     .fetch_all(pool)
     .await
@@ -130,7 +134,7 @@ pub async fn get_messages_paginated_search(
     rows.into_iter().map(Message::from).collect()
 }
 
-pub async fn count_messages_paginated(pool: &Pool<Postgres>, severity: Option<Severity>) -> i64 {
+pub async fn count_messages_paginated(pool: &Pool<Postgres>, severity: Option<Severity>, code: String) -> i64 {
     let (min_severity, max_severity): (i32, i32) = match severity {
         Some(s) => {
             let x = s.into();
@@ -140,9 +144,10 @@ pub async fn count_messages_paginated(pool: &Pool<Postgres>, severity: Option<Se
     };
 
     sqlx::query_scalar!(
-        "SELECT COUNT(*) FROM messages WHERE level BETWEEN $1 AND $2",
+        "SELECT COUNT(*) FROM messages WHERE level BETWEEN $1 AND $2 AND code ILIKE $3",
         min_severity,
-        max_severity
+        max_severity,
+        code
     )
     .fetch_all(pool)
     .await
@@ -154,6 +159,7 @@ pub async fn count_messages_paginated_search(
     pool: &Pool<Postgres>,
     query: &String,
     severity: Option<Severity>,
+    code: String
 ) -> i64 {
     let (min_severity, max_severity): (i32, i32) = match severity {
         Some(s) => {
@@ -164,10 +170,11 @@ pub async fn count_messages_paginated_search(
     };
 
     sqlx::query_scalar!(
-        "SELECT COUNT(*) FROM messages WHERE (tool ILIKE $1 OR code ILIKE $1) AND level BETWEEN $2 AND $3",
+        "SELECT COUNT(*) FROM messages WHERE (tool ILIKE $1 OR code ILIKE $1) AND level BETWEEN $2 AND $3 AND code ILIKE $4",
         format!("%{}%", html_escape::encode_text(&query)),
         min_severity,
-        max_severity
+        max_severity,
+        code
     )
     .fetch_all(pool)
     .await

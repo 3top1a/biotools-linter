@@ -82,6 +82,29 @@ content %}
 </style>
 
 <script>
+    ERROR_TYPES = [
+        "URL_INVALID",
+        "URL_PERMANENT_REDIRECT",
+        "URL_BAD_STATUS",
+        "URL_NO_SSL",
+        "URL_UNUSED_SSL",
+        "URL_TIMEOUT",
+        "URL_SSL_ERROR",
+        "URL_CONN_ERROR",
+        "URL_LINTER_ERROR",
+        "EDAM_OBSOLETE",
+        "EDAM_NOT_RECOMMENDED",
+        "EDAM_INVALID",
+        "DOI_BUT_NOT_PMID",
+        "DOI_BUT_NOT_PMCID",
+        "PMID_BUT_NOT_DOI",
+        "PMCID_BUT_NOT_DOI",
+        "URL_TOO_MANY_REDIRECTS",
+        "EDAM_TOPIC_DISCREPANCY",
+        "EDAM_INPUT_DISCREPANCY",
+        "EDAM_OUTPUT_DISCREPANCY",
+    ]
+
     function download(url, button) {
         fetch(url).then(res => res.blob()).then(file => {
             let tempUrl = URL.createObjectURL(file);
@@ -96,6 +119,7 @@ content %}
     }
 
     severity_dropdown = null;
+    error_dropdown = null;
     var table = $('#table').DataTable({
         serverSide: true,
         scrollX: true,
@@ -121,11 +145,10 @@ content %}
         pageLength: 100,
         ordering: false,
         initComplete: function () {
-            // Create severity dropdown menu
-
+            
             let column = this.api().columns().header()[3];
-
-            // Create select element
+            
+            // Create severity dropdown menu
             severity_dropdown = document.createElement('select');
             severity_dropdown.add(new Option(''));
             column.append(severity_dropdown);
@@ -134,11 +157,23 @@ content %}
                 table.ajax.reload()
             });
 
-            // Add options
             ['Low', 'Medium', 'High', 'Linter Error'].forEach(d => {
                 severity_dropdown.add(new Option(d));
             });
 
+            // Create error code dropdown
+            column = this.api().columns().header()[1];
+            error_dropdown = document.createElement('select');
+            error_dropdown.add(new Option(''));
+            column.append(error_dropdown);
+
+            error_dropdown.addEventListener('change', function () {
+                table.ajax.reload()
+            });
+
+            ERROR_TYPES.forEach(d => {
+                error_dropdown.add(new Option(d));
+            });
         },
         "drawCallback": function (settings) {
             // Bind relint-* buttons
@@ -224,6 +259,14 @@ content %}
                         case "Linter Error":
                             d.severity = 2
                             break;
+                    }
+                }
+
+                // Add code
+                if (error_dropdown) {
+                    if (error_dropdown.value)
+                    {
+                        d.code=error_dropdown.value
                     }
                 }
             },

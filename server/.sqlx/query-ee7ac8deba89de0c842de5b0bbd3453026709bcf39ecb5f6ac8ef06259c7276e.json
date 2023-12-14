@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT time,tool,code,location,text,level FROM messages WHERE level BETWEEN $1 AND $2 LIMIT 100 OFFSET $3",
+  "query": "SELECT time,tool,code,location,text,level FROM messages WHERE (tool ILIKE $1 OR code ILIKE $1) AND level BETWEEN $3 AND $4 AND code ILIKE $5 LIMIT 100 OFFSET $2",
   "describe": {
     "columns": [
       {
@@ -36,9 +36,11 @@
     ],
     "parameters": {
       "Left": [
+        "Text",
+        "Int8",
         "Int4",
         "Int4",
-        "Int8"
+        "Text"
       ]
     },
     "nullable": [
@@ -50,5 +52,5 @@
       false
     ]
   },
-  "hash": "a65ba22ce7fc84afd0eff3c26d05c7404d382cb545740e458eac00950235d039"
+  "hash": "ee7ac8deba89de0c842de5b0bbd3453026709bcf39ecb5f6ac8ef06259c7276e"
 }

@@ -1,18 +1,31 @@
 import datetime
 import logging
 from queue import Queue
+from typing import Self
 
 import psycopg2
-from psycopg2.extensions import parse_dsn
 from message import Level, Message
+from psycopg2.extensions import parse_dsn
 
 
 class DatabaseConnection:
+
+    """A class for managing the database. Allows for a mock and early returns in every function."""
+
     connection: psycopg2.extensions.connection
     cursor: psycopg2.extensions.cursor
     mock: bool = False
 
-    def __init__(self, creds: str, mock: bool = False) -> None:
+    def __init__(self: Self, creds: str, mock: bool = False) -> None:
+        """Initialize the database connection.
+
+        Parameters
+        ----------
+        creds : str
+            The database connection credentials in DSN format (postgres://user:pass@IP/dbname).
+        mock : bool, optional
+            If True, creates a mock database connection for testing.
+        """
         # If connection is fake, e.g. for testing or when no connection string is supplied
         self.mock = mock
         if mock:
@@ -29,7 +42,13 @@ class DatabaseConnection:
         self.connection = conn
         self.cursor = cursor
 
-    def drop_rows_with_tool_name(self, name: str) -> None:
+    def drop_rows_with_tool_name(self: Self, name: str) -> None:
+        """Delete old entries of a tool.
+
+        Args:
+        ----
+            name (str): Name of tool.
+        """
         logging.debug(f"Deleting rows with tools name {name}")
         if self.mock:
             return
@@ -37,13 +56,12 @@ class DatabaseConnection:
         delete_query = "DELETE FROM messages WHERE tool = %s;"
         self.cursor.execute(delete_query, (name,))
 
-    def insert_from_queue(self, queue: Queue) -> bool:
-        """Insert message queue into database.
+    def insert_from_queue(self: Self, queue: Queue) -> bool:
+        """Insert messages from queue into database. Empties the queue as a side effect.
 
         Args:
         ----
             queue (Queue): Queue
-            sql_cursor (psycopg2.cursor | None): SQL database cursor
 
         Returns:
         -------
@@ -77,15 +95,16 @@ class DatabaseConnection:
 
         return returned_atleast_one_value
 
-    def commit(self):
+    def commit(self: Self) -> None:
+        """Commit changes to database."""
         if self.mock:
             return
 
         self.connection.commit()
 
-    def close(self):
+    def close(self: Self) -> None:
+        """Close database connection. Does not commit beforehand."""
         if self.mock:
             return
 
-        self.connection.commit()
         self.connection.close()

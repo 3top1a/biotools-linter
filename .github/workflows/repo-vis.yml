@@ -1,7 +1,9 @@
 name: Diagram
 
 on:
-
+  push:
+    branches:
+      - repo-visualizer
 
 permissions:
   contents: write

@@ -11,6 +11,7 @@ from .url import req_session
 
 cache: Cache = Cache(maxsize=8192, ttl=0, default=None)
 
+
 def filter_pub(json: dict) -> list[Message] | None:
     """Run publication checks.
 
@@ -41,27 +42,56 @@ def filter_pub(json: dict) -> list[Message] | None:
         converted = PublicationData.convert(doi or pmid or pmcid)
 
         if doi and not pmid and converted.pmid:
-            output.append(Message("DOI_BUT_NOT_PMID", f"Publication DOI {doi} (https://www.doi.org/{doi}) does not have a PMID in the database.", json["name"], Level.ReportMedium))
+            output.append(
+                Message(
+                    "DOI_BUT_NOT_PMID",
+                    f"Publication DOI {doi} (https://www.doi.org/{doi}) does not have a PMID in the database.",
+                    json["name"],
+                    Level.ReportMedium,
+                )
+            )
 
         if doi and not pmcid and converted.pmcid:
-            output.append(Message("DOI_BUT_NOT_PMCID", f"Publication DOI {doi} (https://www.doi.org/{doi}) does not have a PMCID in the database.", json["name"], Level.ReportMedium))
+            output.append(
+                Message(
+                    "DOI_BUT_NOT_PMCID",
+                    f"Publication DOI {doi} (https://www.doi.org/{doi}) does not have a PMCID in the database.",
+                    json["name"],
+                    Level.ReportMedium,
+                )
+            )
 
         if pmid and not doi and converted.doi:
-            output.append(Message("PMID_BUT_NOT_DOI", f"Publication PMID {pmid} (https://pubmed.ncbi.nlm.nih.gov/{pmid}) does not have a DOI in the database.", json["name"], Level.ReportMedium))
+            output.append(
+                Message(
+                    "PMID_BUT_NOT_DOI",
+                    f"Publication PMID {pmid} (https://pubmed.ncbi.nlm.nih.gov/{pmid}) does not have a DOI in the database.",
+                    json["name"],
+                    Level.ReportMedium,
+                )
+            )
 
         if pmcid and not doi and converted.doi:
-            output.append(Message("PMCID_BUT_NOT_DOI", f"Publication PMCID {pmcid} (https://pubmed.ncbi.nlm.nih.gov/{pmcid}) does not have a DOI in the database.", json["name"], Level.ReportMedium))
+            output.append(
+                Message(
+                    "PMCID_BUT_NOT_DOI",
+                    f"Publication PMCID {pmcid} (https://pubmed.ncbi.nlm.nih.gov/{pmcid}) does not have a DOI in the database.",
+                    json["name"],
+                    Level.ReportMedium,
+                )
+            )
 
     if output == []:
         return None
     return output
+
 
 @dataclass
 class PublicationData:
     """
     A class to handle conversions between DOI, PMID, and PMCID.
     """
-    
+
     doi: Optional[str] = None
     pmid: Optional[str] = None
     pmcid: Optional[str] = None
@@ -86,14 +116,13 @@ class PublicationData:
                 return None
 
             pub_data = PublicationData(
-                doi=pub.get("doi"), 
-                pmid=pub.get("pmid"),
-                pmcid=pub.get("pmcid")
+                doi=pub.get("doi"), pmid=pub.get("pmid"), pmcid=pub.get("pmcid")
             )
             cache.set(identifier, pub_data)
             return pub_data
 
         except Exception as e:
-            logging.critical(f"Error while making API request to idconv for {identifier}: {e}")
+            logging.critical(
+                f"Error while making API request to idconv for {identifier}: {e}"
+            )
             return None
-

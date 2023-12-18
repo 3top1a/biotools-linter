@@ -89,7 +89,8 @@ class EdamFilter:
                         f'EDAM "{self.label_dict[value]}" at {key} is obsolete. ({self.deprecation_comment_dict[value]})',
                         key,
                         Level.ReportMedium,
-                    ))
+                    )
+                )
             elif self.not_recommended_dict[value]:
                 reports.append(
                     Message(
@@ -97,7 +98,8 @@ class EdamFilter:
                         f'EDAM "{self.label_dict[value]}" at {key} is not recommended for usage.',
                         key,
                         Level.ReportLow,
-                    ))
+                    )
+                )
         else:
             reports.append(
                 Message(
@@ -105,7 +107,8 @@ class EdamFilter:
                     f"EDAM {value} at {key} is not a valid class ID.",
                     key,
                     Level.ReportMedium,
-                ))
+                )
+            )
 
         if reports == []:
             return None
@@ -169,7 +172,8 @@ class EdamFilter:
                             f"EDAM {self.label_dict[parent_uri]} ({parent_uri}) has topic {self.label_dict[property_uri]} ({property_uri}) but not in tool annotation.",
                             location,
                             Level.ReportMedium,
-                        ))
+                        )
+                    )
         return reports
 
     def check_operation(
@@ -195,7 +199,8 @@ class EdamFilter:
                             f"EDAM operation {self.label_dict[parent_uri]} ({parent_uri}) has input {self.label_dict[property_uri]} ({property_uri}) but not in tool annotation.",
                             location,
                             Level.ReportMedium,
-                        ))
+                        )
+                    )
                 if edam_property.value not in json_outputs:
                     parent_uri = f"http://edamontology.org/{edam_class.name}"
                     property_uri = f"http://edamontology.org/{edam_property.value.name}"
@@ -205,7 +210,8 @@ class EdamFilter:
                             f"EDAM operation {self.label_dict[parent_uri]} ({parent_uri}) has output {self.label_dict[property_uri]} ({property_uri}) but not in tool annotation.",
                             location,
                             Level.ReportMedium,
-                        ))
+                        )
+                    )
 
         return reports
 

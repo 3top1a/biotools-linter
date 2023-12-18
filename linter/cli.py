@@ -28,7 +28,9 @@ def db_drop_rows_with_tool_name(name: str, export_db_cursor: psycopg2.cursor) ->
     export_db_cursor.execute(delete_query, (name,))
 
 
-def db_insert_queue_into_database(queue: Queue, sql_cursor: psycopg2.cursor | None) -> bool:
+def db_insert_queue_into_database(
+    queue: Queue, sql_cursor: psycopg2.cursor | None
+) -> bool:
     """Insert message queue into database.
 
     Args:
@@ -76,7 +78,11 @@ def configure_logging(color: bool, log_level: int) -> None:
     logging.addLevelName(REPORT, "REPORT")
     logging.basicConfig(level=log_level, force=True)
     if color:
-        log_format = "%(log_color)s%(asctime)s %(name)s %(levelname)s %(filename)s@%(lineno)d - %(message)s" if log_level == 10 else "%(log_color)s%(message)s"
+        log_format = (
+            "%(log_color)s%(asctime)s %(name)s %(levelname)s %(filename)s@%(lineno)d - %(message)s"
+            if log_level == 10
+            else "%(log_color)s%(message)s"
+        )
         formatter = colorlog.ColoredFormatter(
             log_format,
             log_colors={
@@ -258,7 +264,9 @@ def main(args: Sequence[str]) -> int:
 
             session.lint_all_tools(return_q=message_queue, threads=threads)
             page += 10
-            returned_at_least_one_error = db_insert_queue_into_database(message_queue, export_db_cursor)
+            returned_at_least_one_error = db_insert_queue_into_database(
+                message_queue, export_db_cursor
+            )
             if export_db_connection:
                 export_db_connection.commit()
     else:
@@ -287,7 +295,9 @@ def main(args: Sequence[str]) -> int:
             db_drop_rows_with_tool_name(name, export_db_cursor)
 
         session.lint_all_tools(return_q=message_queue, threads=threads)
-        returned_at_least_one_error = db_insert_queue_into_database(message_queue, export_db_cursor)
+        returned_at_least_one_error = db_insert_queue_into_database(
+            message_queue, export_db_cursor
+        )
         if export_db_connection:
             export_db_connection.commit()
 

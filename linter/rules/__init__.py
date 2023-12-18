@@ -16,8 +16,8 @@ from .publications import filter_pub
 from .url import filter_url
 
 URL_REGEX = r"(http[s]?|ftp)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
-IMPORTANT_KEYS = ["name", "description",
-                  "homepage", "biotoolsID", "biotoolsCURIE"]
+IMPORTANT_KEYS = ["name", "description", "homepage", "biotoolsID", "biotoolsCURIE"]
+
 
 def delegate_key_value_filter(key: str, value: str) -> list[Message] | None:
     """Delegate to separate filter functions based on the key and value.
@@ -59,6 +59,7 @@ def delegate_key_value_filter(key: str, value: str) -> list[Message] | None:
         return None
     return output
 
+
 def delegate_whole_json_filter(json: dict) -> list[Message] | None:
     """Delegate to separate filter functions that filter the whole json, not just one key value pair."""
     messages = []
@@ -74,6 +75,7 @@ def delegate_whole_json_filter(json: dict) -> list[Message] | None:
     if messages is []:
         return None
     return messages
+
 
 def filter_none(key: str, _value: str) -> Message | None:
     """Filter the key-value pair if the value is None or empty.
@@ -96,7 +98,7 @@ def filter_none(key: str, _value: str) -> Message | None:
 
     for ik in IMPORTANT_KEYS:
         if key.endswith(ik):
-            #Needs to be more specific, removed for now
+            # Needs to be more specific, removed for now
             pass
 
     return None

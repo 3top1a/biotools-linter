@@ -12,25 +12,30 @@ class Level(IntEnum):
 
     """Level for message."""
 
-    Report = 1 # Obsolete
-    LinterError = 2 # Linter errors
-    LinterInternal = 3 # For messaging between threads, e.g. the LINT-F for when a lint finishes
+    Report = 1  # Obsolete
+    LinterError = 2  # Linter errors
+    LinterInternal = (
+        3  # For messaging between threads, e.g. the LINT-F for when a lint finishes
+    )
     ReportHigh = 5
     ReportMedium = 6
     ReportLow = 7
-    ReportCritical = 8 # Reserved for security problems
+    ReportCritical = 8  # Reserved for security problems
+
 
 class Message:
 
     """Message returned by the linter upwards to lib and cli."""
 
-    tool: str # Tool (biotools id) will be filled-in in lib/lint_specific_tool
+    tool: str  # Tool (biotools id) will be filled-in in lib/lint_specific_tool
     level: Level
     code: str
     body: str
     location: str
 
-    def __init__(self: Message, code: str, body: str, location: str, level: Level = Level.Report) -> Message:
+    def __init__(
+        self: Message, code: str, body: str, location: str, level: Level = Level.Report
+    ) -> Message:
         """Init a new message."""
         self.code = code
         self.body = body

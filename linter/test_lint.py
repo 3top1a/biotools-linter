@@ -1,9 +1,11 @@
 """Unit tests. Use with pytest."""
 
+
 def test_session():
     import lib as lib
     from lib import flatten_json_to_single_dict
     import json
+
     s = lib.Session()
     import time
 
@@ -84,30 +86,24 @@ def test_session():
     assert len(s.return_tool_list_json()) == 131
 
     example_json = {
-        "a" : {
+        "a": {
             "0": "1",
             "1": "8",
             "2": "42",
         },
         "the answer": "5",
-        "list": [
-            "1",
-            "2",
-            "3",
-            "4",
-            "5"
-        ]
+        "list": ["1", "2", "3", "4", "5"],
     }
     example_output = {
-        '//a/0': '1',
-        '//a/1': '8',
-        '//a/2': '42',
-        '//the answer': '5',
-        '//list/0': '1',
-        '//list/1': '2',
-        '//list/2': '3',
-        '//list/3': '4',
-        '//list/4': '5',
+        "//a/0": "1",
+        "//a/1": "8",
+        "//a/2": "42",
+        "//the answer": "5",
+        "//list/0": "1",
+        "//list/1": "2",
+        "//list/2": "3",
+        "//list/3": "4",
+        "//list/4": "5",
     }
     assert flatten_json_to_single_dict(example_json, "/", "/") == example_output
 
@@ -125,12 +121,15 @@ def test_session():
 }
 """
     from queue import Queue
+
     q = Queue()
     s.lint_specific_tool_json(json.loads(tool_json), q)
     assert q.get().code == "URL_BAD_STATUS"
 
+
 def test_cli():
     import cli as cli
+
     # "end to end" CLI test, runs the CLI as if it was ran from the command line
     # Any use of certain tool names are only for testing purposes and not in bad faith
     assert cli.main(["msmc"]) == 0
@@ -139,6 +138,7 @@ def test_cli():
 
     # Fails, as page can't be 0
     assert cli.main(["*", "--threads", "16", "-p", "0"]) == 1
+
 
 # Test url.py
 def test_urls():
@@ -170,54 +170,70 @@ def test_urls():
     start_time = time.time()
 
     # URL_CONN_ERROR
-    assert rules.filter_url("url", "https://gsjdhfskjhfklajshdfkashdfkashdfklashdfjakhsdflkahsfd.sdfsdf")[0].code == "URL_CONN_ERROR"
+    assert (
+        rules.filter_url(
+            "url", "https://gsjdhfskjhfklajshdfkashdfkashdfklashdfjakhsdflkahsfd.sdfsdf"
+        )[0].code
+        == "URL_CONN_ERROR"
+    )
 
     print(f"URL - URL_CONN_ERROR: {time.time() - start_time}")
     start_time = time.time()
 
     # URL_PERMANENT_REDIRECT
-    assert rules.filter_url(
-        "test",
-        "https://httpbin.org/redirect-to?url=https%3A%2F%2Fwww.example.com&status_code=308"
-    )[0].code == "URL_PERMANENT_REDIRECT"
+    assert (
+        rules.filter_url(
+            "test",
+            "https://httpbin.org/redirect-to?url=https%3A%2F%2Fwww.example.com&status_code=308",
+        )[0].code
+        == "URL_PERMANENT_REDIRECT"
+    )
 
     print(f"URL - URL_PERMANENT_REDIRECT: {time.time() - start_time}")
     start_time = time.time()
 
     # URL_BAD_STATUS
-    assert rules.filter_url(
-        "test", "https://httpbin.org/status/404")[0].code == "URL_BAD_STATUS"
+    assert (
+        rules.filter_url("test", "https://httpbin.org/status/404")[0].code
+        == "URL_BAD_STATUS"
+    )
 
     print(f"URL - URL_BAD_STATUS: {time.time() - start_time}")
     start_time = time.time()
 
     # URL_UNUSED_SSL
-    assert rules.filter_url(
-        "test", "http://httpbin.org/status/202")[0].code == "URL_UNUSED_SSL"
+    assert (
+        rules.filter_url("test", "http://httpbin.org/status/202")[0].code
+        == "URL_UNUSED_SSL"
+    )
 
     print(f"URL - URL_UNUSED_SSL: {time.time() - start_time}")
     start_time = time.time()
 
     # URL_NO_SSL
-    # Takes extreme amount of time (33s), need to make it faster 
-    assert rules.filter_url("test",
-                            "http://httpforever.com/")[0].code == "URL_NO_SSL"
+    # Takes extreme amount of time (33s), need to make it faster
+    assert rules.filter_url("test", "http://httpforever.com/")[0].code == "URL_NO_SSL"
 
     print(f"URL - URL_NO_SSL: {time.time() - start_time}")
     start_time = time.time()
 
     # URL_TIMEOUT
-    assert rules.filter_url(
-        "test", "https://httpstat.us/200?sleep=60000")[0].code == "URL_TIMEOUT"
+    assert (
+        rules.filter_url("test", "https://httpstat.us/200?sleep=60000")[0].code
+        == "URL_TIMEOUT"
+    )
 
     print(f"URL - URL_TIMEOUT: {time.time() - start_time}")
     start_time = time.time()
 
     # URL_SSL_ERROR
-    assert rules.filter_url(
-        "test", "https://expired.badssl.com/")[0].code == "URL_SSL_ERROR"
+    assert (
+        rules.filter_url("test", "https://expired.badssl.com/")[0].code
+        == "URL_SSL_ERROR"
+    )
 
     print(f"URL - URL_SSL_ERROR: {time.time() - start_time}")
+
 
 # Test messages.py
 def test_messages():
@@ -227,31 +243,37 @@ def test_messages():
 
     q = Queue()
 
-    msg = Message(code="001", body="Test message", location="//name", level=Level.LinterError)
+    msg = Message(
+        code="001", body="Test message", location="//name", level=Level.LinterError
+    )
     assert msg.code == "001"
     assert msg.body == "Test message"
     assert msg.location == "//name"
     assert msg.level == Level.LinterError
-    assert msg.tool is None # Should be set in lib.py
+    assert msg.tool is None  # Should be set in lib.py
     msg.print_message(q)
     assert q.get() == "None: [001] Test message"
 
     rules.filter_url("url", "also test")[0].print_message(q)
-    assert q.get() == "None: [URL_INVALID] URL also test at url does not match a valid URL (there may be hidden unicode)."
+    assert (
+        q.get()
+        == "None: [URL_INVALID] URL also test at url does not match a valid URL (there may be hidden unicode)."
+    )
+
 
 def test_publications():
     from rules.publications import PublicationData, filter_pub
     import json
-    
-    x1:PublicationData  = PublicationData.convert("10.1093/BIOINFORMATICS/BTAA581")
+
+    x1: PublicationData = PublicationData.convert("10.1093/BIOINFORMATICS/BTAA581")
     assert x1
     assert x1.pmid == "32573681"
     assert x1.pmcid == "PMC8034561"
 
-    x2:PublicationData  = PublicationData.convert("test")
+    x2: PublicationData = PublicationData.convert("test")
     assert x2 == None
 
-    x3:PublicationData  = PublicationData.convert("PMC8034561")
+    x3: PublicationData = PublicationData.convert("PMC8034561")
     assert x3
     assert x3.doi == "10.1093/bioinformatics/btaa581"
     assert x3.pmid == "32573681"
@@ -304,21 +326,34 @@ def test_publications():
     output = filter_pub(json.loads(json_good))
     assert output is None
 
+
 def test_edam():
     from rules.edam import EdamFilter
     import json
-    
+
     f = EdamFilter()
-    
+
     # EDAM_OBSOLETE
-    assert f.filter_edam_key_value_pair('test', 'http://edamontology.org/operation_3202')[0].code == "EDAM_OBSOLETE"
-    
+    assert (
+        f.filter_edam_key_value_pair("test", "http://edamontology.org/operation_3202")[
+            0
+        ].code
+        == "EDAM_OBSOLETE"
+    )
+
     # EDAM_NOT_RECOMMENDED
-    assert f.filter_edam_key_value_pair('test', 'http://edamontology.org/operation_0337')[0].code == "EDAM_NOT_RECOMMENDED"
-    
+    assert (
+        f.filter_edam_key_value_pair("test", "http://edamontology.org/operation_0337")[
+            0
+        ].code
+        == "EDAM_NOT_RECOMMENDED"
+    )
+
     # EDAM_INVALID
-    assert f.filter_edam_key_value_pair('test', 'tttttttttttt')[0].code == "EDAM_INVALID"
-    
+    assert (
+        f.filter_edam_key_value_pair("test", "tttttttttttt")[0].code == "EDAM_INVALID"
+    )
+
     input = """{
     "name": "test",
     "toolType": [
@@ -349,15 +384,16 @@ def test_edam():
         }
     ]
     }"""
-    
+
     assert len(f.filter_whole_json(json.loads(input))) == 3
     assert f.filter_whole_json(json.loads(input))[0].code == "EDAM_TOPIC_DISCREPANCY"
     assert f.filter_whole_json(json.loads(input))[1].code == "EDAM_INPUT_DISCREPANCY"
     assert f.filter_whole_json(json.loads(input))[2].code == "EDAM_OUTPUT_DISCREPANCY"
 
+
 def test_benchmark():
     # Benchmark some stuff to make it faster
-    
+
     import time
     import rules
 
@@ -375,18 +411,27 @@ def test_benchmark():
     start_time = time.time()
 
     # URL_CONN_ERROR
-    assert rules.filter_url("url", "https://gsjdhfskjhfklajshdfkashdfkashdfklashdfjakhsdflkahsfd.sdfsdf")[0].code == "URL_CONN_ERROR"
+    assert (
+        rules.filter_url(
+            "url", "https://gsjdhfskjhfklajshdfkashdfkashdfklashdfjakhsdflkahsfd.sdfsdf"
+        )[0].code
+        == "URL_CONN_ERROR"
+    )
 
     print(f"URL - URL_CONN_ERROR: {time.time() - start_time}")
     start_time = time.time()
-    
-    assert rules.filter_url(
-        "test",
-        "https://httpbin.org/redirect-to?url=https%3A%2F%2Fwww.example.com&status_code=308"
-    )[0].code == "URL_PERMANENT_REDIRECT"
-    
+
+    assert (
+        rules.filter_url(
+            "test",
+            "https://httpbin.org/redirect-to?url=https%3A%2F%2Fwww.example.com&status_code=308",
+        )[0].code
+        == "URL_PERMANENT_REDIRECT"
+    )
+
     print(f"URL - URL_PERMANENT_REDIRECT: {time.time() - start_time}")
     start_time = time.time()
+
 
 def test_url_cache():
     # Tests if the URL cache returns the same results as a uncached result
@@ -398,7 +443,9 @@ def test_url_cache():
 
     url.clear_cache()
 
-    _x1 = url.filter_url("//test_clean_2/extra/docs/random/url", "https://httpbin.org/status/404")
+    _x1 = url.filter_url(
+        "//test_clean_2/extra/docs/random/url", "https://httpbin.org/status/404"
+    )
     x2 = url.filter_url("//test_clean_1/docs/url", "https://httpbin.org/status/404")
 
     assert clean[0].print_message() == x2[0].print_message()

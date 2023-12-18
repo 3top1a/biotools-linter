@@ -43,6 +43,7 @@ SEVERITY_LEVELS = {
     "ReportCritical": 8,
 }
 
+
 def main() -> int:
     logging.basicConfig(force=True, level="INFO")
     formatter = logging.Formatter("%(levelname)s - %(message)s")
@@ -53,7 +54,9 @@ def main() -> int:
     root_logger.addHandler(console_handler)
 
     if len(sys.argv) != 2:
-        logging.critical("Please specify output file. Must exist and cannot be blank, only empty JSON.")
+        logging.critical(
+            "Please specify output file. Must exist and cannot be blank, only empty JSON."
+        )
         logging.critical("Usage: python linter/statistics.py ~/data.json")
         return 1
     output_file = sys.argv[1]
@@ -87,12 +90,12 @@ def main() -> int:
 
     # Count each error
     def count_error(e: str) -> int:
-        cursor.execute("SELECT COUNT(*) FROM messages where code = %s", (e, ))
+        cursor.execute("SELECT COUNT(*) FROM messages where code = %s", (e,))
         return cursor.fetchone()[0]
 
     # Count each severity
     def count_severity(e: str) -> int:
-        cursor.execute("SELECT COUNT(*) FROM messages where level = %s", (e, ))
+        cursor.execute("SELECT COUNT(*) FROM messages where level = %s", (e,))
         return cursor.fetchone()[0]
 
     # Get error codes

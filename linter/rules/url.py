@@ -21,9 +21,12 @@ req_session.mount("https://", adapter)
 req_session.headers.update({"User-Agent": user_agent})
 cache: Cache = Cache(maxsize=8192, ttl=0, default=None)
 
-URL_REGEX = r"(http[s]?)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+URL_REGEX = (
+    r"(http[s]?)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+)
 REPORT = 15
 TIMEOUT = 30
+
 
 def filter_url(key: str, value: str) -> list[Message] | None:
     """Filter the URL based on various conditions.
@@ -63,16 +66,20 @@ def filter_url(key: str, value: str) -> list[Message] | None:
         reports: list[Message] = []
 
         # Exit if does not match URL or key doesn't end with url/uri
-        if not re.match(
-                URL_REGEX,
-                value) and not key.endswith("url") and not key.endswith("uri"):
+        if (
+            not re.match(URL_REGEX, value)
+            and not key.endswith("url")
+            and not key.endswith("uri")
+        ):
             return None
 
         logging.debug(f"Checking URL: {value}")
 
         # Exit if it is a ftp address
         if value.startswith("ftp://"):
-            logging.debug(f"URL `{value}` points to an ftp server and cannot be checked")
+            logging.debug(
+                f"URL `{value}` points to an ftp server and cannot be checked"
+            )
             return None
 
         # If the URL doesn't match the regex but is in a url/uri entry, throw an error
@@ -83,12 +90,16 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                     "URL_INVALID",
                     f"URL {value} at {key} does not match a valid URL (there may be hidden unicode).",
                     key,
-                    Level.ReportHigh)]
+                    Level.ReportHigh,
+                )
+            ]
 
         # Make a request
         # It streams it and then closes it so it doesn't download the file. Better than HEAD requests.
         try:
-            response = req_session.get(value, timeout=TIMEOUT, allow_redirects=False, stream=True)
+            response = req_session.get(
+                value, timeout=TIMEOUT, allow_redirects=False, stream=True
+            )
 
             if response.is_permanent_redirect:
                 reports.append(
@@ -96,7 +107,9 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                         "URL_PERMANENT_REDIRECT",
                         f"URL {value} at {key} returns a permanent redirect.",
                         key,
-                        Level.ReportLow))
+                        Level.ReportLow,
+                    )
+                )
 
             # Status is not between 200 and 400
             if not response.ok:
@@ -105,23 +118,27 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                         "URL_BAD_STATUS",
                         f"URL {value} at {key} doesn't return ok status (>399).",
                         key,
-                        Level.ReportMedium))
+                        Level.ReportMedium,
+                    )
+                )
 
             url_starts_with_https = value.startswith("https://")
             if not url_starts_with_https:
                 # Try to request with SSL
                 try:
                     # Takes extreme amount of time if no such site exists, need to refactor
-                    req_session.get(value.replace("http://", "https://"),
-                                    stream=True)
+                    req_session.get(value.replace("http://", "https://"), stream=True)
 
                 except Exception:
                     # If that fails, the site does not use SSL at all
                     reports.append(
-                        Message("URL_NO_SSL",
-                                f"URL {value} at {key} does not use SSL.",
-                                key,
-                                Level.ReportMedium)) # Medium as it's hard to fix without owning the website
+                        Message(
+                            "URL_NO_SSL",
+                            f"URL {value} at {key} does not use SSL.",
+                            key,
+                            Level.ReportMedium,
+                        )
+                    )  # Medium as it's hard to fix without owning the website
 
                 else:
                     # If it succeeds, the site can use SSL but the URL is just wrong
@@ -130,7 +147,9 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                             "URL_UNUSED_SSL",
                             f"URL {value} at {key} does not start with https:// but site uses SSL.",
                             key,
-                            Level.ReportMedium)) # Medium since your browser should auto-upgrade
+                            Level.ReportMedium,
+                        )
+                    )  # Medium since your browser should auto-upgrade
 
         except requests.Timeout:
             # Timeout error
@@ -139,7 +158,9 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                     "URL_TIMEOUT",
                     f"URL {value} at {key} timeouts after {TIMEOUT} seconds.",
                     key,
-                    Level.ReportHigh)) # High as it's inaccessible
+                    Level.ReportHigh,
+                )
+            )  # High as it's inaccessible
 
         except requests.TooManyRedirects:
             # Timeout error
@@ -148,15 +169,20 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                     "URL_TOO_MANY_REDIRECTS",
                     f"URL {value} at {key} failed exceeded 30 redirects.",
                     key,
-                    Level.ReportHigh))
+                    Level.ReportHigh,
+                )
+            )
 
         except requests.exceptions.SSLError as e:
             # SSL error
             reports.append(
-                Message("URL_SSL_ERROR",
-                        f"URL {value} at {key} returned an SSL error. ({e})",
-                        key,
-                        Level.ReportHigh))
+                Message(
+                    "URL_SSL_ERROR",
+                    f"URL {value} at {key} returned an SSL error. ({e})",
+                    key,
+                    Level.ReportHigh,
+                )
+            )
 
         except requests.exceptions.ConnectionError:
             # Connection error
@@ -165,13 +191,20 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                     "URL_CONN_ERROR",
                     f"URL {value} at {key} returned a connection error, it may not exist.",
                     key,
-                    Level.ReportHigh)) # High as it may not even exist
+                    Level.ReportHigh,
+                )
+            )  # High as it may not even exist
 
     except Exception as e:
         # Catch all request error
-        reports.append(Message("URL_LINTER_ERROR", f"Error: {e} at {key} while checking {value}",
-                               key,
-                               Level.LinterError))
+        reports.append(
+            Message(
+                "URL_LINTER_ERROR",
+                f"Error: {e} at {key} while checking {value}",
+                key,
+                Level.LinterError,
+            )
+        )
 
     # Add to cache
     cache.set(value, reports)
@@ -179,6 +212,7 @@ def filter_url(key: str, value: str) -> list[Message] | None:
     if len(reports) != 0:
         return reports
     return None
+
 
 def clear_cache():
     global cache

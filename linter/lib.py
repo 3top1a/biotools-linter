@@ -18,7 +18,9 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 REPORT: int = 15  # Report log level is between debug and info
-TIMEOUT = 60  # Custom timeout for biotools API, it's longer so it doesn't silently crash
+TIMEOUT = (
+    60  # Custom timeout for biotools API, it's longer so it doesn't silently crash
+)
 retries = 5
 session = requests.Session()
 retry = Retry(
@@ -29,8 +31,8 @@ retry = Retry(
     status_forcelist=(500, 502, 504),
 )
 adapter = HTTPAdapter(max_retries=retry)
-session.mount('http://', adapter)
-session.mount('https://', adapter)
+session.mount("http://", adapter)
+session.mount("https://", adapter)
 
 
 class Session:
@@ -50,7 +52,8 @@ class Session:
     executor: None | ThreadPoolExecutor = None
 
     def __init__(
-        self: Session, json: dict | None = None,
+        self: Session,
+        json: dict | None = None,
     ) -> None:
         """Initialize a new Session instance.
 
@@ -159,7 +162,10 @@ class Session:
         sys.exit(1)
 
     def search_api_multiple_pages(
-        self: Session, name: str, page_start: int = 1, page_end: int = 2,
+        self: Session,
+        name: str,
+        page_start: int = 1,
+        page_end: int = 2,
     ) -> None:
         """Retrieve JSON data from the biotools API.
 
@@ -205,7 +211,7 @@ class Session:
                 logging.exception(
                     f"Error while trying to contact the bio.tools API:\n{e}",
                 )
-        
+
     def return_tool_list_json(self: Session) -> list:
         """Return JSON of all tools currently cached.
 
@@ -227,7 +233,9 @@ class Session:
         return output
 
     def lint_specific_tool_json(
-        self: Session, data_json: dict, return_q: queue.Queue | None = None,
+        self: Session,
+        data_json: dict,
+        return_q: queue.Queue | None = None,
     ) -> None:
         """Perform linting on a specific tool JSON.
 
@@ -278,7 +286,9 @@ class Session:
             return_q.put(m)
 
     def lint_all_tools(
-        self: Session, return_q: queue.Queue | None = None, threads: int = 1,
+        self: Session,
+        return_q: queue.Queue | None = None,
+        threads: int = 1,
     ) -> None:
         """Perform linting on all tools in cache. Uses multiple threads using a ThreadPoolExecutor.
 

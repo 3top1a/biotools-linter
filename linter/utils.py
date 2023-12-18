@@ -1,7 +1,7 @@
-
-
 def flatten_json_to_single_dict(
-    json_data: dict, parent_key: str = "", separator: str = "/",
+    json_data: dict,
+    parent_key: str = "",
+    separator: str = "/",
 ) -> dict:
     """Recursively extract values from JSON.
 

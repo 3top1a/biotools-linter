@@ -240,15 +240,21 @@ def test_messages():
     assert q.get() == "None: [URL_INVALID] URL also test at url does not match a valid URL (there may be hidden unicode)."
 
 def test_publications():
-    from rules.publications import doi_to_pmid, doi_to_pmcid, pmid_or_pmcid_to_doi, filter_pub
+    from rules.publications import PublicationData, filter_pub
     import json
     
-    assert doi_to_pmid("10.1093/BIOINFORMATICS/BTAA581") == "32573681"
-    assert doi_to_pmid("test") is None
-    assert doi_to_pmcid("10.1093/BIOINFORMATICS/BTAA581") == "PMC8034561"
-    assert doi_to_pmcid("test") is None
-    assert pmid_or_pmcid_to_doi("PMC8034561") == "10.1093/bioinformatics/btaa581"
-    assert pmid_or_pmcid_to_doi("test") is None
+    x1:PublicationData  = PublicationData.convert("10.1093/BIOINFORMATICS/BTAA581")
+    assert x1
+    assert x1.pmid == "32573681"
+    assert x1.pmcid == "PMC8034561"
+
+    x2:PublicationData  = PublicationData.convert("test")
+    assert x2 == None
+
+    x3:PublicationData  = PublicationData.convert("PMC8034561")
+    assert x3
+    assert x3.doi == "10.1093/bioinformatics/btaa581"
+    assert x3.pmid == "32573681"
 
     json_bad = """
     {
@@ -272,8 +278,8 @@ def test_publications():
     """
     output = filter_pub(json.loads(json_bad))
     assert len(output) == 2
-    assert output[0].code == "DOI_BUT_NOT_PMID"
     assert output[1].code == "DOI_BUT_NOT_PMCID"
+    assert output[0].code == "DOI_BUT_NOT_PMID"
 
     json_good = """
     {

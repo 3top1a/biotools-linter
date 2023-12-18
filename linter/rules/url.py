@@ -6,7 +6,7 @@ import logging
 import re
 
 import requests
-import urllib3
+from cacheout import Cache
 from message import Level, Message
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
@@ -19,7 +19,7 @@ req_session.mount("http://", adapter)
 req_session.mount("https://", adapter)
 # Change the UA so it doesn't get rate limited
 req_session.headers.update({"User-Agent": user_agent})
-cache: dict[str, list[Message]] = {}
+cache: Cache = Cache(maxsize=8192, ttl=0, default=None)
 
 URL_REGEX = r"(http[s]?)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
 REPORT = 15
@@ -46,7 +46,7 @@ def filter_url(key: str, value: str) -> list[Message] | None:
 
     # Check cache
     if value in cache:
-        hits: list[Message] = cache[value]
+        hits: list[Message] = cache.get(value)
         logging.debug(f"Cache hit for URL {value} from tool - {len(hits)} messages")
 
         # Replace keys since those are different
@@ -174,7 +174,7 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                                Level.LinterError))
 
     # Add to cache
-    cache[value] = reports
+    cache.set(value, reports)
 
     if len(reports) != 0:
         return reports
@@ -182,4 +182,4 @@ def filter_url(key: str, value: str) -> list[Message] | None:
 
 def clear_cache():
     global cache
-    cache = {}
+    cache.clear()

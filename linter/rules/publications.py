@@ -41,6 +41,9 @@ def filter_pub(json: dict) -> list[Message] | None:
         # Convert
         converted = PublicationData.convert(doi or pmid or pmcid)
 
+        if not converted:
+            continue
+
         if doi and not pmid and converted.pmid:
             output.append(
                 Message(

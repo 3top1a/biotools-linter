@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import datetime
 import logging
 import os
 import sys
@@ -12,59 +11,10 @@ from collections.abc import Sequence
 from queue import Queue
 
 import colorlog
-import psycopg2
 from lib import Session
-from message import Level, Message
-from psycopg2.extensions import parse_dsn
+from db import DatabaseConnection
 
 REPORT = 15
-
-
-def db_drop_rows_with_tool_name(name: str, export_db_cursor: psycopg2.cursor) -> None:
-    if export_db_cursor is None:
-        return
-
-    delete_query = "DELETE FROM messages WHERE tool = %s;"
-    export_db_cursor.execute(delete_query, (name,))
-
-
-def db_insert_queue_into_database(
-    queue: Queue, sql_cursor: psycopg2.cursor | None
-) -> bool:
-    """Insert message queue into database.
-
-    Args:
-    ----
-        queue (Queue): Queue
-        sql_cursor (psycopg2.cursor | None): SQL database cursor
-
-    Returns:
-    -------
-        bool (bool): True if any messages have been received.
-    """
-    logging.info("Sending messages to database")
-
-    return_value = False
-
-    while not queue.empty():
-        item: Message = queue.get()
-        return_value = True
-
-        # Export
-        if sql_cursor and item.level != Level.LinterInternal:
-            insert_query = "INSERT INTO messages (time, tool, code, location, text, level) VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT DO NOTHING;"
-            # Replace 'data' with your actual data variables
-            data = (
-                int(datetime.datetime.now(tz=datetime.timezone.utc).timestamp()),
-                item.tool,
-                item.code,
-                item.location,
-                item.body,
-                int(item.level),
-            )
-            sql_cursor.execute(insert_query, data)
-
-    return return_value
 
 
 def configure_logging(color: bool, log_level: int) -> None:
@@ -111,7 +61,7 @@ def configure_logging(color: bool, log_level: int) -> None:
 
 
 def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
-    """Parse CLI arguments.
+    """Parse CLI arguments. Hard exits when arguments are not valid.
 
     Args:
     ----
@@ -177,10 +127,22 @@ def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
         help="Disable colored output in the console. By default, colored output is enabled.",
     )
 
-    return parser.parse_args(arguments)
+    args = parser.parse_args(arguments)
+
+    # Check for correct arguments
+    # Require name or --lint-all
+    if args.name is None and args.lint_all is False:
+        logging.critical("Please specify tools name or pass in --lint-all")
+        sys.exit(1)
+    # Require page > 0
+    if args.page <= 0:
+        logging.critical("Please specify a valid page (pages start from 1)")
+        sys.exit(1)
+    
+    return args
 
 
-def main(args: Sequence[str]) -> int:
+def main(argv: Sequence[str]) -> int:
     """Execute the main functionality of the tool.
 
     Attributes
@@ -196,45 +158,25 @@ def main(args: Sequence[str]) -> int:
         None
 
     """
-    args = parse_arguments(args)
+    args: argparse.Namespace = parse_arguments(argv)
 
-    exit_on_error = args.exit_on_error
-    database_credentials = (
+    exit_on_error: str = args.exit_on_error
+    database_credentials: str = (
         os.environ["DATABASE_URL"] if "DATABASE_URL" in os.environ else args.db
     )
-    lint_all = args.lint_all
-    threads = args.threads
-    tool_name = args.name
-    exact = args.exact
-    page = args.page
+    lint_all: str = args.lint_all
+    threads: int = args.threads
+    tool_name: str = args.name
+    exact: str = args.exact
+    page: int = args.page
 
     # Configure logging
     configure_logging(args.no_color, args.log_level)
 
-    # Check for correct arguments
-    # Require name or --lint-all
-    if tool_name is None and lint_all is False:
-        logging.critical("Please specify tools name or pass in --lint-all")
-        return 1
-    # Require page > 0
-    if page <= 0:
-        logging.critical("Please specify a valid page")
-        return 1
-
     session = Session()
+    db = DatabaseConnection(database_credentials, database_credentials is None)
     message_queue = Queue()
     returned_at_least_one_error: bool = False
-
-    # Initialize exporting, create table if it doesn't exist
-    export_db_connection: psycopg2.connection | None = None
-    export_db_cursor = None
-    if database_credentials:
-        export_db_connection = psycopg2.connect(**parse_dsn(database_credentials))
-        export_db_cursor = export_db_connection.cursor()
-
-        # Create table query
-        create_table_query = "CREATE TABLE IF NOT EXISTS messages ( id SERIAL PRIMARY KEY, time BIGINT NOT NULL, tool TEXT NOT NULL, code TEXT NOT NULL, location TEXT NOT NULL, text TEXT NOT NULL, level INTEGER NOT NULL );"
-        export_db_cursor.execute(create_table_query)
 
     # Start linting loop
     if lint_all:
@@ -259,15 +201,13 @@ def main(args: Sequence[str]) -> int:
             # Delete old entries from table
             for tool in session.return_tool_list_json():
                 name = tool["biotoolsID"]
-                db_drop_rows_with_tool_name(name, export_db_cursor)
+                db.drop_rows_with_tool_name(name)
 
             session.lint_all_tools(return_q=message_queue, threads=threads)
             page += 10
-            returned_at_least_one_error = db_insert_queue_into_database(
-                message_queue, export_db_cursor
-            )
-            if export_db_connection:
-                export_db_connection.commit()
+            returned_at_least_one_error = db.insert_from_queue(message_queue)
+
+            db.commit()
     else:
         # Lint specific tools(s)
         if tool_name == "-":
@@ -291,18 +231,14 @@ def main(args: Sequence[str]) -> int:
         # Delete old entries from table
         for tool in session.return_tool_list_json():
             name = tool["biotoolsID"]
-            db_drop_rows_with_tool_name(name, export_db_cursor)
+            db.drop_rows_with_tool_name(name)
 
         session.lint_all_tools(return_q=message_queue, threads=threads)
-        returned_at_least_one_error = db_insert_queue_into_database(
-            message_queue, export_db_cursor
-        )
-        if export_db_connection:
-            export_db_connection.commit()
+        returned_at_least_one_error = db.insert_from_queue(message_queue)
 
-    if export_db_connection:
-        export_db_connection.commit()
-        export_db_connection.close()
+        db.commit()
+
+    db.close()
 
     if session.next_page_exists():
         logging.info(f"You can also search the next page (page {int(page) + 1})")

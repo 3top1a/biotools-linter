@@ -121,14 +121,13 @@ def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
     -------
         argparse.Namespace: Output arguments
     """
-    # TODO Better argument help strings
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "name",
-        help="Tool name. use `-` to read multiple tools from stdin",
+        help="Specify the name of the tool. Use '-' to read names of multiple tools from stdin.",
         nargs="?",
     )
     parser.add_argument(
@@ -136,46 +135,46 @@ def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
         "-l",
         choices=["DEBUG", "INFO", "REPORT", "WARNING", "ERROR"],
         default="REPORT",
-        help="Set the logging level (default: REPORT)",
+        help="Choose the logging level. 'REPORT' is the default.",
     )
     parser.add_argument(
         "--db",
         default=None,
         required=False,
-        help="Database connection (postgres://username:passwd@IP/database). Can also be in DATABASE_URL variable",
+        help="Provide the database connection string in the format: postgres://username:passwd@IP/database. Alternatively, set this using the DATABASE_URL environment variable.",
     )
     parser.add_argument(
         "--lint-all",
         action="store_true",
-        help="Lint all tools in the biotools API",
+        help="Enable this option to lint all tools available in the biotools API.",
     )
     parser.add_argument(
         "--exact",
         action="store_true",
-        help="Treat the input as an exact tool name, do not search",
+        help="Enable this option to treat the input as an exact name of the tool, bypassing the search functionality.",
     )
     parser.add_argument(
         "--page",
         "-p",
         default=1,
         type=int,
-        help="Sets the page of the search",
+        help="Set the page number for search results. The default value is 1.",
     )
     parser.add_argument(
         "--threads",
         default=4,
         type=int,
-        help="How many threads to use when linting, eg. 8 threads will lint 8 tools at the same time. Default is 4",
+        help="Determine the number of concurrent threads for linting. For example, using 8 threads allows 8 tools to be linted simultaneously. The default setting is 4 threads.",
     )
     parser.add_argument(
         "--exit-on-error",
         action="store_true",
-        help="Return error code 1 if there are any errors found",
+        help="Enable this option to make the program exit with error code 1 if any errors are encountered during execution.",
     )
     parser.add_argument(
         "--no-color",
         action="store_false",
-        help="Don't print colored output",
+        help="Disable colored output in the console. By default, colored output is enabled.",
     )
 
     return parser.parse_args(arguments)

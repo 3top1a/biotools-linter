@@ -11,8 +11,8 @@ from collections.abc import Sequence
 from queue import Queue
 
 import colorlog
-from lib import Session
 from db import DatabaseConnection
+from lib import Session
 
 REPORT = 15
 
@@ -134,11 +134,12 @@ def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
     if args.name is None and args.lint_all is False:
         logging.critical("Please specify tools name or pass in --lint-all")
         sys.exit(1)
+
     # Require page > 0
-    if args.page <= 0:
+    if args.page is not None and args.page <= 0:
         logging.critical("Please specify a valid page (pages start from 1)")
         sys.exit(1)
-    
+
     return args
 
 

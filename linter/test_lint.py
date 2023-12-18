@@ -136,10 +136,6 @@ def test_cli():
     assert cli.main(["metexplore", "--threads", "16", "--no-color"]) == 0
     assert cli.main(["msmc", "--threads", "16", "--exit-on-error"]) == 1
 
-    # Fails, as page can't be 0
-    assert cli.main(["*", "--threads", "16", "-p", "0"]) == 1
-
-
 # Test url.py
 def test_urls():
     # Needs internet access

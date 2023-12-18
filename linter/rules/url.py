@@ -19,11 +19,11 @@ req_session.mount("http://", adapter)
 req_session.mount("https://", adapter)
 # Change the UA so it doesn't get rate limited
 req_session.headers.update({"User-Agent": user_agent})
+cache: dict[str, list[Message]] = {}
 
 URL_REGEX = r"(http[s]?)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
 REPORT = 15
 TIMEOUT = 30
-
 
 def filter_url(key: str, value: str) -> list[Message] | None:
     """Filter the URL based on various conditions.
@@ -42,9 +42,25 @@ def filter_url(key: str, value: str) -> list[Message] | None:
     ------
         None
     """
+    global cache
+
+    # Check cache
+    if value in cache:
+        hits: list[Message] = cache[value]
+        logging.debug(f"Cache hit for URL {value} from tool - {len(hits)} messages")
+
+        # Replace keys since those are different
+        for message in hits:
+            message.body = message.body.replace(message.location, key, 1)
+            message.location = key
+
+        if len(hits) != 0:
+            return hits
+        return None
+
     # Wrap it in one big try block in case anything errors
     try:
-        reports = []
+        reports: list[Message] = []
 
         # Exit if does not match URL or key doesn't end with url/uri
         if not re.match(
@@ -157,6 +173,13 @@ def filter_url(key: str, value: str) -> list[Message] | None:
                                key,
                                Level.LinterError))
 
+    # Add to cache
+    cache[value] = reports
+
     if len(reports) != 0:
         return reports
     return None
+
+def clear_cache():
+    global cache
+    cache = {}

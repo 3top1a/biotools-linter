@@ -38,11 +38,12 @@ class Message:
         self.location = location
         self.tool = None
 
-    def print_message(self: Message, message_queue: None | queue.Queue = None) -> None:
-        """Print the message."""
+    def print_message(self: Message, message_queue: None | queue.Queue = None) -> str:
+        """Print the message as a report, and put it into the message queue. Returns outputed string."""
         message = f"{self.tool}: [{self.code}] {self.body}"
 
         logging.log(REPORT, message)
         if message_queue is not None:
             message_queue.put(message)
 
+        return message

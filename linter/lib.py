@@ -45,6 +45,7 @@ class Session:
 
     """
 
+    # TODO Get rid of this, replace with function arguments
     json: dict = ClassVar[dict[dict]]
     executor: None | ThreadPoolExecutor = None
 
@@ -195,7 +196,6 @@ class Session:
                 if response.ok:
                     # To avoid overwriting the entire dictionary it just adds the page number to the end to make it unique
                     self.json[f"{name}{page}"] = response.json()
-                    pages_complete += 1
                     continue
 
                 logging.error(

@@ -381,3 +381,18 @@ def test_benchmark():
     
     print(f"URL - URL_PERMANENT_REDIRECT: {time.time() - start_time}")
     start_time = time.time()
+
+def test_url_cache():
+    # Tests if the URL cache returns the same results as a uncached result
+    import rules.url as url
+
+    url.clear_cache()
+
+    clean = url.filter_url("//test_clean_1/docs/url", "https://httpbin.org/status/404")
+
+    url.clear_cache()
+
+    _x1 = url.filter_url("//test_clean_2/extra/docs/random/url", "https://httpbin.org/status/404")
+    x2 = url.filter_url("//test_clean_1/docs/url", "https://httpbin.org/status/404")
+
+    assert clean[0].print_message() == x2[0].print_message()

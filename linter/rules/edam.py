@@ -66,7 +66,9 @@ class EdamFilter:
                     self.not_recommended_dict[class_id] = not_recommended
 
     async def filter_edam_key_value_pair(
-        self: EdamFilter, key: str, value: str
+        self: EdamFilter,
+        key: str,
+        value: str,
     ) -> list[Message] | None:
         """Filter for EDAM terms.
 
@@ -89,7 +91,7 @@ class EdamFilter:
                         f'EDAM "{self.label_dict[value]}" at {key} is obsolete. ({self.deprecation_comment_dict[value]})',
                         key,
                         Level.ReportMedium,
-                    )
+                    ),
                 )
             elif self.not_recommended_dict[value]:
                 reports.append(
@@ -98,7 +100,7 @@ class EdamFilter:
                         f'EDAM "{self.label_dict[value]}" at {key} is not recommended for usage.',
                         key,
                         Level.ReportLow,
-                    )
+                    ),
                 )
         else:
             reports.append(
@@ -107,7 +109,7 @@ class EdamFilter:
                     f"EDAM {value} at {key} is not a valid class ID.",
                     key,
                     Level.ReportMedium,
-                )
+                ),
             )
 
         if reports == []:
@@ -135,7 +137,10 @@ class EdamFilter:
         return None
 
     def check_topics(
-        self: EdamFilter, edam_class: dict, json_topics: list, location: str
+        self: EdamFilter,
+        edam_class: dict,
+        json_topics: list,
+        location: str,
     ) -> list[Message]:
         """Generate reports for a given class based on its topics compared against a list of JSON topics.
 
@@ -172,12 +177,15 @@ class EdamFilter:
                             f"EDAM {self.label_dict[parent_uri]} ({parent_uri}) has topic {self.label_dict[property_uri]} ({property_uri}) but not in tool annotation.",
                             location,
                             Level.ReportMedium,
-                        )
+                        ),
                     )
         return reports
 
     def check_operation(
-        self: EdamFilter, edam_class: dict, operations_json: list, location: str
+        self: EdamFilter,
+        edam_class: dict,
+        operations_json: list,
+        location: str,
     ) -> list[Message]:
         reports = []
 
@@ -199,7 +207,7 @@ class EdamFilter:
                             f"EDAM operation {self.label_dict[parent_uri]} ({parent_uri}) has input {self.label_dict[property_uri]} ({property_uri}) but not in tool annotation.",
                             location,
                             Level.ReportMedium,
-                        )
+                        ),
                     )
                 if edam_property.value not in json_outputs:
                     parent_uri = f"http://edamontology.org/{edam_class.name}"
@@ -210,7 +218,7 @@ class EdamFilter:
                             f"EDAM operation {self.label_dict[parent_uri]} ({parent_uri}) has output {self.label_dict[property_uri]} ({property_uri}) but not in tool annotation.",
                             location,
                             Level.ReportMedium,
-                        )
+                        ),
                     )
 
         return reports

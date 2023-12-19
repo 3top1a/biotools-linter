@@ -2,21 +2,19 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 
+import aiohttp
 import requests
 from cacheout import Cache
 from message import Level, Message
-import requests
-from requests.adapters import HTTPAdapter
-import asyncio
-import aiohttp
 
 # Initialize (here so it inits once)
 user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 (Bio.tools linter, github.com/3top1a/biotools-linter)"
 req_session = requests.Session()
-adapter = HTTPAdapter(pool_connections=100, pool_maxsize=100)
+adapter = requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=100)
 req_session.mount("http://", adapter)
 req_session.mount("https://", adapter)
 # Change the UA so it doesn't get rate limited
@@ -80,7 +78,7 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
         # Exit if it is a ftp address
         if value.startswith("ftp://"):
             logging.debug(
-                f"URL `{value}` points to an ftp server and cannot be checked"
+                f"URL `{value}` points to an ftp server and cannot be checked",
             )
             return None
 
@@ -93,7 +91,7 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                     f"URL {value} at {key} does not match a valid URL (there may be hidden unicode).",
                     key,
                     Level.ReportHigh,
-                )
+                ),
             ]
 
         # Make a request
@@ -112,7 +110,7 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                             f"URL {value} at {key} returns a redirect.",
                             key,
                             Level.ReportLow,
-                        )
+                        ),
                     )
 
                 # Status is not between 200 and 400
@@ -123,7 +121,7 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                             f"URL {value} at {key} doesn't return ok status (>399).",
                             key,
                             Level.ReportMedium,
-                        )
+                        ),
                     )
 
                 url_starts_with_https = value.startswith("https://")
@@ -132,9 +130,9 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                     try:
                         # Takes extreme amount of time if no such site exists, need to refactor
                         new_response = await session.get(
-                            value.replace("http://", "https://")
+                            value.replace("http://", "https://"),
                         )
-                    except aiohttp.ClientConnectorError as e:
+                    except aiohttp.ClientConnectorError:
                         # If it fails with ClientConnectorError, the site does not use SSL at all
                         reports.append(
                             Message(
@@ -142,7 +140,7 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                                 f"URL {value} at {key} does not use SSL.",
                                 key,
                                 Level.ReportMedium,
-                            )
+                            ),
                         )  # Medium as it's hard to fix without owning the website
                     else:
                         # If it succeeds, the site can use SSL but the URL is just wrong
@@ -152,7 +150,7 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                                 f"URL {value} at {key} does not start with https:// but site uses SSL.",
                                 key,
                                 Level.ReportMedium,
-                            )
+                            ),
                         )  # Medium since your browser should auto-upgrade
 
         # Timeout error>
@@ -163,7 +161,7 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                     f"URL {value} at {key} timeouts after {TIMEOUT} seconds.",
                     key,
                     Level.ReportHigh,
-                )
+                ),
             )  # High as it's inaccessible
 
         except aiohttp.TooManyRedirects:
@@ -174,7 +172,7 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                     f"URL {value} at {key} failed exceeded 30 redirects.",
                     key,
                     Level.ReportHigh,
-                )
+                ),
             )
 
         except aiohttp.ClientSSLError as e:
@@ -185,7 +183,7 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                     f"URL {value} at {key} returned an SSL error. ({e})",
                     key,
                     Level.ReportHigh,
-                )
+                ),
             )
 
         except aiohttp.ClientConnectionError:
@@ -196,7 +194,7 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                     f"URL {value} at {key} returned a connection error, it may not exist.",
                     key,
                     Level.ReportHigh,
-                )
+                ),
             )  # High as it may not even exist
 
     except Exception as e:
@@ -207,7 +205,7 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                 f"Error: {e} at {key} while checking {value}",
                 key,
                 Level.LinterError,
-            )
+            ),
         )
 
     # Add to cache

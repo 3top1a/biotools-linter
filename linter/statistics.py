@@ -55,7 +55,7 @@ def main() -> int:
 
     if len(sys.argv) != 2:
         logging.critical(
-            "Please specify output file. Must exist and cannot be blank, only empty JSON."
+            "Please specify output file. Must exist and cannot be blank, only empty JSON.",
         )
         logging.critical("Usage: python linter/statistics.py ~/data.json")
         return 1

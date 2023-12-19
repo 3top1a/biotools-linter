@@ -1,7 +1,7 @@
 from __future__ import annotations
-from dataclasses import dataclass
 
 import logging
+from dataclasses import dataclass
 from typing import Optional
 
 from cacheout import Cache
@@ -51,7 +51,7 @@ async def filter_pub(json: dict) -> list[Message] | None:
                     f"Publication DOI {doi} (https://www.doi.org/{doi}) does not have a PMID in the database.",
                     json["name"],
                     Level.ReportMedium,
-                )
+                ),
             )
 
         if doi and not pmcid and converted.pmcid:
@@ -61,7 +61,7 @@ async def filter_pub(json: dict) -> list[Message] | None:
                     f"Publication DOI {doi} (https://www.doi.org/{doi}) does not have a PMCID in the database.",
                     json["name"],
                     Level.ReportMedium,
-                )
+                ),
             )
 
         if pmid and not doi and converted.doi:
@@ -71,7 +71,7 @@ async def filter_pub(json: dict) -> list[Message] | None:
                     f"Publication PMID {pmid} (https://pubmed.ncbi.nlm.nih.gov/{pmid}) does not have a DOI in the database.",
                     json["name"],
                     Level.ReportMedium,
-                )
+                ),
             )
 
         if pmcid and not doi and converted.doi:
@@ -81,7 +81,7 @@ async def filter_pub(json: dict) -> list[Message] | None:
                     f"Publication PMCID {pmcid} (https://pubmed.ncbi.nlm.nih.gov/{pmcid}) does not have a DOI in the database.",
                     json["name"],
                     Level.ReportMedium,
-                )
+                ),
             )
 
     if output == []:
@@ -91,19 +91,15 @@ async def filter_pub(json: dict) -> list[Message] | None:
 
 @dataclass
 class PublicationData:
-    """
-    A class to handle conversions between DOI, PMID, and PMCID.
-    """
+
+    """A class to handle conversions between DOI, PMID, and PMCID."""
 
     doi: Optional[str] = None
     pmid: Optional[str] = None
     pmcid: Optional[str] = None
 
     def convert(identifier: str) -> PublicationData | None:
-        """
-        Convert a given identifier (DOI, PMID, or PMCID) to the other formats.
-        """
-
+        """Convert a given identifier (DOI, PMID, or PMCID) to the other formats."""
         if identifier in cache:
             return cache.get(identifier)
 
@@ -119,13 +115,15 @@ class PublicationData:
                 return None
 
             pub_data = PublicationData(
-                doi=pub.get("doi"), pmid=pub.get("pmid"), pmcid=pub.get("pmcid")
+                doi=pub.get("doi"),
+                pmid=pub.get("pmid"),
+                pmcid=pub.get("pmcid"),
             )
             cache.set(identifier, pub_data)
             return pub_data
 
         except Exception as e:
             logging.critical(
-                f"Error while making API request to idconv for {identifier}: {e}"
+                f"Error while making API request to idconv for {identifier}: {e}",
             )
             return None

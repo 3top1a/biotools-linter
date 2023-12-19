@@ -6,9 +6,8 @@ Exposes two methods:
 """
 
 from __future__ import annotations
-import asyncio
 
-import logging
+import asyncio
 
 from message import Message
 

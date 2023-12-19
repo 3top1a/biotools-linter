@@ -4,12 +4,12 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import logging
 import os
 import sys
 from collections.abc import Sequence
 from queue import Queue
-import asyncio
 
 import colorlog
 from db import DatabaseConnection
@@ -195,7 +195,7 @@ async def main(argv: Sequence[str]) -> int:
             session.search_api_multiple_pages("*", page, page + 10)
             processed_tools += 10
             logging.info(
-                f"Page: {page} => {page + 10}, Progress: {processed_tools / count}%"
+                f"Page: {page} => {page + 10}, Progress: {processed_tools / count}%",
             )
 
             # Delete old entries from table

@@ -1,8 +1,8 @@
 """Contains main classes and functions for linting."""
 
 from __future__ import annotations
-import asyncio
 
+import asyncio
 import logging
 import queue
 import sys
@@ -12,10 +12,10 @@ from typing import ClassVar
 
 import requests
 from message import Level, Message
-from rules import delegate_key_value_filter, delegate_whole_json_filter
-from utils import flatten_json_to_single_dict
 from requests.adapters import HTTPAdapter
+from rules import delegate_key_value_filter, delegate_whole_json_filter
 from urllib3.util.retry import Retry
+from utils import flatten_json_to_single_dict
 
 REPORT: int = 15  # Report log level is between debug and info
 TIMEOUT = (
@@ -39,7 +39,7 @@ class Session:
 
     """Session for interacting with the biotools API and performing data processing.
 
-    Once initialized, it can search the bio.tools API for a specific term (for one page or multiple) or an exact tool name (TODO).
+    Once initialized, it can search the bio.tools API for a specific term (for one page or multiple) or an exact tool name.
     The results are put into the session's `json` cache that can be cleared using `clear_cache()`.
     You can lint a single JSON dictionary using `lint_specific_tool_json` or lint all tools in the cache using `lint_all_tools`.
     As these functions are async, the results must be retrieved using a Queue.
@@ -149,9 +149,8 @@ class Session:
                 }
                 self.json[name] = json
                 return
-            elif response.status_code == 404:
-                logging.error("Exact tool could not be found")
-                return
+            logging.error("Exact tool could not be found")
+            return
         except Exception as e:
             logging.exception(
                 f"Error while trying to contact the bio.tools API:\n{e}",
@@ -265,7 +264,6 @@ class Session:
         futures = [
             delegate_key_value_filter(key, value) for key, value in dictionary.items()
         ] + [delegate_whole_json_filter(data_json)]
-        # futures = [delegate_key_value_filter(key, value) for key, value in dictionary.items()]
 
         for f in asyncio.as_completed(futures):
             output: list[Message] = await f
@@ -300,13 +298,13 @@ class Session:
         ------
             None
         """
-        logging.debug(f"Linting all tools")
+        logging.debug("Linting all tools")
 
         await asyncio.gather(
             *[
                 self.lint_specific_tool_json(tool, return_q)
                 for tool in self.return_tool_list_json()
-            ]
+            ],
         )
 
     def next_page_exists(self: Session) -> bool:

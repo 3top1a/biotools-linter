@@ -34,7 +34,11 @@ class Message:
     location: str
 
     def __init__(
-        self: Message, code: str, body: str, location: str, level: Level = Level.Report
+        self: Message,
+        code: str,
+        body: str,
+        location: str,
+        level: Level = Level.Report,
     ) -> Message:
         """Init a new message."""
         self.code = code

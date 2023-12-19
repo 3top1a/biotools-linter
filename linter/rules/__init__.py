@@ -6,6 +6,7 @@ Exposes two methods:
 """
 
 from __future__ import annotations
+import asyncio
 
 import logging
 
@@ -19,7 +20,7 @@ URL_REGEX = r"(http[s]?|ftp)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-f
 IMPORTANT_KEYS = ["name", "description", "homepage", "biotoolsID", "biotoolsCURIE"]
 
 
-def delegate_key_value_filter(key: str, value: str) -> list[Message] | None:
+async def delegate_key_value_filter(key: str, value: str) -> list[Message] | None:
     """Delegate to separate filter functions based on the key and value.
 
     Attributes
@@ -46,35 +47,34 @@ def delegate_key_value_filter(key: str, value: str) -> list[Message] | None:
         # We can't check anything else as it will error
         return output
 
+    futures = []
     if "://edamontology.org/" in value:
-        messages = edam_filter.filter_edam_key_value_pair(key, value)
-        if messages is not None:
-            output.extend(messages)
+        futures.append(edam_filter.filter_edam_key_value_pair(key, value))
     else:
-        messages = filter_url(key, value)
-        if messages is not None:
-            output.extend(messages)
+        futures.append(filter_url(key, value))
+
+    results = await asyncio.gather(*futures)
+    [output.extend(x) if x is not None else None for x in results]
 
     if output is []:
         return None
     return output
 
 
-def delegate_whole_json_filter(json: dict) -> list[Message] | None:
+async def delegate_whole_json_filter(json: dict) -> list[Message] | None:
     """Delegate to separate filter functions that filter the whole json, not just one key value pair."""
-    messages = []
+    output = []
+    futures = []
 
-    out = filter_pub(json)
-    if out is not None:
-        messages.extend(out)
+    futures.append(filter_pub(json))
+    futures.append(edam_filter.filter_whole_json(json))
 
-    out = edam_filter.filter_whole_json(json)
-    if out is not None:
-        messages.extend(out)
+    results = await asyncio.gather(*futures)
+    [output.extend(x) if x is not None else None for x in results]
 
-    if messages is []:
+    if output is []:
         return None
-    return messages
+    return output
 
 
 def filter_none(key: str, _value: str) -> Message | None:

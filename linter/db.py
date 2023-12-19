@@ -1,7 +1,6 @@
 import datetime
 import logging
 from queue import Queue
-from typing import Self
 
 import psycopg2
 from message import Level, Message
@@ -16,7 +15,7 @@ class DatabaseConnection:
     cursor: psycopg2.extensions.cursor
     mock: bool = False
 
-    def __init__(self: Self, creds: str, mock: bool = False) -> None:
+    def __init__(self, creds: str, mock: bool = False) -> None:
         """Initialize the database connection.
 
         Parameters
@@ -42,7 +41,7 @@ class DatabaseConnection:
         self.connection = conn
         self.cursor = cursor
 
-    def drop_rows_with_tool_name(self: Self, name: str) -> None:
+    def drop_rows_with_tool_name(self, name: str) -> None:
         """Delete old entries of a tool.
 
         Args:
@@ -56,7 +55,7 @@ class DatabaseConnection:
         delete_query = "DELETE FROM messages WHERE tool = %s;"
         self.cursor.execute(delete_query, (name,))
 
-    def insert_from_queue(self: Self, queue: Queue) -> bool:
+    def insert_from_queue(self, queue: Queue) -> bool:
         """Insert messages from queue into database. Empties the queue as a side effect.
 
         Args:
@@ -95,14 +94,14 @@ class DatabaseConnection:
 
         return returned_atleast_one_value
 
-    def commit(self: Self) -> None:
+    def commit(self) -> None:
         """Commit changes to database."""
         if self.mock:
             return
 
         self.connection.commit()
 
-    def close(self: Self) -> None:
+    def close(self) -> None:
         """Close database connection. Does not commit beforehand."""
         if self.mock:
             return

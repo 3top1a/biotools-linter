@@ -1,6 +1,7 @@
 """Contains main classes and functions for linting."""
 
 from __future__ import annotations
+import asyncio
 
 import logging
 import queue
@@ -10,7 +11,6 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import ClassVar
 
 import requests
-from joblib import Parallel, delayed
 from message import Level, Message
 from rules import delegate_key_value_filter, delegate_whole_json_filter
 from utils import flatten_json_to_single_dict
@@ -100,7 +100,7 @@ class Session:
         url = f"https://bio.tools/api/t/?q={name}&format=json&page={page!s}"
 
         try:
-            response = session.get(url, timeout=TIMEOUT)
+            response = requests.get(url, timeout=TIMEOUT)
             if response.ok:
                 self.json[name] = response.json()
                 return
@@ -232,7 +232,7 @@ class Session:
 
         return output
 
-    def lint_specific_tool_json(
+    async def lint_specific_tool_json(
         self: Session,
         data_json: dict,
         return_q: queue.Queue | None = None,
@@ -254,9 +254,6 @@ class Session:
 
         tool_name = data_json["name"]
 
-        if self.executor is None:
-            self.executor = ThreadPoolExecutor()
-
         logging.info(
             f"Linting {tool_name} at https://bio.tools/{data_json['biotoolsID']}",
         )
@@ -266,12 +263,12 @@ class Session:
 
         # Put key value filters and whole json filters into queue
         futures = [
-            self.executor.submit(delegate_key_value_filter, key, value)
-            for key, value in dictionary.items()
-        ] + [self.executor.submit(delegate_whole_json_filter, data_json)]
+            delegate_key_value_filter(key, value) for key, value in dictionary.items()
+        ] + [delegate_whole_json_filter(data_json)]
+        # futures = [delegate_key_value_filter(key, value) for key, value in dictionary.items()]
 
-        for f in futures:
-            output = f.result()
+        for f in asyncio.as_completed(futures):
+            output: list[Message] = await f
             for message in output:
                 if type(message) == Message:
                     # Add the tool name to the message
@@ -285,10 +282,9 @@ class Session:
             m = Message("LINT-F", "Finished linting", "", level=Level.LinterInternal)
             return_q.put(m)
 
-    def lint_all_tools(
+    async def lint_all_tools(
         self: Session,
         return_q: queue.Queue | None = None,
-        threads: int = 1,
     ) -> None:
         """Perform linting on all tools in cache. Uses multiple threads using a ThreadPoolExecutor.
 
@@ -304,13 +300,13 @@ class Session:
         ------
             None
         """
-        logging.debug(f"Linting all tools with {threads} threads")
+        logging.debug(f"Linting all tools")
 
-        self.executor = ThreadPoolExecutor(threads)
-
-        Parallel(n_jobs=threads, prefer="threads", require="sharedmem")(
-            delayed(self.lint_specific_tool_json)(tool, return_q)
-            for tool in self.return_tool_list_json()
+        await asyncio.gather(
+            *[
+                self.lint_specific_tool_json(tool, return_q)
+                for tool in self.return_tool_list_json()
+            ]
         )
 
     def next_page_exists(self: Session) -> bool:

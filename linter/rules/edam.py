@@ -65,7 +65,7 @@ class EdamFilter:
                     self.deprecation_comment_dict[class_id] = obsolete_comment
                     self.not_recommended_dict[class_id] = not_recommended
 
-    def filter_edam_key_value_pair(
+    async def filter_edam_key_value_pair(
         self: EdamFilter, key: str, value: str
     ) -> list[Message] | None:
         """Filter for EDAM terms.
@@ -215,7 +215,7 @@ class EdamFilter:
 
         return reports
 
-    def filter_whole_json(self: EdamFilter, json: dict) -> list[Message] | None:
+    async def filter_whole_json(self: EdamFilter, json: dict) -> list[Message] | None:
         reports = []
 
         pairs = flatten_json_to_single_dict(json, parent_key=json["name"] + "/")

@@ -9,6 +9,7 @@ import os
 import sys
 from collections.abc import Sequence
 from queue import Queue
+import asyncio
 
 import colorlog
 from db import DatabaseConnection
@@ -116,12 +117,6 @@ def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
         help="Set the page number for search results. The default value is 1.",
     )
     parser.add_argument(
-        "--threads",
-        default=4,
-        type=int,
-        help="Determine the number of concurrent threads for linting. For example, using 8 threads allows 8 tools to be linted simultaneously. The default setting is 4 threads.",
-    )
-    parser.add_argument(
         "--exit-on-error",
         action="store_true",
         help="Enable this option to make the program exit with error code 1 if any errors are encountered during execution.",
@@ -148,7 +143,7 @@ def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
     return args
 
 
-def main(argv: Sequence[str]) -> int:
+async def main(argv: Sequence[str]) -> int:
     """Execute the main functionality of the tool.
 
     Attributes
@@ -171,7 +166,6 @@ def main(argv: Sequence[str]) -> int:
         os.environ["DATABASE_URL"] if "DATABASE_URL" in os.environ else args.db
     )
     lint_all: str = args.lint_all
-    threads: int = args.threads
     tool_name: str = args.name
     exact: str = args.exact
     page: int = args.page
@@ -209,7 +203,7 @@ def main(argv: Sequence[str]) -> int:
                 name = tool["biotoolsID"]
                 db.drop_rows_with_tool_name(name)
 
-            session.lint_all_tools(return_q=message_queue, threads=threads)
+            await session.lint_all_tools(return_q=message_queue)
             page += 10
             returned_at_least_one_error = db.insert_from_queue(message_queue)
 
@@ -239,7 +233,7 @@ def main(argv: Sequence[str]) -> int:
             name = tool["biotoolsID"]
             db.drop_rows_with_tool_name(name)
 
-        session.lint_all_tools(return_q=message_queue, threads=threads)
+        await session.lint_all_tools(return_q=message_queue)
         returned_at_least_one_error = db.insert_from_queue(message_queue)
 
         db.commit()
@@ -257,4 +251,4 @@ def main(argv: Sequence[str]) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(asyncio.run(main(sys.argv[1:])))

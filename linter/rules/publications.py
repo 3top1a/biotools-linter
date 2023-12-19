@@ -12,7 +12,7 @@ from .url import req_session
 cache: Cache = Cache(maxsize=8192, ttl=0, default=None)
 
 
-def filter_pub(json: dict) -> list[Message] | None:
+async def filter_pub(json: dict) -> list[Message] | None:
     """Run publication checks.
 
     Args:

@@ -1,7 +1,6 @@
 argparse
 requests
 colorlog
-joblib
 psycopg2
 colorlog
 owlready2

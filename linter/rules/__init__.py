@@ -36,7 +36,7 @@ def delegate_key_value_filter(key: str, value: str) -> list[Message] | None:
     ------
         None
     """
-    logging.debug(f"Checking {key}: {value!s}")
+    # logging.debug(f"Checking {key}: {value!s}") Only makes noisy output, theres logging at every rule submodule
 
     output = []
 
@@ -94,8 +94,6 @@ def filter_none(key: str, _value: str) -> Message | None:
     ------
         None
     """
-    logging.debug(f"{key} returned null")
-
     for ik in IMPORTANT_KEYS:
         if key.endswith(ik):
             # Needs to be more specific, removed for now

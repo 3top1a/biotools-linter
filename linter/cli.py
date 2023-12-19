@@ -52,7 +52,12 @@ def configure_logging(color: bool, log_level: str) -> None:
         root_logger.removeHandler(root_logger.handlers[0])
         root_logger.addHandler(console_handler)
     else:
-        formatter = logging.Formatter("%(levelname)s - %(message)s")
+        log_format = (
+            "%(asctime)s %(name)s %(levelname)s %(filename)s@%(lineno)d - %(message)s"
+            if log_level == "DEBUG"
+            else "%(levelname)s%(message)s"
+        )
+        formatter = logging.Formatter(log_format)
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
         root_logger = logging.getLogger()

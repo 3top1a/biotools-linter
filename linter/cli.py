@@ -17,7 +17,7 @@ from lib import Session
 REPORT = 15
 
 
-def configure_logging(color: bool, log_level: int) -> None:
+def configure_logging(color: bool, log_level: str) -> None:
     """Configure logging.
 
     Args:
@@ -30,7 +30,7 @@ def configure_logging(color: bool, log_level: int) -> None:
     if color:
         log_format = (
             "%(log_color)s%(asctime)s %(name)s %(levelname)s %(filename)s@%(lineno)d - %(message)s"
-            if log_level == 10
+            if log_level == "DEBUG"
             else "%(log_color)s%(message)s"
         )
         formatter = colorlog.ColoredFormatter(

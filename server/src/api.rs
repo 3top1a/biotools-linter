@@ -180,7 +180,7 @@ pub struct APIQuery {
     severity: Option<Severity>,
 
     /// Optional error code filter
-    code: Option<String>
+    code: Option<String>,
 }
 
 #[derive(Deserialize, IntoParams)]
@@ -435,7 +435,7 @@ pub async fn serve_search_api(
 
     let code = match code {
         None => "%%".to_owned(),
-        Some(x) => x
+        Some(x) => x,
     };
 
     let (messages, total_count) = match query.clone() {
@@ -447,7 +447,13 @@ pub async fn serve_search_api(
         }
         Some(query) => {
             join!(
-                db::get_messages_paginated_search(&state.pool, page, &query, severity.clone(), code.clone()),
+                db::get_messages_paginated_search(
+                    &state.pool,
+                    page,
+                    &query,
+                    severity.clone(),
+                    code.clone()
+                ),
                 db::count_messages_paginated_search(&state.pool, &query, severity.clone(), code)
             )
         }
@@ -579,7 +585,12 @@ pub async fn download_api(
         .map(|x| {
             format!(
                 "{},{},{},{},{},\"{}\"\n",
-                x.time, x.timestamp, x.tool, x.code, x.severity as i32, x.text.replace('\n', "")
+                x.time,
+                x.timestamp,
+                x.tool,
+                x.code,
+                x.severity as i32,
+                x.text.replace('\n', "")
             )
         })
         .reduce(|acc, e| acc + &e)
@@ -592,33 +603,38 @@ pub async fn download_api(
     )
 }
 
-pub async fn serve_sitemap(headers: HeaderMap,) -> impl IntoResponse {
+pub async fn serve_sitemap(headers: HeaderMap) -> impl IntoResponse {
     info_statement!(headers, "WWW-SITEMAP", "");
 
     let manual_entries = vec![
         UrlEntry {
-            loc: "https://biotools-linter.biodata.ceitec.cz/".parse().unwrap(),
+            loc: "https://biotools-linter.biodata.ceitec.cz/"
+                .parse()
+                .unwrap(),
             changefreq: Some(ChangeFreq::Daily),
             priority: Some(1.0),
             lastmod: Some(Utc::now()),
         },
-
         UrlEntry {
-            loc: "https://biotools-linter.biodata.ceitec.cz/statistics".parse().unwrap(),
+            loc: "https://biotools-linter.biodata.ceitec.cz/statistics"
+                .parse()
+                .unwrap(),
             changefreq: Some(ChangeFreq::Daily),
             priority: Some(0.8),
             lastmod: Some(Utc::now()),
         },
-
         UrlEntry {
-            loc: "https://biotools-linter.biodata.ceitec.cz/docs".parse().unwrap(),
+            loc: "https://biotools-linter.biodata.ceitec.cz/docs"
+                .parse()
+                .unwrap(),
             changefreq: Some(ChangeFreq::Monthly),
             priority: Some(0.6),
             lastmod: None,
         },
-
         UrlEntry {
-            loc: "https://biotools-linter.biodata.ceitec.cz/api/documentation/".parse().unwrap(),
+            loc: "https://biotools-linter.biodata.ceitec.cz/api/documentation/"
+                .parse()
+                .unwrap(),
             changefreq: Some(ChangeFreq::Monthly),
             priority: Some(0.6),
             lastmod: None,
@@ -628,21 +644,21 @@ pub async fn serve_sitemap(headers: HeaderMap,) -> impl IntoResponse {
     // Auto generate ones for documentation
     // Reading from disk is fast enough, this whole function completes in 2ms on my machine
     let files = std::fs::read_dir("documentation/").unwrap();
-    let docs_entries: Vec<UrlEntry> = files.map(|x| {
-        UrlEntry {
-            loc: format!("https://biotools-linter.biodata.ceitec.cz/docs/{}", x.unwrap().file_name().to_str().unwrap()).parse().unwrap(),
+    let docs_entries: Vec<UrlEntry> = files
+        .map(|x| UrlEntry {
+            loc: format!(
+                "https://biotools-linter.biodata.ceitec.cz/docs/{}",
+                x.unwrap().file_name().to_str().unwrap()
+            )
+            .parse()
+            .unwrap(),
             changefreq: Some(ChangeFreq::Monthly),
             priority: Some(0.5),
             lastmod: None,
-        }
-    }).collect();
+        })
+        .collect();
 
-    
     let result = sitewriter::generate_str(&[manual_entries, docs_entries].concat());
 
-    (
-        StatusCode::OK,
-        [(header::CONTENT_TYPE, "text/xml")],
-        result,
-    )
+    (StatusCode::OK, [(header::CONTENT_TYPE, "text/xml")], result)
 }

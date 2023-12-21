@@ -134,7 +134,11 @@ pub async fn get_messages_paginated_search(
     rows.into_iter().map(Message::from).collect()
 }
 
-pub async fn count_messages_paginated(pool: &Pool<Postgres>, severity: Option<Severity>, code: String) -> i64 {
+pub async fn count_messages_paginated(
+    pool: &Pool<Postgres>,
+    severity: Option<Severity>,
+    code: String,
+) -> i64 {
     let (min_severity, max_severity): (i32, i32) = match severity {
         Some(s) => {
             let x = s.into();
@@ -159,7 +163,7 @@ pub async fn count_messages_paginated_search(
     pool: &Pool<Postgres>,
     query: &String,
     severity: Option<Severity>,
-    code: String
+    code: String,
 ) -> i64 {
     let (min_severity, max_severity): (i32, i32) = match severity {
         Some(s) => {

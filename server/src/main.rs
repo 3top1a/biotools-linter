@@ -6,7 +6,7 @@ use api::{
     ApiResponse, Message, __path_download_api, __path_serve_search_api,
     __path_serve_statistics_api, relint_api, serve_documentation_index, serve_documentation_page,
     serve_index_page, serve_search_api, serve_statistics_api, serve_statistics_page, Severity,
-    Statistics, StatisticsEntry, __path_relint_api, download_api,
+    Statistics, StatisticsEntry, __path_relint_api, download_api, serve_sitemap,
 };
 use axum::{
     routing::{get, post},
@@ -142,6 +142,6 @@ fn app(state: &ServerState) -> Router {
         .merge(SwaggerUi::new("/api/documentation").url("/api/openapi.json", ApiDoc::openapi()))
         .nest_service("/robots.txt", ServeFile::new("static/robots.txt"))
         .nest_service("/style.css", ServeFile::new("static/style.css"))
-        .nest_service("/sitemap.xml", ServeFile::new("static/sitemap.xml"))
+        .nest_service("/sitemap.xml", get(serve_sitemap))
         .with_state(state.clone())
 }

@@ -29,6 +29,7 @@ use axum::http::header;
 use utoipa::{IntoParams, ToSchema};
 
 use serde_repr::{Deserialize_repr, Serialize_repr};
+use sitewriter::{ChangeFreq, UrlEntry};
 
 use crate::db;
 use crate::ServerState;
@@ -588,5 +589,60 @@ pub async fn download_api(
         StatusCode::OK,
         [(header::CONTENT_TYPE, "text/csv")],
         header + &data,
+    )
+}
+
+pub async fn serve_sitemap(headers: HeaderMap,) -> impl IntoResponse {
+    info_statement!(headers, "WWW-SITEMAP", "");
+
+    let manual_entries = vec![
+        UrlEntry {
+            loc: "https://biotools-linter.biodata.ceitec.cz/".parse().unwrap(),
+            changefreq: Some(ChangeFreq::Daily),
+            priority: Some(1.0),
+            lastmod: Some(Utc::now()),
+        },
+
+        UrlEntry {
+            loc: "https://biotools-linter.biodata.ceitec.cz/statistics".parse().unwrap(),
+            changefreq: Some(ChangeFreq::Daily),
+            priority: Some(0.8),
+            lastmod: Some(Utc::now()),
+        },
+
+        UrlEntry {
+            loc: "https://biotools-linter.biodata.ceitec.cz/docs".parse().unwrap(),
+            changefreq: Some(ChangeFreq::Monthly),
+            priority: Some(0.6),
+            lastmod: None,
+        },
+
+        UrlEntry {
+            loc: "https://biotools-linter.biodata.ceitec.cz/api/documentation/".parse().unwrap(),
+            changefreq: Some(ChangeFreq::Monthly),
+            priority: Some(0.6),
+            lastmod: None,
+        },
+    ];
+
+    // Auto generate ones for documentation
+    // Reading from disk is fast enough, this whole function completes in 2ms on my machine
+    let files = std::fs::read_dir("documentation/").unwrap();
+    let docs_entries: Vec<UrlEntry> = files.map(|x| {
+        UrlEntry {
+            loc: format!("https://biotools-linter.biodata.ceitec.cz/docs/{}", x.unwrap().file_name().to_str().unwrap()).parse().unwrap(),
+            changefreq: Some(ChangeFreq::Monthly),
+            priority: Some(0.5),
+            lastmod: None,
+        }
+    }).collect();
+
+    
+    let result = sitewriter::generate_str(&[manual_entries, docs_entries].concat());
+
+    (
+        StatusCode::OK,
+        [(header::CONTENT_TYPE, "text/xml")],
+        result,
     )
 }

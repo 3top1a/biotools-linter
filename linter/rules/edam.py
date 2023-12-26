@@ -209,6 +209,7 @@ class EdamFilter:
                             Level.ReportMedium,
                         ),
                     )
+            if edam_property.property == self.ontology["has_output"]:
                 if edam_property.value not in json_outputs:
                     parent_uri = f"http://edamontology.org/{edam_class.name}"
                     property_uri = f"http://edamontology.org/{edam_property.value.name}"

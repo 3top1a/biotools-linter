@@ -7,6 +7,7 @@ use axum::{
 use chrono::{DateTime, Utc};
 use db::DatabaseEntry;
 
+use pulldown_cmark::{CowStr, Event, Tag};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -320,6 +321,36 @@ pub async fn serve_statistics_page(headers: HeaderMap) -> Html<String> {
     Html(TEMPLATES.render("statistics.html", &c).unwrap())
 }
 
+fn parse_markdown(md: &String) -> String {
+    let parser = pulldown_cmark::Parser::new(&md);
+
+    // https://github.com/raphlinus/pulldown-cmark/issues/407
+    // This adds anchors to headers
+    let mut heading_level = 0;
+    let parser = parser.filter_map(| event |
+        match event {
+            Event::Start(Tag::Heading(level , _, _)) => {
+                heading_level = level as usize;
+                None
+            },
+            Event::Text(text) => {
+                if heading_level != 0 {
+                    let anchor = text.clone().into_string().trim().replace(" ", "_");
+                    let tmp = Event::Html(CowStr::from(format!("<h{} id=\"{}\">{}", heading_level, anchor, text))).into();
+                    heading_level = 0;
+                    return tmp;
+                }
+                Some(Event::Text(text))
+            },
+            _ => Some(event),
+        }
+    );
+
+    let mut html_output = String::new();
+    pulldown_cmark::html::push_html(&mut html_output, parser);
+    html_output
+}
+
 pub async fn serve_documentation_page(
     headers: HeaderMap,
     Path(query_title): Path<String>,
@@ -344,12 +375,11 @@ pub async fn serve_documentation_page(
 
     let markdown_path = PathBuf::from_str("documentation/").unwrap().join(p);
     let markdown_string = fs::read_to_string(markdown_path).unwrap();
-    let parser = pulldown_cmark::Parser::new(&markdown_string);
-    let mut html_output = String::new();
-    pulldown_cmark::html::push_html(&mut html_output, parser);
+    
+    let html = parse_markdown(&markdown_string);
 
     let mut c = Context::new();
-    c.insert("content", &html_output);
+    c.insert("content", &html);
     Html(TEMPLATES.render("documentation.html", &c).unwrap())
 }
 
@@ -358,12 +388,11 @@ pub async fn serve_documentation_index(headers: HeaderMap) -> Html<String> {
 
     let markdown_path = PathBuf::from_str("documentation/index.md").unwrap();
     let markdown_string = fs::read_to_string(markdown_path).unwrap();
-    let parser = pulldown_cmark::Parser::new(&markdown_string);
-    let mut html_output = String::new();
-    pulldown_cmark::html::push_html(&mut html_output, parser);
+
+    let html = parse_markdown(&markdown_string);
 
     let mut c = Context::new();
-    c.insert("content", &html_output);
+    c.insert("content", &html);
     Html(TEMPLATES.render("documentation.html", &c).unwrap())
 }
 

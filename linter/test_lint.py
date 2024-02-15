@@ -381,8 +381,8 @@ async def test_publications():
     # Every ID leads to a different publication
     assert output[0].code == "PMID_DISCREPANCY"
     assert output[1].code == "PMCID_DISCREPANCY"
-    assert output[3].code == "DOI_DISCREPANCY"
-    assert output[4].code == "PMID_DISCREPANCY"
+    assert output[2].code == "DOI_DISCREPANCY"
+    assert output[3].code == "PMID_DISCREPANCY"
 
 
 @pytest.mark.asyncio

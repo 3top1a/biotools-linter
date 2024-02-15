@@ -103,6 +103,9 @@ content %}
         "EDAM_TOPIC_DISCREPANCY",
         "EDAM_INPUT_DISCREPANCY",
         "EDAM_OUTPUT_DISCREPANCY",
+        "PMID_DISCREPANCY",
+        "PMCID_DISCREPANCY",
+        "DOI_DISCREPANCY",
     ]
 
     function download(url, button) {
@@ -145,9 +148,8 @@ content %}
         pageLength: 100,
         ordering: false,
         initComplete: function () {
-            
             let column = this.api().columns().header()[3];
-            
+
             // Create severity dropdown menu
             severity_dropdown = document.createElement('select');
             severity_dropdown.add(new Option(''));
@@ -266,9 +268,8 @@ content %}
 
                 // Add code
                 if (error_dropdown) {
-                    if (error_dropdown.value)
-                    {
-                        d.code=error_dropdown.value
+                    if (error_dropdown.value) {
+                        d.code = error_dropdown.value
                     }
                 }
             },
@@ -295,6 +296,9 @@ content %}
                     // All Publishing ID conversions have a single docs page
                     if (data == "PMCID_BUT_NOT_DOI" || data == "PMID_BUT_NOT_DOI" || data == "DOI_BUT_NOT_PMCID" || data == "DOI_BUT_NOT_PMID") {
                         return (`<a target="_blank" href="/docs#PMID,_PMCID_and_DOI_conversion" rel="nofollow">${data}</a>`);
+                    }
+                    if (data == "PMID_DISCREPANCY" || data == "PMCID_DISCREPANCY" || data == "DOI_DISCREPANCY" || data == "DOI_BUT_NOT_PMID") {
+                        return (`<a target="_blank" href="/docs#PMID,_PMCID_and_DOI_discrepancy" rel="nofollow">${data}</a>`);
                     }
                     return (`<a target="_blank" href="/docs#${data}">${data}</a>`);
                 }

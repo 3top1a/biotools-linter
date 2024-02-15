@@ -66,7 +66,7 @@ macro_rules! info_statement {
     };
 }
 
-static ERROR_CODES: [&str; 20] = [
+static ERROR_CODES: [&str; 23] = [
     "URL_INVALID",
     "URL_PERMANENT_REDIRECT",
     "URL_BAD_STATUS",
@@ -87,6 +87,9 @@ static ERROR_CODES: [&str; 20] = [
     "EDAM_TOPIC_DISCREPANCY",
     "EDAM_INPUT_DISCREPANCY",
     "EDAM_OUTPUT_DISCREPANCY",
+    "PMID_DISCREPANCY",
+    "PMCID_DISCREPANCY",
+    "DOI_DISCREPANCY",
 ];
 
 // Initialize and cache templates and regex

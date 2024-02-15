@@ -11,6 +11,8 @@ from .url import req_session
 
 cache: Cache = Cache(maxsize=8192, ttl=0, default=None)
 
+TYPES = ["doi", "pmid", "pmcid"]
+
 
 async def filter_pub(json: dict) -> list[Message] | None:
     """Run publication checks.
@@ -22,6 +24,7 @@ async def filter_pub(json: dict) -> list[Message] | None:
     Returns:
     -------
         list[Message] | None: Errors
+
     """
     if json is None:
         return None
@@ -38,12 +41,13 @@ async def filter_pub(json: dict) -> list[Message] | None:
         pmid = publication["pmid"]
         pmcid = publication["pmcid"]
 
-        # Convert
+        # Convert naively
         converted = PublicationData.convert(doi or pmid or pmcid)
 
         if not converted:
             continue
 
+        # Other IDs not present in DB
         if doi and not pmid and converted.pmid:
             output.append(
                 Message(
@@ -84,10 +88,44 @@ async def filter_pub(json: dict) -> list[Message] | None:
                 ),
             )
 
+        # Check for publication discrepancy (two different publications were entered in one, may be due to a user error)
+        for checked_id in TYPES:
+            converted = PublicationData.convert(locals()[checked_id])
+            for checking_id in array_without_value(TYPES, checked_id):
+                if locals()[checking_id] is None or converted is None:
+                    continue
+
+                original_id: str = locals()[checking_id].strip().lower()
+                converted_id: str = converted.__dict__[checking_id].strip().lower()
+                if original_id != converted_id:
+                    output.append(
+                        Message(
+                            # Can be DOI_DISCREPANCY, PMID_DISCREPANCY, PMCID_DISCREPANCY
+                            f"{checking_id.upper()}_DISCREPANCY",
+                            f"Converting {checked_id.upper()} {locals()[checked_id]} led to a different {checking_id.upper()} ({converted_id}) than in annotation ({original_id})",
+                            json["name"],
+                            Level.ReportHigh,
+                        ),
+                    )
+
     if output == []:
         return None
     return output
 
+def array_without_value(arr: list, value: any) -> list:
+    """Return given array without a given value.
+
+    Args:
+    ----
+        arr (list): Input array
+        value (any): Value to ignore
+
+    Returns:
+    -------
+        list: Output array
+
+    """
+    return [x for x in arr if x != value]
 
 @dataclass
 class PublicationData:

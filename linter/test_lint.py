@@ -267,6 +267,7 @@ async def test_publications():
     from rules.publications import PublicationData, filter_pub
     import json
 
+    # Test converter
     x1: PublicationData = PublicationData.convert("10.1093/BIOINFORMATICS/BTAA581")
     assert x1
     assert x1.pmid == "32573681"
@@ -280,6 +281,7 @@ async def test_publications():
     assert x3.doi == "10.1093/bioinformatics/btaa581"
     assert x3.pmid == "32573681"
 
+    # Test x_BUT_NOT_y
     json_bad = """
     {
         "name": "test",
@@ -327,6 +329,60 @@ async def test_publications():
     """
     output = await filter_pub(json.loads(json_good))
     assert output is None
+    
+    # Test DOI_DISCREPANCY, PMID_DISCREPANCY, PMCID_DISCREPANCY
+    js = """
+    {
+        "name": "test",
+        "description": "test",
+        "biotoolsID": "test",
+        "biotoolsCURIE": "biotools:test",
+        "publication": [
+            {
+                "doi": "10.1093/bioinformatics/btaa581",
+                "pmid": "32578961",
+                "pmcid": "PMC32578961",
+                "type": [
+                    "Primary"
+                ],
+                "version": null,
+                "note": null
+            }
+        ]
+    }
+    """
+    output = await filter_pub(json.loads(js))
+    assert len(output) == 2
+    assert output[0].code == "PMID_DISCREPANCY"
+    assert output[1].code == "PMCID_DISCREPANCY"
+
+    js = """
+    {
+        "name": "test",
+        "description": "test",
+        "biotoolsID": "test",
+        "biotoolsCURIE": "biotools:test",
+        "publication": [
+            {
+                "doi": "10.3390/ph16050735",
+                "pmid": "32578961",
+                "pmcid": "PMC10224568",
+                "type": [
+                    "Primary"
+                ],
+                "version": null,
+                "note": null
+            }
+        ]
+    }
+    """
+    output = await filter_pub(json.loads(js))
+    assert len(output) == 4
+    # Every ID leads to a different publication
+    assert output[0].code == "PMID_DISCREPANCY"
+    assert output[1].code == "PMCID_DISCREPANCY"
+    assert output[3].code == "DOI_DISCREPANCY"
+    assert output[4].code == "PMID_DISCREPANCY"
 
 
 @pytest.mark.asyncio

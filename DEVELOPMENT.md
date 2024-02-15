@@ -11,7 +11,7 @@ They should also have unique English names (e.g. `URL_NO_SSL`), a severity (see 
 
 Here are all other places the error needs to be places in:
 - `statistics.py` - Add the error code at line 15
-- `api.rs` - Add the error code at line 29 and increment the number
+- `api.rs` - Add the error code at line 69 and increment the number
 - `test_lint.py` - Add a test, if possible
-- `server/docs/` - Write documentation
+- `server/docs` - Write documentation
 - `server/templates/index.html` line 150

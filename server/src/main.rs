@@ -3,10 +3,10 @@ mod db;
 mod test;
 
 use api::{
-    ApiResponse, Message, __path_download_api, __path_serve_search_api,
+    ApiResponse, Message, __path_download_api, __path_json_api, __path_serve_search_api,
     __path_serve_statistics_api, relint_api, serve_documentation_index, serve_documentation_page,
     serve_index_page, serve_search_api, serve_statistics_api, serve_statistics_page, Severity,
-    Statistics, StatisticsEntry, __path_relint_api, download_api, serve_sitemap,
+    Statistics, StatisticsEntry, __path_relint_api, download_api, json_api, serve_sitemap,
 };
 use axum::{
     error_handling::HandleErrorLayer,
@@ -19,11 +19,7 @@ use tower::{buffer::BufferLayer, limit::RateLimitLayer, ServiceBuilder};
 use dotenv::dotenv;
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
-use std::{
-    net::SocketAddr,
-    path::PathBuf,
-    time::Duration,
-};
+use std::{net::SocketAddr, path::PathBuf, time::Duration};
 
 use env_logger::{Builder, Env};
 use std::io::Write;
@@ -62,7 +58,13 @@ pub struct ServerState {
 #[derive(OpenApi)]
 #[openapi(
     info(description = "", title = "Biotools linter"),
-    paths(serve_search_api, serve_statistics_api, relint_api, download_api),
+    paths(
+        serve_search_api,
+        serve_statistics_api,
+        relint_api,
+        download_api,
+        json_api
+    ),
     components(schemas(ApiResponse, Message, Statistics, StatisticsEntry, Severity,))
 )]
 struct ApiDoc;
@@ -140,6 +142,7 @@ fn app(state: &ServerState) -> Router {
 
     Router::new()
         .route("/api/lint", post(relint_api))
+        .route("/api/json", post(json_api))
         .route("/api/download", get(download_api))
         .layer(ratelimit.clone()) // Only rate limit the routes above
         .route("/", get(serve_index_page))

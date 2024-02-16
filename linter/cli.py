@@ -11,6 +11,7 @@ import sys
 from collections.abc import Sequence
 from queue import Queue
 import json
+import copy
 
 import colorlog
 from db import DatabaseConnection
@@ -138,7 +139,7 @@ def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
     # Check for correct arguments
     # Require name or --lint-all
     if args.name is None and args.lint_all is False and args.json is False:
-        logging.critical("Please specify tools name or pass in --lint-all")
+        logging.critical("Please specify tools name, pass in --lint-all or --json to continue.")
         sys.exit(1)
 
     # Require page > 0
@@ -181,7 +182,7 @@ async def main(argv: Sequence[str]) -> int:
     configure_logging(args.no_color, args.log_level)
 
     session = Session()
-    db = DatabaseConnection(database_credentials, database_credentials is None or database_credentials == '')
+    db = DatabaseConnection(database_credentials, database_credentials is None or not database_credentials or database_credentials == "ignore")
     message_queue = Queue()
     returned_at_least_one_error: bool = False
 
@@ -202,7 +203,16 @@ async def main(argv: Sequence[str]) -> int:
             db.drop_rows_with_tool_name(name)
 
         await session.lint_all_tools(return_q=message_queue)
+        json_queue = Queue()
+        json_queue.queue = copy.deepcopy(message_queue.queue)
         returned_at_least_one_error = db.insert_from_queue(message_queue)
+
+        json_list = []
+        while not json_queue.qsize() == 0:
+            json_list.append(json_queue.get())
+
+        json_list = [x.__dict__ for x in json_list if x.code != "LINT-F"]
+        print(json.dumps(json_list))
 
         db.commit()
 

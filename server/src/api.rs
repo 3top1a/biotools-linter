@@ -1,7 +1,7 @@
 use axum::{
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
-    response::Html,
+    response::{Html, Response},
     Json,
 };
 use chrono::{DateTime, Utc};
@@ -15,8 +15,9 @@ use serde_json::{Map, Value};
 use axum::response::IntoResponse;
 use std::{
     fs,
+    io::Write,
     path::{Component, PathBuf},
-    process::Command,
+    process::{Command, Stdio},
     str::FromStr,
     time::{Duration, UNIX_EPOCH},
 };
@@ -285,6 +286,12 @@ pub struct RelintParams {
     tool: String,
 }
 
+/// JSON parameters
+#[derive(Deserialize, IntoParams)]
+pub struct JSONParams {
+    json: String,
+}
+
 /// Serve the main page
 pub async fn serve_index_page(
     headers: HeaderMap,
@@ -363,9 +370,7 @@ pub async fn serve_documentation_page(
 
     // https://stackoverflow.com/questions/56366947/how-does-a-rust-pathbuf-prevent-directory-traversal-attacks
     let mut p = PathBuf::from_str(&query_title).unwrap();
-    if p.components()
-        .any(|x| x == Component::ParentDir)
-    {
+    if p.components().any(|x| x == Component::ParentDir) {
         let c = Context::new();
         return Html(TEMPLATES.render("error.html", &c).unwrap());
     }
@@ -553,6 +558,58 @@ pub async fn relint_api(headers: HeaderMap, Query(params): Query<RelintParams>) 
     error!("{:#?}", output);
 
     StatusCode::INTERNAL_SERVER_ERROR
+}
+
+/// Lint JSON in the query
+#[utoipa::path(post, path = "/api/json", params(JSONParams)
+,
+responses(
+    (status = 200, description = "JSON lint successfull", body = String,
+    ),
+),
+)]
+pub async fn json_api(headers: HeaderMap, Query(params): Query<JSONParams>) -> impl IntoResponse {
+    let json = params.json.to_string();
+    info_statement!(headers, "API-JSON", "");
+
+    let script = "lint_from_server.sh";
+
+    // Command takes arguments as literals so shell expansions is automatically escaped
+    let mut child = Command::new("bash")
+        .arg(script)
+        .arg("--no-color")
+        .arg("--json")
+        .arg("--db=ignore")
+        .current_dir("../")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to start command");
+
+    let mut stdin = child.stdin.take().expect("Failed to open stdin");
+    std::thread::spawn(move || {
+        stdin
+            .write_all(json.as_bytes())
+            .expect("Failed to write to stdin");
+    });
+
+    let output = child.wait_with_output().expect("Failed to read stdout");
+
+    if !output.status.success() {
+        return (
+            StatusCode::OK,
+            [(header::CONTENT_TYPE, "text/json")],
+            "\"error\": \"could not get data from linter\"".to_string(),
+        );
+    }
+
+    info!("Output from script: {:?}", output);
+
+    (
+        StatusCode::OK,
+        [(header::CONTENT_TYPE, "text/json")],
+        String::from_utf8(output.stdout).unwrap(),
+    )
 }
 
 /// Download data as csv. Rate limited to 1 request every 2 seconds.

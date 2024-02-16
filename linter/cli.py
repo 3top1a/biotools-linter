@@ -10,6 +10,7 @@ import os
 import sys
 from collections.abc import Sequence
 from queue import Queue
+import json
 
 import colorlog
 from db import DatabaseConnection
@@ -110,6 +111,11 @@ def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
         help="Enable this option to treat the input as an exact name of the tool, bypassing the search functionality.",
     )
     parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Reads tool JSON from STDIN and analyzes it.",
+    )
+    parser.add_argument(
         "--page",
         "-p",
         default=1,
@@ -131,7 +137,7 @@ def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
 
     # Check for correct arguments
     # Require name or --lint-all
-    if args.name is None and args.lint_all is False:
+    if args.name is None and args.lint_all is False and args.json is False:
         logging.critical("Please specify tools name or pass in --lint-all")
         sys.exit(1)
 
@@ -152,7 +158,7 @@ async def main(argv: Sequence[str]) -> int:
 
     Returns
     -------
-        None
+        int: Status code. 0 means success, non zero values signify failiure.
 
     Raises
     ------
@@ -167,6 +173,7 @@ async def main(argv: Sequence[str]) -> int:
     )
     lint_all: str = args.lint_all
     tool_name: str = args.name
+    json_mode: str = args.json
     exact: str = args.exact
     page: int = args.page
 
@@ -178,8 +185,28 @@ async def main(argv: Sequence[str]) -> int:
     message_queue = Queue()
     returned_at_least_one_error: bool = False
 
-    # Start linting loop
-    if lint_all:
+    # Start linting, switch modes
+    if json_mode:
+        json_data = '{"x": ' + "\n".join(sys.stdin.readlines()) + "}"
+        session = Session(json.loads(str(json_data)))
+
+        if session.get_total_tool_count() != 1:
+            logging.critical("Could not load JSON.")
+            return 1
+    
+        for tool in session.return_tool_list_json():
+            name = tool["biotoolsID"]
+            if name is None:
+                logging.critical("Could not load JSON.")
+                return 1
+            db.drop_rows_with_tool_name(name)
+
+        await session.lint_all_tools(return_q=message_queue)
+        returned_at_least_one_error = db.insert_from_queue(message_queue)
+
+        db.commit()
+
+    elif lint_all:
         # Try to lint all tools on bio.tools
         page = page if page else 1
         processed_tools = 10 * (page - 1)

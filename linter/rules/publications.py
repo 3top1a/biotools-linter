@@ -136,6 +136,7 @@ class PublicationData:
     pmid: Optional[str] = None
     pmcid: Optional[str] = None
 
+    @staticmethod
     def convert(identifier: str) -> PublicationData | None:
         """Convert a given identifier (DOI, PMID, or PMCID) to the other formats."""
         if identifier in cache:

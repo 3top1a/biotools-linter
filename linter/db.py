@@ -66,7 +66,8 @@ class DatabaseConnection:
         -------
             bool (bool): True if any messages have been received.
         """
-        logging.info("Sending messages to database")
+        if not self.mock:
+            logging.info("Sending messages to database")
 
         returned_atleast_one_value = False
 

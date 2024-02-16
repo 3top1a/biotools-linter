@@ -9,18 +9,20 @@ use api::{
     Statistics, StatisticsEntry, __path_relint_api, download_api, serve_sitemap,
 };
 use axum::{
+    error_handling::HandleErrorLayer,
+    http::StatusCode,
     routing::{get, post},
-    Router,
+    BoxError, Router,
 };
+use tower::{buffer::BufferLayer, limit::RateLimitLayer, ServiceBuilder};
 
 use dotenv::dotenv;
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::{
-    collections::HashMap,
     net::SocketAddr,
     path::PathBuf,
-    sync::{Arc, Mutex},
+    time::Duration,
 };
 
 use env_logger::{Builder, Env};
@@ -53,8 +55,6 @@ pub struct ServerState {
     pub pool: Pool<Postgres>,
     /// Path to the statistics file used for graphs, generated with linter/statistics.py
     pub stats_file_path: PathBuf,
-    /// Dictionary of IPs and tools that are being currently relinted
-    pub ips: Arc<Mutex<HashMap<String, String>>>,
 }
 
 /// Auto generated API Documentation
@@ -110,7 +110,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let state = ServerState {
         pool,
         stats_file_path,
-        ips: Arc::new(Mutex::new(HashMap::new())),
     };
 
     let routes = app(&state);
@@ -129,7 +128,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// Having a function that produces our app makes it easy to call it from tests
 /// without having to create an HTTP server.
 fn app(state: &ServerState) -> Router {
+    let ratelimit = ServiceBuilder::new()
+        .layer(HandleErrorLayer::new(|err: BoxError| async move {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Unhandled error: {}", err),
+            )
+        }))
+        .layer(BufferLayer::new(1024))
+        .layer(RateLimitLayer::new(1, Duration::from_secs(2)));
+
     Router::new()
+        .route("/api/lint", post(relint_api))
+        .route("/api/download", get(download_api))
+        .layer(ratelimit.clone()) // Only rate limit the routes above
         .route("/", get(serve_index_page))
         .route("/docs/:query_title", get(serve_documentation_page))
         .route("/docs/", get(serve_documentation_index))
@@ -137,8 +149,6 @@ fn app(state: &ServerState) -> Router {
         .route("/statistics", get(serve_statistics_page))
         .route("/api/search", get(serve_search_api))
         .route("/api/statistics", get(serve_statistics_api))
-        .route("/api/lint", post(relint_api))
-        .route("/api/download", get(download_api))
         .merge(SwaggerUi::new("/api/documentation").url("/api/openapi.json", ApiDoc::openapi()))
         .nest_service("/robots.txt", ServeFile::new("static/robots.txt"))
         .nest_service("/style.css", ServeFile::new("static/style.css"))

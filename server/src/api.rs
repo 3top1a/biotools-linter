@@ -1,5 +1,5 @@
 use axum::{
-    extract::{ConnectInfo, Path, Query, State},
+    extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
     response::Html,
     Json,
@@ -15,7 +15,6 @@ use serde_json::{Map, Value};
 use axum::response::IntoResponse;
 use std::{
     fs,
-    net::SocketAddr,
     path::{Component, PathBuf},
     process::Command,
     str::FromStr,
@@ -325,29 +324,31 @@ pub async fn serve_statistics_page(headers: HeaderMap) -> Html<String> {
 }
 
 fn parse_markdown(md: &String) -> String {
-    let parser = pulldown_cmark::Parser::new(&md);
+    let parser = pulldown_cmark::Parser::new(md);
 
     // https://github.com/raphlinus/pulldown-cmark/issues/407
     // This adds anchors to headers
     let mut heading_level = 0;
-    let parser = parser.filter_map(| event |
-        match event {
-            Event::Start(Tag::Heading(level , _, _)) => {
-                heading_level = level as usize;
-                None
-            },
-            Event::Text(text) => {
-                if heading_level != 0 {
-                    let anchor = text.clone().into_string().trim().replace(" ", "_");
-                    let tmp = Event::Html(CowStr::from(format!("<h{} id=\"{}\">{}", heading_level, anchor, text))).into();
-                    heading_level = 0;
-                    return tmp;
-                }
-                Some(Event::Text(text))
-            },
-            _ => Some(event),
+    let parser = parser.filter_map(|event| match event {
+        Event::Start(Tag::Heading(level, _, _)) => {
+            heading_level = level as usize;
+            None
         }
-    );
+        Event::Text(text) => {
+            if heading_level != 0 {
+                let anchor = text.clone().into_string().trim().replace(' ', "_");
+                let tmp = Event::Html(CowStr::from(format!(
+                    "<h{} id=\"{}\">{}",
+                    heading_level, anchor, text
+                )))
+                .into();
+                heading_level = 0;
+                return tmp;
+            }
+            Some(Event::Text(text))
+        }
+        _ => Some(event),
+    });
 
     let mut html_output = String::new();
     pulldown_cmark::html::push_html(&mut html_output, parser);
@@ -363,7 +364,6 @@ pub async fn serve_documentation_page(
     // https://stackoverflow.com/questions/56366947/how-does-a-rust-pathbuf-prevent-directory-traversal-attacks
     let mut p = PathBuf::from_str(&query_title).unwrap();
     if p.components()
-        .into_iter()
         .any(|x| x == Component::ParentDir)
     {
         let c = Context::new();
@@ -378,7 +378,7 @@ pub async fn serve_documentation_page(
 
     let markdown_path = PathBuf::from_str("documentation/").unwrap().join(p);
     let markdown_string = fs::read_to_string(markdown_path).unwrap();
-    
+
     let html = parse_markdown(&markdown_string);
 
     let mut c = Context::new();
@@ -423,14 +423,14 @@ pub async fn serve_statistics_api(
 
     // Make entries have all error types even if they will be null
     for entry in &mut json.data {
-        for code in ERROR_CODES.clone() {
+        for code in ERROR_CODES {
             if !entry.error_types.contains_key(code) {
                 entry.error_types.insert(code.to_owned(), Value::Null);
             }
         }
     }
 
-    return Json(json);
+    Json(json)
 }
 
 /// List every error or search for a specific one
@@ -473,8 +473,8 @@ pub async fn serve_search_api(
     let (messages, total_count) = match query.clone() {
         None => {
             join!(
-                db::get_messages_paginated(&state.pool, page, severity.clone(), code.clone()),
-                db::count_messages_paginated(&state.pool, severity.clone(), code)
+                db::get_messages_paginated(&state.pool, page, severity, code.clone()),
+                db::count_messages_paginated(&state.pool, severity, code)
             )
         }
         Some(query) => {
@@ -483,10 +483,10 @@ pub async fn serve_search_api(
                     &state.pool,
                     page,
                     &query,
-                    severity.clone(),
+                    severity,
                     code.clone()
                 ),
-                db::count_messages_paginated_search(&state.pool, &query, severity.clone(), code)
+                db::count_messages_paginated_search(&state.pool, &query, severity, code)
             )
         }
     };
@@ -507,43 +507,16 @@ pub async fn serve_search_api(
     })
 }
 
-/// Relint a specific tool
+/// Relint a specific tool. Rate limited to 1 request every 2 seconds.
 #[utoipa::path(post, path = "/api/lint", params(RelintParams))]
-pub async fn relint_api(
-    headers: HeaderMap,
-    socket_addr: ConnectInfo<SocketAddr>,
-    Query(params): Query<RelintParams>,
-    State(state): State<ServerState>,
-) -> StatusCode {
+pub async fn relint_api(headers: HeaderMap, Query(params): Query<RelintParams>) -> StatusCode {
     let input = params.tool.trim();
     info_statement!(headers, "API-RELINT", "{}", input);
-
-    let mut ips = state.ips.lock().unwrap();
-
-    // Get sender IP, prioritize X-Real-IP because of nginx
-    let ip: String = match headers.contains_key("X-Real-IP") {
-        true => headers
-            .get("X-Real-IP")
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_string(),
-        false => socket_addr.ip().to_string(),
-    };
-
-    if ips.contains_key(&ip) {
-        info!("IP is already linting, aborting");
-        return StatusCode::TOO_MANY_REQUESTS;
-    }
-    if ips.values().any(|v| v == input) {
-        info!("Tool is already being linted, aborting");
-        return StatusCode::TOO_MANY_REQUESTS;
-    }
 
     // Escape injection attacks
     // Regex taken from https://biotools.readthedocs.io/en/latest/api_usage_guide.html?highlight=biotoolsid#biotoolsid
     let re = Regex::new(r"^[_\-.0-9a-zA-Z]*$").unwrap();
-    if !re.is_match(&input) {
+    if !re.is_match(input) {
         info!("Input did not pass regex, aborting");
         return StatusCode::INTERNAL_SERVER_ERROR;
     }
@@ -552,12 +525,6 @@ pub async fn relint_api(
         info!("Input contains -lint-all, aborting");
         return StatusCode::INTERNAL_SERVER_ERROR;
     }
-
-    // Insert IP and tool into server state
-    ips.insert(ip.clone(), input.to_string());
-
-    // Drop ips for concurrent requests
-    std::mem::drop(ips);
 
     let script = "lint_from_server.sh";
 
@@ -572,9 +539,6 @@ pub async fn relint_api(
 
     info!("Output from script: {:?}", output);
 
-    let mut ips = state.ips.lock().unwrap();
-    ips.remove(&ip);
-
     if let Ok(output) = output {
         return match output.status.success() {
             true => StatusCode::OK,
@@ -588,10 +552,10 @@ pub async fn relint_api(
 
     error!("{:#?}", output);
 
-    return StatusCode::INTERNAL_SERVER_ERROR;
+    StatusCode::INTERNAL_SERVER_ERROR
 }
 
-/// Download data as csv
+/// Download data as csv. Rate limited to 1 request every 2 seconds.
 #[utoipa::path(get,
     path = "/api/download",
     params(DownloadParams),

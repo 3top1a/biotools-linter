@@ -98,7 +98,7 @@ def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
         "--db",
         default=None,
         required=False,
-        help="Provide the database connection string in the format: postgres://username:passwd@IP/database. Alternatively, set this using the DATABASE_URL environment variable.",
+        help="Database connection details in the format postgres://username:passwd@IP/database. Alternatively, set this using the DATABASE_URL environment variable, however this argument overwrites it.",
     )
     parser.add_argument(
         "--lint-all",
@@ -169,7 +169,7 @@ async def main(argv: Sequence[str]) -> int:
 
     exit_on_error: str = args.exit_on_error
     database_credentials: str = (
-        os.environ["DATABASE_URL"] if "DATABASE_URL" in os.environ else args.db
+        args.db if not args.db == None else (os.environ["DATABASE_URL"] if "DATABASE_URL" in os.environ else None)
     )
     lint_all: str = args.lint_all
     tool_name: str = args.name
@@ -181,7 +181,7 @@ async def main(argv: Sequence[str]) -> int:
     configure_logging(args.no_color, args.log_level)
 
     session = Session()
-    db = DatabaseConnection(database_credentials, database_credentials is None)
+    db = DatabaseConnection(database_credentials, database_credentials is None or database_credentials == '')
     message_queue = Queue()
     returned_at_least_one_error: bool = False
 

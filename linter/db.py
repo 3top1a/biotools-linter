@@ -30,6 +30,8 @@ class DatabaseConnection:
         if mock:
             return
 
+        logging.info(f"Connecting to database {parse_dsn(creds)['dbname']}")
+
         # Connect
         conn: psycopg2.extensions.connection = psycopg2.connect(**parse_dsn(creds))
         cursor: psycopg2.extensions.cursor = conn.cursor()

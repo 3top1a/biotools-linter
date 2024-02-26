@@ -96,7 +96,7 @@ async def filter_pub(json: dict) -> list[Message] | None:
                     continue
 
                 original_id: str = locals()[checking_id].strip().lower()
-                if checking_id in converted.__dict__:
+                if checking_id in converted.__dict__ and converted.__dict__[checking_id] is not None:
                     converted_id: str = converted.__dict__[checking_id].strip().lower()
                     if original_id != converted_id:
                         output.append(

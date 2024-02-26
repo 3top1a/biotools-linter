@@ -164,7 +164,7 @@ content %}
             });
 
             // Create error code dropdown
-            column = this.api().columns().header()[1];
+            column = this.api().columns().header()[2];
             error_dropdown = document.createElement('select');
             error_dropdown.add(new Option(''));
             column.append(error_dropdown);
@@ -292,18 +292,26 @@ content %}
             },
             {
                 data: 'code', title: 'Code',
+                visible: false,
+            },
+            {
+                data: 'text',
+                title: `<p>Error</p>`,
                 render: function (data, type, row) {
-                    // All Publishing ID conversions have a single docs page
-                    if (data == "PMCID_BUT_NOT_DOI" || data == "PMID_BUT_NOT_DOI" || data == "DOI_BUT_NOT_PMCID" || data == "DOI_BUT_NOT_PMID") {
-                        return (`<a target="_blank" href="/docs#PMID,_PMCID_and_DOI_conversion" rel="nofollow">${data}</a>`);
-                    }
-                    if (data == "PMID_DISCREPANCY" || data == "PMCID_DISCREPANCY" || data == "DOI_DISCREPANCY" || data == "DOI_BUT_NOT_PMID") {
-                        return (`<a target="_blank" href="/docs#PMID,_PMCID_and_DOI_discrepancy" rel="nofollow">${data}</a>`);
-                    }
-                    return (`<a target="_blank" href="/docs#${data}">${data}</a>`);
+                    debugger;
+                    const format = (data) => {
+                        if (data == "PMCID_BUT_NOT_DOI" || data == "PMID_BUT_NOT_DOI" || data == "DOI_BUT_NOT_PMCID" || data == "DOI_BUT_NOT_PMID") {
+                            return `<a target="_blank" href="/docs#PMID,_PMCID_and_DOI_conversion" rel="nofollow">${data}</a>`;
+                        }
+                        if (data == "PMID_DISCREPANCY" || data == "PMCID_DISCREPANCY" || data == "DOI_DISCREPANCY" || data == "DOI_BUT_NOT_PMID") {
+                            return `<a target="_blank" href="/docs#PMID,_PMCID_and_DOI_discrepancy" rel="nofollow">${data}</a>`;
+                        }
+                        return `<a target="_blank" href="/docs#${data}">${data}</a>`;
+                    };
+
+                    return format(row["code"]) + ": " + data;
                 }
             },
-            { data: 'text', title: 'Error' },
             {
                 data: 'severity',
                 title: 'Severity',

@@ -96,17 +96,18 @@ async def filter_pub(json: dict) -> list[Message] | None:
                     continue
 
                 original_id: str = locals()[checking_id].strip().lower()
-                converted_id: str = converted.__dict__[checking_id].strip().lower()
-                if original_id != converted_id:
-                    output.append(
-                        Message(
-                            # Can be DOI_DISCREPANCY, PMID_DISCREPANCY, PMCID_DISCREPANCY
-                            f"{checking_id.upper()}_DISCREPANCY",
-                            f"Converting {checked_id.upper()} {locals()[checked_id]} led to a different {checking_id.upper()} ({converted_id}) than in annotation ({original_id})",
-                            json["name"],
-                            Level.ReportHigh,
-                        ),
-                    )
+                if checking_id in converted.__dict__:
+                    converted_id: str = converted.__dict__[checking_id].strip().lower()
+                    if original_id != converted_id:
+                        output.append(
+                            Message(
+                                # Can be DOI_DISCREPANCY, PMID_DISCREPANCY, PMCID_DISCREPANCY
+                                f"{checking_id.upper()}_DISCREPANCY",
+                                f"Converting {checked_id.upper()} {locals()[checked_id]} led to a different {checking_id.upper()} ({converted_id}) than in annotation ({original_id})",
+                                json["name"],
+                                Level.ReportHigh,
+                            ),
+                        )
 
     if output == []:
         return None

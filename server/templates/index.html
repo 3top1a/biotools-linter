@@ -3,30 +3,6 @@
 
 {% endblock %} {% block
 content %}
-<p></p>
-<article>
-    <h1>Biotools database linter</h1>
-    <p>
-        This website serves to help <a href="https://bio.tools/">bio.tools database</a> editors and maintainers help
-        with data quality by searching for
-        common quantifiable errors.
-
-        Currently serving <code>{{error_count}}</code> errors for
-        <code>{{tool_count}}</code> tools, oldest entry was linted at <code>{{last_time}}</code>.
-
-        <br>
-        <br>
-
-        Disclaimer: This tool does not cover all possible aspects or validations that can be performed on the data, and
-        is not always accurate, particularly if the site uses DDoS mitigation.
-        Please use this tool responsibly and do not misuse or overwhelm the bio.tools API with excessive requests.
-
-        <br>
-    </p>
-
-    <div id="dropdown"></div>
-    <table id="table" style="width: 100%;"></table>
-</article>
 
 <style>
     #table_filter {
@@ -81,6 +57,30 @@ content %}
     }
 </style>
 
+<p></p>
+<article>
+    <h1>Biotools database linter</h1>
+    <p>
+        This website serves to help <a href="https://bio.tools/">bio.tools database</a> editors and maintainers help
+        with data quality by searching for
+        common quantifiable errors.
+
+        Currently serving <code>{{error_count}}</code> errors for
+        <code>{{tool_count}}</code> tools, oldest entry was linted at <code>{{last_time}}</code>.
+
+        <br>
+        <br>
+
+        Disclaimer: This tool does not cover all possible aspects or validations that can be performed on the data, and
+        is not always accurate, particularly if the site uses DDoS mitigation.
+        Please use this tool responsibly and do not misuse or overwhelm the bio.tools API with excessive requests.
+
+        <br>
+    </p>
+
+    <table id="table" style="width: 100%;"></table>
+</article>
+
 <script>
     ERROR_TYPES = [
         "URL_INVALID",
@@ -127,6 +127,10 @@ content %}
         serverSide: true,
         scrollX: true,
         dom: 'rfBltip',
+        language: {
+            search: "", // Removes the 'Search' label text
+            searchPlaceholder: ""
+        },
         buttons: [
             {
                 text: 'Download current',
@@ -285,7 +289,7 @@ content %}
         columns: [
             {
                 data: 'tool',
-                title: 'Tool name',
+                title: 'Tool',
                 render: function (data, type, row) {
                     return (`<a target="_blank" href="https://bio.tools/tool/${data}" rel="nofollow">${data}</a>`);
                 }
@@ -296,9 +300,8 @@ content %}
             },
             {
                 data: 'text',
-                title: `<p>Error</p>`,
+                title: `Error`,
                 render: function (data, type, row) {
-                    debugger;
                     const format = (data) => {
                         if (data == "PMCID_BUT_NOT_DOI" || data == "PMID_BUT_NOT_DOI" || data == "DOI_BUT_NOT_PMCID" || data == "DOI_BUT_NOT_PMID") {
                             return `<a target="_blank" href="/docs#PMID,_PMCID_and_DOI_conversion" rel="nofollow">${data}</a>`;
@@ -354,5 +357,8 @@ content %}
             },
         ]
     });
+
+    // Move the tool search input to the new location
+    $("th")[0].append($("label")[0]);
 </script>
 {% endblock %}

@@ -391,21 +391,13 @@ th {
   font-weight: bold;
 }
 
-th > p {
-  float: left;
-  margin: 0;
-  padding-top: 9px;
-  padding-bottom: 9px;
-}
-
 th > select {
-  float: right;
-  margin: 0;
+  display: block;
 }
 
 tr:nth-child(even) {
   /* Set every other cell slightly darker. Improves readability. */
-  /*background-color: var(--accent-bg); but looks a bit worse*/
+  background-color: var(--accent-bg);/* but looks a bit worse*/
 }
 
 table caption {

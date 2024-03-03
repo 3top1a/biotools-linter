@@ -12,7 +12,8 @@ from cacheout import Cache
 from message import Level, Message
 
 # Initialize (here so it inits once)
-user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 (Bio.tools linter, github.com/3top1a/biotools-linter)"
+# Now only used by other filters
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.3 (Bio.tools linter, github.com/3top1a/biotools-linter)"
 req_session = requests.Session()
 adapter = requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=100)
 req_session.mount("http://", adapter)
@@ -21,11 +22,23 @@ req_session.mount("https://", adapter)
 req_session.headers.update({"User-Agent": user_agent})
 cache: Cache = Cache(maxsize=8192, ttl=0, default=None)
 
+timeout = aiohttp.ClientTimeout(
+    total=None,
+    sock_connect=10,
+    sock_read=10
+)
+client_args = dict(
+    trust_env=True,
+    timeout=timeout,
+    headers={"User-Agent": user_agent},
+)
+
 URL_REGEX = (
     r"(http[s]?)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
 )
 REPORT = 15
-TIMEOUT = 30  # Timeouts cause a lot of slowness in the linter so this value is quite low (the aiohttp default is 5m)
+# Timeouts cause a lot of slowness in the linter so this value is quite low (the aiohttp default is 5m)
+TIMEOUT = 30
 
 
 async def filter_url(key: str, value: str) -> list[Message] | None:
@@ -50,7 +63,8 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
     # Check cache
     if value in cache:
         hits: list[Message] = cache.get(value)
-        logging.debug(f"Cache hit for URL {value} from tool - {len(hits)} messages")
+        logging.debug(
+            f"Cache hit for URL {value} from tool - {len(hits)} messages")
 
         # Replace keys since those are different
         for message in hits:
@@ -98,8 +112,13 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
         # It streams it and then closes it so it doesn't download the file. Better than HEAD requests.
         try:
             # TODO Move session into singleton (needs to be initialized in async run loop)
-            async with aiohttp.ClientSession() as session:
-                response = await session.get(value, timeout=TIMEOUT)
+            async with aiohttp.ClientSession(**client_args) as session:
+                # https://github.com/aio-libs/aiohttp/issues/3203
+                # AIOHTTP has an issue with timeouts appearing where they shouldn't be.
+                # Making a new timeout for each request seems to eliminate this issue
+                response = await session.get(value, timeout=aiohttp.ClientTimeout(total=None,
+                                                                                  sock_connect=10,
+                                                                                  sock_read=10))
 
                 # Check for redirect
                 # See https://docs.aiohttp.org/en/stable/client_advanced.html#redirection-history

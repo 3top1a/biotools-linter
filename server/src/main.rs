@@ -141,8 +141,9 @@ fn app(state: &ServerState) -> Router {
         .layer(RateLimitLayer::new(1, Duration::from_secs(2)));
 
     Router::new()
-        .route("/api/lint", post(relint_api))
         .route("/api/json", post(json_api))
+        .layer(tower_http::cors::CorsLayer::permissive())
+        .route("/api/lint", post(relint_api))
         .route("/api/download", get(download_api))
         .layer(ratelimit.clone()) // Only rate limit the routes above
         .route("/", get(serve_index_page))

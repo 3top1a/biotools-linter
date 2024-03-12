@@ -30,7 +30,7 @@ axum-test-helper = "0.3.0"
 
 [dependencies.axum]
 version = "0.6.20"
-features = ["json", "matched-path", "tokio", "http1", "query"]
+features = ["json", "tracing", "matched-path", "tokio", "http1", "query"]
 default-features = false
 
 [dependencies.tera]
@@ -49,7 +49,7 @@ default-features = false
 
 [dependencies.tower-http]
 version = "0.4.3"
-features = ["tracing", "mime_guess", "mime", "httpdate", "fs", "percent-encoding"]
+features = ["tracing", "mime_guess", "mime", "httpdate", "fs", "percent-encoding", "cors"]
 default-features = false
 
 [dependencies.sqlx]

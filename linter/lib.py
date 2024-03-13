@@ -139,14 +139,7 @@ class Session:
             if response.ok:
                 json = response.json()
                 # Need to wrap it so its compatible with the rest of the code
-                json = {
-                    "count": 1,
-                    "next": None,
-                    "previous": None,
-                    "list": [
-                        json,
-                    ],
-                }
+                json = single_tool_to_search_json(json)
                 self.json[name] = json
                 return
             logging.error("Exact tool could not be found")
@@ -342,3 +335,21 @@ class Session:
     def get_total_tool_count(self: Session) -> int:
         """Return the total number of tools in cache."""
         return next(iter(self.json.items()))[1]["count"]
+
+def single_tool_to_search_json(json: str | dict) -> dict:
+    """
+    Convert the JSON of a single tool into the JSON format returned by a search.
+    """
+    
+    # Early quit if it's already processed
+    if 'count' in json:
+        return json
+    
+    return {
+        "count": 1,
+        "next": None,
+        "previous": None,
+        "list": [
+            json,
+        ],
+    }

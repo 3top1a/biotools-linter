@@ -15,7 +15,7 @@ import copy
 
 import colorlog
 from db import DatabaseConnection
-from lib import Session
+from lib import Session, single_tool_to_search_json
 
 REPORT = 15
 
@@ -188,8 +188,8 @@ async def main(argv: Sequence[str]) -> int:
 
     # Start linting, switch modes
     if json_mode:
-        json_data = '{"x": ' + "\n".join(sys.stdin.readlines()) + "}"
-        session = Session(json.loads(str(json_data)))
+        json_data = {"x": single_tool_to_search_json(json.loads("\n".join(sys.stdin.readlines()))) }
+        session = Session((json_data))
 
         if session.get_total_tool_count() != 1:
             logging.critical("Could not load JSON.")

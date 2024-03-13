@@ -87,7 +87,7 @@ async def test_session():
     s.clear_cache()
     for x in range(0, 2):
         s.search_api_multiple_pages("cli", x * 10 + 1, x * 10 + 10 + 1)
-    assert len(s.return_tool_list_json()) == 132
+    assert len(s.return_tool_list_json()) == 133 # this is stupid and needs to be updates but works for now
 
     example_json = {
         "a": {

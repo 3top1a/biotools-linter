@@ -286,12 +286,6 @@ pub struct RelintParams {
     tool: String,
 }
 
-/// JSON parameters
-#[derive(Deserialize, IntoParams)]
-pub struct JSONParams {
-    json: String,
-}
-
 /// Serve the main page
 pub async fn serve_index_page(
     headers: HeaderMap,
@@ -560,16 +554,14 @@ pub async fn relint_api(headers: HeaderMap, Query(params): Query<RelintParams>) 
     StatusCode::INTERNAL_SERVER_ERROR
 }
 
-/// Lint JSON in the query
-#[utoipa::path(post, path = "/api/json", params(JSONParams)
-,
+/// Lint JSON in the request body. Does not send found errors into the main database.
+#[utoipa::path(post, path = "/api/json", request_body = String,
 responses(
     (status = 200, description = "JSON lint successfull", body = String,
     ),
 ),
 )]
-pub async fn json_api(headers: HeaderMap, Query(params): Query<JSONParams>) -> impl IntoResponse {
-    let json = params.json.to_string();
+pub async fn json_api(headers: HeaderMap, json: String) -> impl IntoResponse {
     info_statement!(headers, "API-JSON", "");
 
     let script = "lint_from_server.sh";

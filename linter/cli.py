@@ -16,6 +16,7 @@ import copy
 import colorlog
 from db import DatabaseConnection
 from lib import Session, single_tool_to_search_json
+from utils import unflatten_json_from_single_dict
 
 REPORT = 15
 
@@ -117,6 +118,11 @@ def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
         help="Reads tool JSON from STDIN and analyzes it.",
     )
     parser.add_argument(
+        "--biotools-format",
+        action="store_true",
+        help="JSON mode output mimics the output from bio.tools validation API.",
+    )
+    parser.add_argument(
         "--page",
         "-p",
         default=1,
@@ -139,7 +145,8 @@ def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
     # Check for correct arguments
     # Require name or --lint-all
     if args.name is None and args.lint_all is False and args.json is False:
-        logging.critical("Please specify tools name, pass in --lint-all or --json to continue.")
+        logging.critical(
+            "Please specify tools name, pass in --lint-all or --json to continue.")
         sys.exit(1)
 
     # Require page > 0
@@ -170,8 +177,10 @@ async def main(argv: Sequence[str]) -> int:
 
     exit_on_error: str = args.exit_on_error
     database_credentials: str = (
-        args.db if not args.db == None else (os.environ["DATABASE_URL"] if "DATABASE_URL" in os.environ else None)
+        args.db if not args.db == None else (
+            os.environ["DATABASE_URL"] if "DATABASE_URL" in os.environ else None)
     )
+    biotoolsoutput: bool = args.biotools_format
     lint_all: str = args.lint_all
     tool_name: str = args.name
     json_mode: str = args.json
@@ -182,19 +191,21 @@ async def main(argv: Sequence[str]) -> int:
     configure_logging(args.no_color, args.log_level)
 
     session = Session()
-    db = DatabaseConnection(database_credentials, database_credentials is None or not database_credentials or database_credentials == "ignore")
+    db = DatabaseConnection(
+        database_credentials, database_credentials is None or not database_credentials or database_credentials == "ignore")
     message_queue = Queue()
     returned_at_least_one_error: bool = False
 
     # Start linting, switch modes
     if json_mode:
-        json_data = {"x": single_tool_to_search_json(json.loads("\n".join(sys.stdin.readlines()))) }
+        input_json = "\n".join(sys.stdin.readlines())
+        json_data = {"x": single_tool_to_search_json(json.loads(input_json))}
         session = Session((json_data))
 
         if session.get_total_tool_count() != 1:
             logging.critical("Could not load JSON.")
             return 1
-    
+
         for tool in session.return_tool_list_json():
             name = tool["biotoolsID"]
             if name is None:
@@ -210,9 +221,22 @@ async def main(argv: Sequence[str]) -> int:
         json_list = []
         while not json_queue.qsize() == 0:
             json_list.append(json_queue.get())
-
         json_list = [x.__dict__ for x in json_list if x.code != "LINT-F"]
-        print(json.dumps(json_list))
+
+        if biotoolsoutput:
+            # Mimic the way the bio.tools validate API works
+            if json_list == []:
+                print(input_json)
+            else:
+                errors = {}
+                for error in json_list:
+                    errors.update(unflatten_json_from_single_dict(
+                        {error['location'].split("//")[1]: [error['body']]}
+                    ))
+
+                print(json.dumps(errors))
+        else:
+            print(json.dumps(json_list))
 
         db.commit()
 
@@ -278,9 +302,11 @@ async def main(argv: Sequence[str]) -> int:
     db.close()
 
     if session.next_page_exists():
-        logging.info(f"You can also search the next page (page {int(page) + 1})")
+        logging.info(
+            f"You can also search the next page (page {int(page) + 1})")
     if session.previous_page_exists():
-        logging.info(f"You can also search the previous page (page {int(page) - 1})")
+        logging.info(
+            f"You can also search the previous page (page {int(page) - 1})")
 
     if returned_at_least_one_error and exit_on_error:
         return 1

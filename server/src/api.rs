@@ -286,6 +286,12 @@ pub struct RelintParams {
     tool: String,
 }
 
+/// JSON parameters
+#[derive(Deserialize, IntoParams)]
+pub struct JSONParams {
+    biotools_format: Option<bool>,
+}
+
 /// Serve the main page
 pub async fn serve_index_page(
     headers: HeaderMap,
@@ -556,15 +562,26 @@ pub async fn relint_api(headers: HeaderMap, Query(params): Query<RelintParams>) 
 
 /// Lint JSON in the request body. Does not send found errors into the main database.
 #[utoipa::path(post, path = "/api/json", request_body = String,
+params(JSONParams),
 responses(
     (status = 200, description = "JSON lint successfull", body = String,
     ),
 ),
 )]
-pub async fn json_api(headers: HeaderMap, json: String) -> impl IntoResponse {
+pub async fn json_api(
+    headers: HeaderMap,
+    params: Query<JSONParams>,
+    json: String,
+) -> impl IntoResponse {
     info_statement!(headers, "API-JSON", "");
 
     let script = "lint_from_server.sh";
+
+    let extra_args = if params.biotools_format.unwrap_or_else(|| false) {
+        ["--biotools-format"]
+    } else {
+        [""]
+    };
 
     // Command takes arguments as literals so shell expansions is automatically escaped
     let mut child = Command::new("bash")
@@ -572,6 +589,7 @@ pub async fn json_api(headers: HeaderMap, json: String) -> impl IntoResponse {
         .arg("--no-color")
         .arg("--json")
         .arg("--db=ignore")
+        .args(extra_args)
         .current_dir("../")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())

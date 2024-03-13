@@ -139,7 +139,7 @@ async def test_cli():
     # Any use of certain tool names are only for testing purposes and not in bad faith
     assert await cli.main(["msmc"]) == 0
     assert await cli.main(["metexplore", "--no-color"]) == 0
-    assert await cli.main(["metexplore", "--exit-on-error"]) == 1
+    assert await cli.main(["metexplore", "--exit-on-error"]) == 254
 
 
 # Test url.py

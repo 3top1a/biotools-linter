@@ -309,7 +309,7 @@ async def main(argv: Sequence[str]) -> int:
             f"You can also search the previous page (page {int(page) - 1})")
 
     if returned_at_least_one_error and exit_on_error:
-        return 1
+        return 254
     return 0
 
 

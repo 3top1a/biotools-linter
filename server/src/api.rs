@@ -589,6 +589,7 @@ pub async fn json_api(
         .arg("--no-color")
         .arg("--json")
         .arg("--db=ignore")
+        .arg("--exit-on-error")
         .args(extra_args)
         .current_dir("../")
         .stdin(Stdio::piped())
@@ -605,9 +606,9 @@ pub async fn json_api(
 
     let output = child.wait_with_output().expect("Failed to read stdout");
 
-    if !output.status.success() {
+    if output.status.code().unwrap() == 1 {
         return (
-            StatusCode::OK,
+            StatusCode::INTERNAL_SERVER_ERROR,
             [(header::CONTENT_TYPE, "text/json")],
             "\"error\": \"could not get data from linter\"".to_string(),
         );
@@ -615,10 +616,16 @@ pub async fn json_api(
 
     info!("Output from script: {:?}", output);
 
+    let str_output = String::from_utf8(output.stdout).unwrap();
+    let code = match output.status.code().unwrap() {
+        254 => StatusCode::BAD_REQUEST,
+        _ => StatusCode::OK,
+    };
+
     (
-        StatusCode::OK,
+        code,
         [(header::CONTENT_TYPE, "text/json")],
-        String::from_utf8(output.stdout).unwrap(),
+        str_output,
     )
 }
 

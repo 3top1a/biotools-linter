@@ -3,11 +3,12 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from typing import Optional
+import aiohttp
 
 from cacheout import Cache
 from message import Level, Message
 
-from .url import req_session
+from .url import client_args
 
 cache: Cache = Cache(maxsize=8192, ttl=0, default=None)
 
@@ -42,7 +43,7 @@ async def filter_pub(json: dict) -> list[Message] | None:
         pmcid = publication["pmcid"]
 
         # Convert naively
-        converted = PublicationData.convert(doi or pmid or pmcid)
+        converted = await PublicationData.convert(doi or pmid or pmcid)
 
         if not converted:
             continue
@@ -90,7 +91,7 @@ async def filter_pub(json: dict) -> list[Message] | None:
 
         # Check for publication discrepancy (two different publications were entered in one, may be due to a user error)
         for checked_id in TYPES:
-            converted = PublicationData.convert(locals()[checked_id])
+            converted = await PublicationData.convert(locals()[checked_id])
             for checking_id in array_without_value(TYPES, checked_id):
                 if locals()[checking_id] is None or converted is None:
                     continue
@@ -138,29 +139,38 @@ class PublicationData:
     pmcid: Optional[str] = None
 
     @staticmethod
-    def convert(identifier: str) -> PublicationData | None:
+    async def convert(identifier: str) -> PublicationData | None:
         """Convert a given identifier (DOI, PMID, or PMCID) to the other formats."""
         if identifier in cache:
             return cache.get(identifier)
 
         try:
             url = f"https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/?tool=biotools-linter&email=251814@mail.muni.cz&ids={identifier}&format=json"
-            result = req_session.get(url).json()
 
-            if not result or result.get("status") != "ok":
-                return None
+            # TODO Move session into singleton (needs to be initialized in async run loop)
+            async with aiohttp.ClientSession(**client_args) as session:
+                # https://github.com/aio-libs/aiohttp/issues/3203
+                # AIOHTTP has an issue with timeouts appearing where they shouldn't be.
+                # Making a new timeout for each request seems to eliminate this issue
+                response = await session.get(url, timeout=aiohttp.ClientTimeout(total=None,
+                                                                                  sock_connect=10,
+                                                                                  sock_read=10))
+                result = await response.json()
 
-            pub = result["records"][0]
-            if pub.get("live") == "false":
-                return None
+                if not result or result.get("status") != "ok":
+                    return None
 
-            pub_data = PublicationData(
-                doi=pub.get("doi"),
-                pmid=pub.get("pmid"),
-                pmcid=pub.get("pmcid"),
-            )
-            cache.set(identifier, pub_data)
-            return pub_data
+                pub = result["records"][0]
+                if pub.get("live") == "false":
+                    return None
+
+                pub_data = PublicationData(
+                    doi=pub.get("doi"),
+                    pmid=pub.get("pmid"),
+                    pmcid=pub.get("pmcid"),
+                )
+                cache.set(identifier, pub_data)
+                return pub_data
 
         except Exception as e:
             logging.critical(

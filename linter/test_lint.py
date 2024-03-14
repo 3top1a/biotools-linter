@@ -268,15 +268,15 @@ async def test_publications():
     import json
 
     # Test converter
-    x1: PublicationData = PublicationData.convert("10.1093/BIOINFORMATICS/BTAA581")
+    x1: PublicationData = await PublicationData.convert("10.1093/BIOINFORMATICS/BTAA581")
     assert x1
     assert x1.pmid == "32573681"
     assert x1.pmcid == "PMC8034561"
 
-    x2: PublicationData = PublicationData.convert("test")
+    x2: PublicationData = await PublicationData.convert("test")
     assert x2 == None
 
-    x3: PublicationData = PublicationData.convert("PMC8034561")
+    x3: PublicationData = await PublicationData.convert("PMC8034561")
     assert x3
     assert x3.doi == "10.1093/bioinformatics/btaa581"
     assert x3.pmid == "32573681"

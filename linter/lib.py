@@ -15,7 +15,7 @@ from message import Level, Message
 from requests.adapters import HTTPAdapter
 from rules import delegate_key_value_filter, delegate_whole_json_filter
 from urllib3.util.retry import Retry
-from utils import flatten_json_to_single_dict
+from utils import flatten_json_to_single_dict, single_tool_to_search_json
 
 REPORT: int = 15  # Report log level is between debug and info
 TIMEOUT = (
@@ -335,21 +335,3 @@ class Session:
     def get_total_tool_count(self: Session) -> int:
         """Return the total number of tools in cache."""
         return next(iter(self.json.items()))[1]["count"]
-
-def single_tool_to_search_json(json: str | dict) -> dict:
-    """
-    Convert the JSON of a single tool into the JSON format returned by a search.
-    """
-    
-    # Early quit if it's already processed
-    if 'count' in json:
-        return json
-    
-    return {
-        "count": 1,
-        "next": None,
-        "previous": None,
-        "list": [
-            json,
-        ],
-    }

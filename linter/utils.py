@@ -98,3 +98,38 @@ def unflatten_json_from_single_dict(flattened_dict: dict, separator: str = "/") 
                 current_level = current_level[part]
 
     return unflattened_dict
+
+def array_without_value(arr: list, value: any) -> list:
+    """Return given array without a given value.
+
+    Args:
+    ----
+        arr (list): Input array
+        value (any): Value to ignore
+
+    Returns:
+    -------
+        list: Output array
+
+    """
+    return [x for x in arr if x != value]
+
+
+def single_tool_to_search_json(json: str | dict) -> dict:
+    """
+    Convert the JSON of a single tool into the JSON format returned by a search.
+    """
+    
+    # Early quit if it's already processed
+    if 'count' in json:
+        return json
+    
+    return {
+        "count": 1,
+        "next": None,
+        "previous": None,
+        "list": [
+            json,
+        ],
+    }
+

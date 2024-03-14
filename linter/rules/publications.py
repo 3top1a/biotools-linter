@@ -6,6 +6,7 @@ from typing import Optional
 import aiohttp
 
 from cacheout import Cache
+from utils import array_without_value
 from message import Level, Message
 
 from .url import client_args
@@ -37,13 +38,15 @@ async def filter_pub(json: dict) -> list[Message] | None:
 
     # Check each publication
     # Schema at https://biotoolsschema.readthedocs.io/en/latest/biotoolsschema_elements.html#publication-group
-    for publication in json["publication"]:
+    for pub_index, publication in enumerate(json["publication"]):
         doi = publication["doi"]
         pmid = publication["pmid"]
         pmcid = publication["pmcid"]
 
         # Convert naively
         converted = await PublicationData.convert(doi or pmid or pmcid)
+
+        location = f"{json['name']}//publication/{pub_index}"
 
         if not converted:
             continue
@@ -54,7 +57,7 @@ async def filter_pub(json: dict) -> list[Message] | None:
                 Message(
                     "DOI_BUT_NOT_PMID",
                     f"Publication DOI {doi} (https://www.doi.org/{doi}) does not have a PMID in the database.",
-                    json["name"],
+                    f"{location}/doi",
                     Level.ReportMedium,
                 ),
             )
@@ -64,7 +67,7 @@ async def filter_pub(json: dict) -> list[Message] | None:
                 Message(
                     "DOI_BUT_NOT_PMCID",
                     f"Publication DOI {doi} (https://www.doi.org/{doi}) does not have a PMCID in the database.",
-                    json["name"],
+                    f"{location}/doi",
                     Level.ReportMedium,
                 ),
             )
@@ -74,7 +77,7 @@ async def filter_pub(json: dict) -> list[Message] | None:
                 Message(
                     "PMID_BUT_NOT_DOI",
                     f"Publication PMID {pmid} (https://pubmed.ncbi.nlm.nih.gov/{pmid}) does not have a DOI in the database.",
-                    json["name"],
+                    f"{location}/pmid",
                     Level.ReportMedium,
                 ),
             )
@@ -84,7 +87,7 @@ async def filter_pub(json: dict) -> list[Message] | None:
                 Message(
                     "PMCID_BUT_NOT_DOI",
                     f"Publication PMCID {pmcid} (https://pubmed.ncbi.nlm.nih.gov/{pmcid}) does not have a DOI in the database.",
-                    json["name"],
+                    f"{location}/pmcid",
                     Level.ReportMedium,
                 ),
             )
@@ -105,7 +108,7 @@ async def filter_pub(json: dict) -> list[Message] | None:
                                 # Can be DOI_DISCREPANCY, PMID_DISCREPANCY, PMCID_DISCREPANCY
                                 f"{checking_id.upper()}_DISCREPANCY",
                                 f"Converting {checked_id.upper()} {locals()[checked_id]} led to a different {checking_id.upper()} ({converted_id}) than in annotation ({original_id})",
-                                json["name"],
+                                f"{location}/{checked_id.lower()}",
                                 Level.ReportHigh,
                             ),
                         )
@@ -113,21 +116,6 @@ async def filter_pub(json: dict) -> list[Message] | None:
     if output == []:
         return None
     return output
-
-def array_without_value(arr: list, value: any) -> list:
-    """Return given array without a given value.
-
-    Args:
-    ----
-        arr (list): Input array
-        value (any): Value to ignore
-
-    Returns:
-    -------
-        list: Output array
-
-    """
-    return [x for x in arr if x != value]
 
 @dataclass
 class PublicationData:

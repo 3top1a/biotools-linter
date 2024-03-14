@@ -8,11 +8,9 @@ import os
 import sys
 
 import owlready2
+import requests
 from message import Level, Message
 from utils import flatten_json_to_single_dict
-
-from .url import req_session
-
 
 class EdamFilter:
     def __init__(self: EdamFilter) -> None:
@@ -34,7 +32,7 @@ class EdamFilter:
         """Download file helper."""
         if not os.path.exists(filename):
             logging.info(f"Downloading {filename}")
-            response = req_session.get(url)
+            response = requests.get(url)
             if not response.ok:
                 logging.exception(f"Unable to download {url}")
                 sys.exit(1)

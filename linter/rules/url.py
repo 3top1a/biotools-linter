@@ -14,12 +14,6 @@ from message import Level, Message
 # Initialize (here so it inits once)
 # Now only used by other filters
 user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.3 (Bio.tools linter, github.com/3top1a/biotools-linter)"
-req_session = requests.Session()
-adapter = requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=100)
-req_session.mount("http://", adapter)
-req_session.mount("https://", adapter)
-# Change the UA so it doesn't get rate limited
-req_session.headers.update({"User-Agent": user_agent})
 cache: Cache = Cache(maxsize=8192, ttl=0, default=None)
 
 timeout = aiohttp.ClientTimeout(
@@ -117,8 +111,8 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                 # AIOHTTP has an issue with timeouts appearing where they shouldn't be.
                 # Making a new timeout for each request seems to eliminate this issue
                 response = await session.get(value, timeout=aiohttp.ClientTimeout(total=None,
-                                                                                  sock_connect=10,
-                                                                                  sock_read=10))
+                                                                                  sock_connect=5,
+                                                                                  sock_read=5))
 
                 # Check for redirect
                 # See https://docs.aiohttp.org/en/stable/client_advanced.html#redirection-history

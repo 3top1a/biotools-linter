@@ -1,4 +1,5 @@
 from __future__ import annotations
+import asyncio
 
 import logging
 from dataclasses import dataclass
@@ -15,7 +16,6 @@ cache: Cache = Cache(maxsize=8192, ttl=0, default=None)
 
 TYPES = ["doi", "pmid", "pmcid"]
 
-
 async def filter_pub(json: dict) -> list[Message] | None:
     """Run publication checks.
 
@@ -28,93 +28,89 @@ async def filter_pub(json: dict) -> list[Message] | None:
         list[Message] | None: Errors
 
     """
-    if json is None:
+    if json is None or "publication" not in json:
         return None
 
-    if "publication" not in json:
-        return None
+    tasks = [process_publication(json, pub_index, publication) for pub_index, publication in enumerate(json["publication"])]
+    results = await asyncio.gather(*tasks)
+    messages = [message for result in results for message in result if result]
 
+    return messages if messages else None
+
+async def process_publication(json: dict, pub_index, publication: dict) -> list[Message]:
     output = []
+    doi = publication["doi"]
+    pmid = publication["pmid"]
+    pmcid = publication["pmcid"]
+    identifier = doi or pmid or pmcid
+    converted = await PublicationData.convert(identifier)
+    location = f"{json['name']}//publication/{pub_index}"
 
-    # Check each publication
-    # Schema at https://biotoolsschema.readthedocs.io/en/latest/biotoolsschema_elements.html#publication-group
-    for pub_index, publication in enumerate(json["publication"]):
-        doi = publication["doi"]
-        pmid = publication["pmid"]
-        pmcid = publication["pmcid"]
+    if not converted:
+        return output
 
-        # Convert naively
-        converted = await PublicationData.convert(doi or pmid or pmcid)
+    # Other IDs not present in DB
+    if doi and not pmid and converted.pmid:
+        output.append(
+            Message(
+                "DOI_BUT_NOT_PMID",
+                f"Publication DOI {doi} (https://www.doi.org/{doi}) does not have a PMID in the database.",
+                f"{location}/doi",
+                Level.ReportMedium,
+            ),
+        )
 
-        location = f"{json['name']}//publication/{pub_index}"
+    if doi and not pmcid and converted.pmcid:
+        output.append(
+            Message(
+                "DOI_BUT_NOT_PMCID",
+                f"Publication DOI {doi} (https://www.doi.org/{doi}) does not have a PMCID in the database.",
+                f"{location}/doi",
+                Level.ReportMedium,
+            ),
+        )
 
-        if not converted:
-            continue
+    if pmid and not doi and converted.doi:
+        output.append(
+            Message(
+                "PMID_BUT_NOT_DOI",
+                f"Publication PMID {pmid} (https://pubmed.ncbi.nlm.nih.gov/{pmid}) does not have a DOI in the database.",
+                f"{location}/pmid",
+                Level.ReportMedium,
+            ),
+        )
 
-        # Other IDs not present in DB
-        if doi and not pmid and converted.pmid:
-            output.append(
-                Message(
-                    "DOI_BUT_NOT_PMID",
-                    f"Publication DOI {doi} (https://www.doi.org/{doi}) does not have a PMID in the database.",
-                    f"{location}/doi",
-                    Level.ReportMedium,
-                ),
-            )
+    if pmcid and not doi and converted.doi:
+        output.append(
+            Message(
+                "PMCID_BUT_NOT_DOI",
+                f"Publication PMCID {pmcid} (https://pubmed.ncbi.nlm.nih.gov/{pmcid}) does not have a DOI in the database.",
+                f"{location}/pmcid",
+                Level.ReportMedium,
+            ),
+        )
 
-        if doi and not pmcid and converted.pmcid:
-            output.append(
-                Message(
-                    "DOI_BUT_NOT_PMCID",
-                    f"Publication DOI {doi} (https://www.doi.org/{doi}) does not have a PMCID in the database.",
-                    f"{location}/doi",
-                    Level.ReportMedium,
-                ),
-            )
+    # Check for publication discrepancy (two different publications were entered in one, may be due to a user error)
+    for checked_id in TYPES:
+        converted = await PublicationData.convert(locals()[checked_id])
+        for checking_id in array_without_value(TYPES, checked_id):
+            if locals()[checking_id] is None or converted is None:
+                continue
 
-        if pmid and not doi and converted.doi:
-            output.append(
-                Message(
-                    "PMID_BUT_NOT_DOI",
-                    f"Publication PMID {pmid} (https://pubmed.ncbi.nlm.nih.gov/{pmid}) does not have a DOI in the database.",
-                    f"{location}/pmid",
-                    Level.ReportMedium,
-                ),
-            )
+            original_id: str = locals()[checking_id].strip().lower()
+            if checking_id in converted.__dict__ and converted.__dict__[checking_id] is not None:
+                converted_id: str = converted.__dict__[checking_id].strip().lower()
+                if original_id != converted_id:
+                    output.append(
+                        Message(
+                            # Can be DOI_DISCREPANCY, PMID_DISCREPANCY, PMCID_DISCREPANCY
+                            f"{checking_id.upper()}_DISCREPANCY",
+                            f"Converting {checked_id.upper()} {locals()[checked_id]} led to a different {checking_id.upper()} ({converted_id}) than in annotation ({original_id})",
+                            f"{location}/{checked_id.lower()}",
+                            Level.ReportHigh,
+                        ),
+                    )
 
-        if pmcid and not doi and converted.doi:
-            output.append(
-                Message(
-                    "PMCID_BUT_NOT_DOI",
-                    f"Publication PMCID {pmcid} (https://pubmed.ncbi.nlm.nih.gov/{pmcid}) does not have a DOI in the database.",
-                    f"{location}/pmcid",
-                    Level.ReportMedium,
-                ),
-            )
-
-        # Check for publication discrepancy (two different publications were entered in one, may be due to a user error)
-        for checked_id in TYPES:
-            converted = await PublicationData.convert(locals()[checked_id])
-            for checking_id in array_without_value(TYPES, checked_id):
-                if locals()[checking_id] is None or converted is None:
-                    continue
-
-                original_id: str = locals()[checking_id].strip().lower()
-                if checking_id in converted.__dict__ and converted.__dict__[checking_id] is not None:
-                    converted_id: str = converted.__dict__[checking_id].strip().lower()
-                    if original_id != converted_id:
-                        output.append(
-                            Message(
-                                # Can be DOI_DISCREPANCY, PMID_DISCREPANCY, PMCID_DISCREPANCY
-                                f"{checking_id.upper()}_DISCREPANCY",
-                                f"Converting {checked_id.upper()} {locals()[checked_id]} led to a different {checking_id.upper()} ({converted_id}) than in annotation ({original_id})",
-                                f"{location}/{checked_id.lower()}",
-                                Level.ReportHigh,
-                            ),
-                        )
-
-    if output == []:
-        return None
     return output
 
 @dataclass
@@ -141,8 +137,8 @@ class PublicationData:
                 # AIOHTTP has an issue with timeouts appearing where they shouldn't be.
                 # Making a new timeout for each request seems to eliminate this issue
                 response = await session.get(url, timeout=aiohttp.ClientTimeout(total=None,
-                                                                                  sock_connect=10,
-                                                                                  sock_read=10))
+                                                                                  sock_connect=5,
+                                                                                  sock_read=5))
                 result = await response.json()
 
                 if not result or result.get("status") != "ok":

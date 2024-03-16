@@ -133,3 +133,21 @@ def single_tool_to_search_json(json: str | dict) -> dict:
         ],
     }
 
+
+def sanity_check_json(input: dict) -> bool:
+    """
+    Sanity check tool JSON. Returns false if correct.
+    """
+    required = ['name', 'biotoolsID']
+    
+    if input == {} or input == []:
+        return True
+    
+    for r in required:
+        if r not in input or not isinstance(r, str) or r is None:
+            return True
+    
+    
+    
+    return False
+

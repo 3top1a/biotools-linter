@@ -15,7 +15,7 @@ from message import Level, Message
 from requests.adapters import HTTPAdapter
 from rules import delegate_key_value_filter, delegate_whole_json_filter
 from urllib3.util.retry import Retry
-from utils import flatten_json_to_single_dict, single_tool_to_search_json
+from utils import flatten_json_to_single_dict, sanity_check_json, single_tool_to_search_json
 
 REPORT: int = 15  # Report log level is between debug and info
 TIMEOUT = (
@@ -242,6 +242,10 @@ class Session:
         """
         if len(data_json) == 0:
             logging.critical("Received empty JSON!")
+            return
+        
+        if sanity_check_json(data_json):
+            logging.critical("Failed sanity check, is the JSON corrupted?")
             return
 
         tool_name = data_json["name"]

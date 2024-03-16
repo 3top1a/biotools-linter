@@ -31,6 +31,9 @@ async def filter_pub(json: dict) -> list[Message] | None:
     if json is None or "publication" not in json:
         return None
 
+    if "publication" not in json or not json['publication']:
+        return None
+
     tasks = [process_publication(json, pub_index, publication) for pub_index, publication in enumerate(json["publication"])]
     results = await asyncio.gather(*tasks)
     messages = [message for result in results for message in result if result]
@@ -39,9 +42,9 @@ async def filter_pub(json: dict) -> list[Message] | None:
 
 async def process_publication(json: dict, pub_index, publication: dict) -> list[Message]:
     output = []
-    doi = publication["doi"]
-    pmid = publication["pmid"]
-    pmcid = publication["pmcid"]
+    doi = publication["doi"] if "doi" in publication else None
+    pmid = publication["pmid"] if "pmid" in publication else None
+    pmcid = publication["pmcid"] if "pmcid" in publication else None
     identifier = doi or pmid or pmcid
     converted = await PublicationData.convert(identifier)
     location = f"{json['name']}//publication/{pub_index}"

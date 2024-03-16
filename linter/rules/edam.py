@@ -188,8 +188,9 @@ class EdamFilter:
         reports = []
 
         # Combines inputs and outputs of all operations and flattens the 2d arrays
-        json_inputs = sum([x["input"] for x in operations_json], [])
-        json_outputs = sum([x["output"] for x in operations_json], [])
+        
+        json_inputs = sum([x["input"] if "input" in x else [] for x in operations_json], [])
+        json_outputs = sum([x["output"] if "output" in x else [] for x in operations_json], [])
 
         for edam_property in edam_class.is_a:
             if not hasattr(edam_property, "property"):
@@ -237,8 +238,10 @@ class EdamFilter:
 
             edam_class = self.get_class_from_uri(value)
             if edam_class:
-                reports.extend(self.check_topics(edam_class, json["topic"], pair))
-                reports.extend(self.check_operation(edam_class, json["function"], pair))
+                if "topic" in json:
+                    reports.extend(self.check_topics(edam_class, json["topic"], pair))
+                if "function" in json:
+                    reports.extend(self.check_operation(edam_class, json["function"], pair))
 
         if reports == []:
             return None

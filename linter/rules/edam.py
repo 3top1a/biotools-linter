@@ -14,15 +14,21 @@ from utils import flatten_json_to_single_dict
 
 
 class EdamFilter:
+    ontology: owlready2.Ontology
+    
+    is_obsolete_dict: dict[str, bool]
+    not_recommended_dict: dict[str, str]
+    deprecation_comment_dict: dict[str, str]
+    label_dict: dict[str, str]
+    
     def __init__(self: EdamFilter) -> None:
         """Initialize EDAM filter. Returns early if already initialized. Parses local files if they are already downloaded, otherwise downloads them."""
         # Simple dicts, replace?
         self.is_obsolete_dict: dict[str, bool] = {}
-        self.not_recommended_dict: dict[str, bool] = {}
+        self.not_recommended_dict: dict[str, str] = {}
         self.deprecation_comment_dict: dict[str, str] = {}
         self.label_dict: dict[str, str] = {}
-        self.ontology = None
-
+        
         self.download_file("EDAM.csv", "https://edamontology.org/EDAM.csv")
         self.download_file("EDAM.owl", "https://edamontology.org/EDAM.owl")
 
@@ -89,7 +95,7 @@ class EdamFilter:
                 reports.append(
                     Message(
                         "EDAM_OBSOLETE",
-                        f'EDAM "{self.label_dict[value]}" at {key} is obsolete. ({self.deprecation_comment_dict[value]})',
+                        f'The term "{self.label_dict[value]}" at {key} has been marked as obsolete',
                         key,
                         Level.ReportMedium,
                     ),
@@ -98,7 +104,7 @@ class EdamFilter:
                 reports.append(
                     Message(
                         "EDAM_NOT_RECOMMENDED",
-                        f'EDAM "{self.label_dict[value]}" at {key} is not recommended for usage.',
+                        f'The term "{self.label_dict[value]}" at {key} is no longer advised for use.',
                         key,
                         Level.ReportLow,
                     ),
@@ -107,7 +113,7 @@ class EdamFilter:
             reports.append(
                 Message(
                     "EDAM_INVALID",
-                    f"EDAM {value} at {key} is not a valid class ID.",
+                    f'Specified term {value} at {key} not recognized in the EDAM ontology',
                     key,
                     Level.ReportMedium,
                 ),
@@ -140,7 +146,7 @@ class EdamFilter:
 
     def check_topics(
         self: EdamFilter,
-        edam_class: dict,
+        edam_class: owlready2.ThingClass,
         json_topics: list,
         location: str,
     ) -> list[Message]:
@@ -177,7 +183,9 @@ class EdamFilter:
                     reports.append(
                         Message(
                             "EDAM_TOPIC_DISCREPANCY",
-                            f"EDAM {self.label_dict[parent_uri]} ({parent_uri}) has topic {self.label_dict[property_uri]} ({property_uri}) but not in tool annotation.",
+                            #f"EDAM {self.label_dict[parent_uri]} ({parent_uri}) has topic {self.label_dict[property_uri]} ({property_uri}) but not in tool annotation.",
+                            # TODO: add links to edam viewer in all edam related errors
+                            f'Operation {self.label_dict[parent_uri]} expects topic {self.label_dict[property_uri]}.',
                             location,
                             Level.ReportMedium,
                         ),
@@ -186,7 +194,7 @@ class EdamFilter:
 
     def check_operation(
         self: EdamFilter,
-        edam_class: dict,
+        edam_class: owlready2.ThingClass,
         operations_json: list,
         location: str,
     ) -> list[Message]:
@@ -208,7 +216,8 @@ class EdamFilter:
                     reports.append(
                         Message(
                             "EDAM_INPUT_DISCREPANCY",
-                            f"EDAM operation {self.label_dict[parent_uri]} ({parent_uri}) has input {self.label_dict[property_uri]} ({property_uri}) but not in tool annotation.",
+                            #f"EDAM operation {self.label_dict[parent_uri]} ({parent_uri}) has input {self.label_dict[property_uri]} ({property_uri}) but not in tool annotation.",
+                            f'Operation {self.label_dict[parent_uri]} expects input {self.label_dict[property_uri]}.',
                             location,
                             Level.ReportMedium,
                         ),

@@ -96,7 +96,7 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
             return [
                 Message(
                     "URL_INVALID",
-                    f"URL {value} at {key} does not match a valid URL (there may be hidden unicode).",
+                    f'The URL {value} at {key} could not be parsed, possibly due to invisible Unicode characters',
                     key,
                     Level.ReportHigh,
                 ),
@@ -120,7 +120,7 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                     reports.append(
                         Message(
                             "URL_PERMANENT_REDIRECT",
-                            f"URL {value} at {key} returns a redirect.",
+                            f'URL {value} at {key} permanently redirected',
                             key,
                             Level.ReportLow,
                         ),
@@ -131,7 +131,8 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                     reports.append(
                         Message(
                             "URL_BAD_STATUS",
-                            f"URL {value} at {key} doesn't return ok status (>399).",
+                            # f"URL {value} at {key} doesn't return ok status (>399).",
+                            f'URL {value} at {key} returned a non-2xx status code, indicating failure',
                             key,
                             Level.ReportMedium,
                         ),
@@ -150,9 +151,10 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                         reports.append(
                             Message(
                                 "URL_NO_SSL",
-                                f"URL {value} at {key} does not use SSL.",
+                                # f"URL {value} at {key} does not use SSL.",
+                                f'Target website lacks SSL encryption.',
                                 key,
-                                Level.ReportMedium,
+                                Level.ReportLow,
                             ),
                         )  # Medium as it's hard to fix without owning the website
                     else:
@@ -160,7 +162,7 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                         reports.append(
                             Message(
                                 "URL_UNUSED_SSL",
-                                f"URL {value} at {key} does not start with https:// but site uses SSL.",
+                                f'Website {value} at {key} supports HTTPS but the provided URL uses HTTP.',
                                 key,
                                 Level.ReportMedium,
                             ),
@@ -171,7 +173,8 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
             reports.append(
                 Message(
                     "URL_TIMEOUT",
-                    f"URL {value} at {key} timeouts after {TIMEOUT} seconds.",
+                    # f"URL {value} at {key} timeouts after {TIMEOUT} seconds.",
+                    f'Website {value} at {key} took longer than 30 seconds to respond.',
                     key,
                     Level.ReportHigh,
                 ),
@@ -182,7 +185,8 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
             reports.append(
                 Message(
                     "URL_TOO_MANY_REDIRECTS",
-                    f"URL {value} at {key} failed exceeded 30 redirects.",
+                    # f"URL {value} at {key} failed exceeded 30 redirects.",
+                    f'Encountered excessive or infinite redirects while fetching URL {value} at {key}',
                     key,
                     Level.ReportHigh,
                 ),
@@ -193,7 +197,8 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
             reports.append(
                 Message(
                     "URL_SSL_ERROR",
-                    f"URL {value} at {key} returned an SSL error. ({e})",
+                    # f"URL {value} at {key} returned an SSL error. ({e})",
+                    f'Detected an invalid or expired TLS certificate while fetching URL {value} at {key}: {e}',
                     key,
                     Level.ReportHigh,
                 ),
@@ -204,18 +209,20 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
             reports.append(
                 Message(
                     "URL_CONN_ERROR",
-                    f"URL {value} at {key} returned a connection error, it may not exist.",
+                    # f"URL {value} at {key} returned a connection error, it may not exist.",
+                    f'Unable to establish a network connection to the URL {value} at {key}',
                     key,
-                    Level.ReportHigh,
+                    Level.ReportHigh,  # High as it may not even exist
                 ),
-            )  # High as it may not even exist
+            )
 
     except Exception as e:
         # Catch all request error
         reports.append(
             Message(
                 "URL_LINTER_ERROR",
-                f"Error: {e} at {key} while checking {value}",
+                # f"Error: {e} at {key} while checking {value}",
+                f'Encountered an unhandled error while validating URL {value} at {key}. Manual review required.',
                 key,
                 Level.LinterError,
             ),

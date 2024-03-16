@@ -59,7 +59,9 @@ async def process_publication(json: dict, pub_index, publication: dict) -> list[
         output.append(
             Message(
                 "DOI_BUT_NOT_PMID",
-                f"Publication DOI {doi} (https://www.doi.org/{doi}) does not have a PMID in the database.",
+                #f"Publication DOI {doi} (https://www.doi.org/{doi}) does not have a PMID in the database.",
+                # TODO: Add links to articles for all error messages
+                f'Article {doi} has both DOI and PMID, but only DOI is provided. Use NCBI AnyID Converter for verification.',
                 f"{location}/doi",
                 Level.ReportMedium,
             ),
@@ -69,7 +71,8 @@ async def process_publication(json: dict, pub_index, publication: dict) -> list[
         output.append(
             Message(
                 "DOI_BUT_NOT_PMCID",
-                f"Publication DOI {doi} (https://www.doi.org/{doi}) does not have a PMCID in the database.",
+                #f"Publication DOI {doi} (https://www.doi.org/{doi}) does not have a PMCID in the database.",
+                f'Article {doi} has both DOI and PMCID, but only DOI is provided. Use NCBI AnyID Converter for verification.',
                 f"{location}/doi",
                 Level.ReportMedium,
             ),
@@ -79,7 +82,8 @@ async def process_publication(json: dict, pub_index, publication: dict) -> list[
         output.append(
             Message(
                 "PMID_BUT_NOT_DOI",
-                f"Publication PMID {pmid} (https://pubmed.ncbi.nlm.nih.gov/{pmid}) does not have a DOI in the database.",
+                #"Publication PMID {pmid} (https://pubmed.ncbi.nlm.nih.gov/{pmid}) does not have a DOI in the database.",
+                f'Article {pmid} has both PMID and DOI, but only PMID is provided. Use NCBI AnyID Converter for verification.',
                 f"{location}/pmid",
                 Level.ReportMedium,
             ),
@@ -89,7 +93,8 @@ async def process_publication(json: dict, pub_index, publication: dict) -> list[
         output.append(
             Message(
                 "PMCID_BUT_NOT_DOI",
-                f"Publication PMCID {pmcid} (https://pubmed.ncbi.nlm.nih.gov/{pmcid}) does not have a DOI in the database.",
+                #f"Publication PMCID {pmcid} (https://pubmed.ncbi.nlm.nih.gov/{pmcid}) does not have a DOI in the database.",
+                f'Article {pmcid} has both PMCID and DOI, but only PMCID is provided. Use NCBI AnyID Converter for verification.',
                 f"{location}/pmcid",
                 Level.ReportMedium,
             ),
@@ -110,7 +115,8 @@ async def process_publication(json: dict, pub_index, publication: dict) -> list[
                         Message(
                             # Can be DOI_DISCREPANCY, PMID_DISCREPANCY, PMCID_DISCREPANCY
                             f"{checking_id.upper()}_DISCREPANCY",
-                            f"Converting {checked_id.upper()} {locals()[checked_id]} led to a different {checking_id.upper()} ({converted_id}) than in annotation ({original_id})",
+                            #f"Converting {checked_id.upper()} {locals()[checked_id]} led to a different {checking_id.upper()} ({converted_id}) than in annotation ({original_id})",
+                            f"{checked_id.upper()} and {checking_id.upper()} do not correspond to the same publication.",
                             f"{location}/{checked_id.lower()}",
                             Level.ReportHigh,
                         ),

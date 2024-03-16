@@ -75,12 +75,13 @@ class DatabaseConnection:
 
         while not queue.empty():
             item: Message = queue.get()
+
+            if item.level == Level.LinterInternal:
+                continue
+
             returned_atleast_one_value = True
 
             if self.mock:
-                continue
-
-            if item.level == Level.LinterInternal:
                 continue
 
             # Export

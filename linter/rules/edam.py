@@ -12,6 +12,7 @@ import requests
 from message import Level, Message
 from utils import flatten_json_to_single_dict
 
+
 class EdamFilter:
     def __init__(self: EdamFilter) -> None:
         """Initialize EDAM filter. Returns early if already initialized. Parses local files if they are already downloaded, otherwise downloads them."""
@@ -45,6 +46,7 @@ class EdamFilter:
         Args:
         ----
             filename (str): CSV file location
+
         """
         with open(filename) as csv_file:
             csv_reader = csv.reader(csv_file)
@@ -78,6 +80,7 @@ class EdamFilter:
         Returns:
         -------
             list[Message] | None: Found errors
+
         """
         reports = []
 
@@ -128,6 +131,7 @@ class EdamFilter:
         Returns:
         -------
         owlready2.ThingClass | None: The ontology class if found, otherwise None.
+
         """
         if "://edamontology.org/" in uri:
             class_name = uri.split("/")[-1]
@@ -155,6 +159,7 @@ class EdamFilter:
         Returns:
         -------
         list[Message]: A list of Message objects representing the reports, empty if no discrepancies are found.
+
         """
         reports = []
 
@@ -188,7 +193,7 @@ class EdamFilter:
         reports = []
 
         # Combines inputs and outputs of all operations and flattens the 2d arrays
-        
+
         json_inputs = sum([x["input"] if "input" in x else [] for x in operations_json], [])
         json_outputs = sum([x["output"] if "output" in x else [] for x in operations_json], [])
 

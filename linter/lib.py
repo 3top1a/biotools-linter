@@ -15,7 +15,11 @@ from message import Level, Message
 from requests.adapters import HTTPAdapter
 from rules import delegate_key_value_filter, delegate_whole_json_filter
 from urllib3.util.retry import Retry
-from utils import flatten_json_to_single_dict, sanity_check_json, single_tool_to_search_json
+from utils import (
+    flatten_json_to_single_dict,
+    sanity_check_json,
+    single_tool_to_search_json,
+)
 
 REPORT: int = 15  # Report log level is between debug and info
 TIMEOUT = (
@@ -69,6 +73,7 @@ class Session:
         Raises
         ------
             None
+
         """
         if json is None:
             json = {}
@@ -94,6 +99,7 @@ class Session:
         Raises
         ------
             None
+
         """
         logging.debug(f"Searching API for {name}")
 
@@ -129,6 +135,7 @@ class Session:
         Raises
         ------
             None
+
         """
         logging.debug(f'Searching API for "{name}"')
 
@@ -174,6 +181,7 @@ class Session:
         Raises
         ------
             None
+
         """
         # Temporarily set to info to debug production crashes
         logging.info(f"Searching API for {name}")
@@ -214,6 +222,7 @@ class Session:
         Raises
         ------
             None
+
         """
         output = []
         for query in self.json.values():
@@ -239,11 +248,12 @@ class Session:
         Raises
         ------
             None
+
         """
         if len(data_json) == 0:
             logging.critical("Received empty JSON!")
             return
-        
+
         if sanity_check_json(data_json):
             logging.critical("Failed sanity check, is the JSON corrupted?")
             return
@@ -263,7 +273,9 @@ class Session:
         ] + [delegate_whole_json_filter(data_json)]
 
         for f in asyncio.as_completed(futures):
-            output: list[Message] = await f
+            output: list[Message] | None = await f
+            if output is None:
+                continue
             for message in output:
                 if type(message) == Message:
                     # Add the tool name to the message
@@ -294,6 +306,7 @@ class Session:
         Raises
         ------
             None
+
         """
         logging.debug("Linting all tools")
 
@@ -314,6 +327,7 @@ class Session:
         Raises
         ------
             None
+
         """
         for query in self.json.values():
             if "next" in query:
@@ -330,6 +344,7 @@ class Session:
         Raises
         ------
             None
+
         """
         for query in self.json.values():
             if "previous" in query:

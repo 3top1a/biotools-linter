@@ -1,14 +1,14 @@
 from __future__ import annotations
-import asyncio
 
+import asyncio
 import logging
 from dataclasses import dataclass
 from typing import Optional
-import aiohttp
 
+import aiohttp
 from cacheout import Cache
-from utils import array_without_value
 from message import Level, Message
+from utils import array_without_value
 
 from .url import client_args
 
@@ -31,7 +31,7 @@ async def filter_pub(json: dict) -> list[Message] | None:
     if json is None or "publication" not in json:
         return None
 
-    if "publication" not in json or not json['publication']:
+    if "publication" not in json or not json["publication"]:
         return None
 
     tasks = [process_publication(json, pub_index, publication) for pub_index, publication in enumerate(json["publication"])]
@@ -42,10 +42,12 @@ async def filter_pub(json: dict) -> list[Message] | None:
 
 async def process_publication(json: dict, pub_index, publication: dict) -> list[Message]:
     output = []
-    doi = publication["doi"] if "doi" in publication else None
-    pmid = publication["pmid"] if "pmid" in publication else None
-    pmcid = publication["pmcid"] if "pmcid" in publication else None
-    identifier = doi or pmid or pmcid
+    doi: str | None = publication["doi"] if "doi" in publication else None
+    pmid: str | None = publication["pmid"] if "pmid" in publication else None
+    pmcid: str | None = publication["pmcid"] if "pmcid" in publication else None
+    identifier: str | None = doi or pmid or pmcid
+    if identifier is None:
+        return []
     converted = await PublicationData.convert(identifier)
     location = f"{json['name']}//publication/{pub_index}"
 
@@ -121,9 +123,9 @@ class PublicationData:
 
     """A class to handle conversions between DOI, PMID, and PMCID."""
 
-    doi: Optional[str] = None
-    pmid: Optional[str] = None
-    pmcid: Optional[str] = None
+    doi: Optional[str] | None = None
+    pmid: Optional[str] | None = None
+    pmcid: Optional[str] | None = None
 
     @staticmethod
     async def convert(identifier: str) -> PublicationData | None:

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+
 def flatten_json_to_single_dict(
     json_data: dict,
     parent_key: str = "",
@@ -41,6 +44,7 @@ def flatten_json_to_single_dict(
     Raises
     ------
         None
+
     """
     out = {}
 
@@ -49,12 +53,14 @@ def flatten_json_to_single_dict(
             index = json_data.index(x)
 
             out.update(
-                flatten_json_to_single_dict(x, f"{parent_key}{separator}{index}"),
+                flatten_json_to_single_dict(
+                    x, f"{parent_key}{separator}{index}"),
             )
     elif isinstance(json_data, dict):
         for key, value in json_data.items():
             out.update(
-                flatten_json_to_single_dict(value, f"{parent_key}{separator}{key}"),
+                flatten_json_to_single_dict(
+                    value, f"{parent_key}{separator}{key}"),
             )
     else:
         value = str(json_data)
@@ -63,6 +69,7 @@ def flatten_json_to_single_dict(
         out.update({parent_key: value})
 
     return out
+
 
 def unflatten_json_from_single_dict(flattened_dict: dict, separator: str = "/") -> dict:
     """Reassembles a flattened dictionary into a nested JSON-like structure.
@@ -78,6 +85,7 @@ def unflatten_json_from_single_dict(flattened_dict: dict, separator: str = "/") 
     -------
     dict
         The reassembled, nested dictionary.
+
     """
     unflattened_dict = {}
     for compound_key, value in flattened_dict.items():
@@ -99,7 +107,8 @@ def unflatten_json_from_single_dict(flattened_dict: dict, separator: str = "/") 
 
     return unflattened_dict
 
-def array_without_value(arr: list, value: any) -> list:
+
+def array_without_value(arr: list, value) -> list:
     """Return given array without a given value.
 
     Args:
@@ -115,15 +124,12 @@ def array_without_value(arr: list, value: any) -> list:
     return [x for x in arr if x != value]
 
 
-def single_tool_to_search_json(json: str | dict) -> dict:
-    """
-    Convert the JSON of a single tool into the JSON format returned by a search.
-    """
-    
+def single_tool_to_search_json(json: str | dict) -> str | dict:
+    """Convert the JSON of a single tool into the JSON format returned by a search."""
     # Early quit if it's already processed
-    if 'count' in json:
+    if "count" in json:
         return json
-    
+
     return {
         "count": 1,
         "next": None,
@@ -134,20 +140,16 @@ def single_tool_to_search_json(json: str | dict) -> dict:
     }
 
 
-def sanity_check_json(input: dict) -> bool:
-    """
-    Sanity check tool JSON. Returns false if correct.
-    """
-    required = ['name', 'biotoolsID']
-    
-    if input == {} or input == []:
-        return True
-    
-    for r in required:
-        if r not in input or not isinstance(r, str) or r is None:
-            return True
-    
-    
-    
-    return False
+def sanity_check_json(json: dict) -> bool:
+    """Sanity check tool JSON. Returns false if correct."""
+    required = ["name", "biotoolsID"]
 
+    if json == {} or json == []:
+        return True
+
+    if any(r not in json or not isinstance(r, str) or r is None for r in required):
+        return True
+
+    # Reserved space
+
+    return False

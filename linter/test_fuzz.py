@@ -1,10 +1,9 @@
 """Fuzzing tests"""
 
-import logging
-import pytest
-import json
 import copy
-import random
+import logging
+
+import pytest
 from lib import Session
 from utils import single_tool_to_search_json
 
@@ -19,55 +18,55 @@ SCHEMA = {
         {
             "value": "MSMC2",
             "type": "Other",
-            "version": "2.0"
-        }
+            "version": "2.0",
+        },
     ],
     "function": [
         {
             "operation": [
                 {
                     "uri": "http://edamontology.org/operation_0324",
-                    "term": "Phylogenetic tree analysis"
-                }
+                    "term": "Phylogenetic tree analysis",
+                },
             ],
             "input": [
                 {
                     "data": {
                         "uri": "http://edamontology.org/data_0863",
-                        "term": "Genomic sequences"
+                        "term": "Genomic sequences",
                     },
                     "format": [
                         {
                             "uri": "http://edamontology.org/format_1929",
-                            "term": "FASTA"
-                        }
-                    ]
-                }
+                            "term": "FASTA",
+                        },
+                    ],
+                },
             ],
             "output": [
                 {
                     "data": {
                         "uri": "http://edamontology.org/data_0863",
-                        "term": "Phylogenetic tree"
+                        "term": "Phylogenetic tree",
                     },
                     "format": [
                         {
                             "uri": "http://edamontology.org/format_1929",
-                            "term": "Newick"
-                        }
-                    ]
-                }
+                            "term": "Newick",
+                        },
+                    ],
+                },
             ],
             "note": "Useful for analyzing sequence data.",
-            "cmd": "msmc2"
-        }
+            "cmd": "msmc2",
+        },
     ],
     "toolType": ["Command-line tool"],
     "topic": [
         {
             "uri": "http://edamontology.org/topic_0194",
-            "term": "Phylogenomics"
-        }
+            "term": "Phylogenomics",
+        },
     ],
     "operatingSystem": ["Linux", "Mac"],
     "language": ["D"],
@@ -77,8 +76,8 @@ SCHEMA = {
         {
             "url": "https://github.com/stschiff/msmc/blob/master/guide.md",
             "type": ["General"],
-            "note": "Comprehensive guide"
-        }
+            "note": "Comprehensive guide",
+        },
     ],
     "publication": [
         {
@@ -91,30 +90,30 @@ SCHEMA = {
                 "abstract": "",
                 "date": "2014-01-01T00:00:00Z",
                 "citationCount": 612,
-                "journal": "Nature Genetics"
-            }
-        }
+                "journal": "Nature Genetics",
+            },
+        },
     ],
     "download": [
         {
             "url": "https://github.com/stschiff/msmc/releases",
             "type": "Source code",
             "note": "Latest source code",
-            "version": "2.0"
-        }
+            "version": "2.0",
+        },
     ],
     "link": [
         {
             "url": "https://github.com/stschiff/msmc/issues",
             "type": ["Issue tracker"],
-            "note": "Report issues here"
-        }
+            "note": "Report issues here",
+        },
     ],
     "relation": [
         {
             "biotoolsID": "relatedToolID",
-            "type": "isSimilarTo"
-        }
+            "type": "isSimilarTo",
+        },
     ],
     "credit": [
         {
@@ -123,8 +122,8 @@ SCHEMA = {
             "email": "stephan.schiffels@mpi-inf.mpg.de",
             "typeEntity": "Person",
             "typeRole": ["Developer", "Maintainer"],
-            "note": "Main developer of MSMC"
-        }
+            "note": "Main developer of MSMC",
+        },
     ],
     "labels": {
         "maturity": "Stable",
@@ -132,17 +131,17 @@ SCHEMA = {
         "accessibility": ["OpenAccess"],
         "elixirNode": ["Germany"],
         "elixirCommunity": ["Computational biology"],
-        "elixirPlatform": ["Data"]
+        "elixirPlatform": ["Data"],
     },
     "owner": "root",
     "additionDate": "2024-03-16T13:49:37.059450Z",
     "lastUpdate": "2024-03-16T13:49:37.078403Z",
     "editPermission": {
-        "type": "private"
+        "type": "private",
     },
     "validated": 0,
     "homepage_status": 0,
-    "elixir_badge": 0
+    "elixir_badge": 0,
 }
 
 
@@ -155,22 +154,24 @@ async def check(json):
     await session.lint_all_tools(return_q=None)
 
 def remove_elements(input_dict, collected_dicts=None, path=None):
-    """
-    Recursively navigates through a given dictionary, creating variations of it by removing
+    """Recursively navigates through a given dictionary, creating variations of it by removing
     one key at a time, including keys from nested dictionaries. Each modified dictionary is
     collected along with the path of removal.
 
-    Parameters:
+    Parameters
+    ----------
     - input_dict (dict): The original dictionary from which keys will be removed.
     - collected_dicts (list, optional): A list to collect tuples of modified dictionaries and their
       removal paths. This parameter is primarily used internally by recursive calls.
     - path (list, optional): The current path of keys leading to the current dictionary being processed.
       This parameter is used internally by recursive calls to track the nesting path.
 
-    Returns:
+    Returns
+    -------
     - list: A list of tuples, where each tuple contains a modified dictionary and the path of keys
       leading to the removed key. This enables tracking not only the variations but also how each
       variation was achieved.
+
     """
     if collected_dicts is None:
         collected_dicts = []
@@ -180,14 +181,14 @@ def remove_elements(input_dict, collected_dicts=None, path=None):
     for key in list(input_dict.keys()):
         # Work on a copy to preserve original dictionary
         temp_dict = copy.deepcopy(input_dict)
-        
+
         # Remove the current key
         del temp_dict[key]
-        
+
         # Store the modified dictionary
-        new_path = path + [key]
+        new_path = [*path, key]
         collected_dicts.append((temp_dict, new_path))
-        
+
         # If the value is another dictionary, recurse
         if isinstance(input_dict[key], dict):
             remove_elements(input_dict[key], collected_dicts, new_path)
@@ -195,15 +196,16 @@ def remove_elements(input_dict, collected_dicts=None, path=None):
     return collected_dicts
 
 def replace_values(input_dict, value):
-    """
-    Recursively navigates through a given JSON-like dictionary, replacing all values with `None`
+    """Recursively navigates through a given JSON-like dictionary, replacing all values with `None`
     for non-dictionary values, and with an empty list `[]` for dictionary values that are emptied.
 
-    Parameters:
+    Parameters
+    ----------
     - input_dict (dict): The JSON-like dictionary whose values are to be replaced.
     - value (any): The new values of the JSON
 
-    Returns:
+    Returns
+    -------
     - dict: A modified version of the input dictionary with all values replaced as described.
 
     Note:
@@ -212,6 +214,7 @@ def replace_values(input_dict, value):
     - This implementation replaces non-dictionary values with `None` and dictionary values with
       `[]` if they become empty as a result of the recursion. Adjustments can be made based on
       specific needs for differentiating between replaced values.
+
     """
     for key in input_dict.keys():
         if isinstance(input_dict[key], dict):
@@ -224,21 +227,21 @@ def replace_values(input_dict, value):
             input_dict[key] = None
     return input_dict
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_remove_elements():
 
     # Remove elements
     for (new_json, x) in remove_elements(SCHEMA):
-        print(f"Removing {x}")
+        logging.info(f"Removing {x}")
         await check(new_json)
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_replace_values():
     for x in [None, [], {}]:
-        print(f"Replacing all values with {x}")
+        logging.info(f"Replacing all values with {x}")
         new_json = replace_values(SCHEMA, x)
-        
-        new_json['name'] = 'name'
-        new_json['biotoolsID'] = 'biotoolsID'
+
+        new_json["name"] = "name"
+        new_json["biotoolsID"] = "biotoolsID"
 
         await check(new_json)

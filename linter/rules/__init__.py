@@ -35,6 +35,7 @@ async def delegate_key_value_filter(key: str, value: str) -> list[Message] | Non
     Raises
     ------
         None
+
     """
     # logging.debug(f"Checking {key}: {value!s}") Only makes noisy output, theres logging at every rule submodule
 
@@ -92,6 +93,7 @@ def filter_none(key: str, _value: str) -> Message | None:
     Raises
     ------
         None
+
     """
     for ik in IMPORTANT_KEYS:
         if key.endswith(ik):

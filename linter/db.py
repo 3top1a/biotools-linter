@@ -15,7 +15,7 @@ class DatabaseConnection:
     cursor: psycopg2.extensions.cursor
     mock: bool = False
 
-    def __init__(self, creds: str, mock: bool = False) -> None:
+    def __init__(self, creds: str | None, mock: bool = False) -> None:
         """Initialize the database connection.
 
         Parameters
@@ -24,10 +24,11 @@ class DatabaseConnection:
             The database connection credentials in DSN format (postgres://user:pass@IP/dbname).
         mock : bool, optional
             If True, creates a mock database connection for testing.
+
         """
         # If connection is fake, e.g. for testing or when no connection string is supplied
         self.mock = mock
-        if mock:
+        if mock or creds is None:
             return
 
         logging.info(f"Connecting to database {parse_dsn(creds)['dbname']}")
@@ -49,6 +50,7 @@ class DatabaseConnection:
         Args:
         ----
             name (str): Name of tool.
+
         """
         logging.debug(f"Deleting rows with tools name {name}")
         if self.mock:
@@ -67,6 +69,7 @@ class DatabaseConnection:
         Returns:
         -------
             bool (bool): True if any messages have been received.
+
         """
         if not self.mock:
             logging.info("Sending messages to database")

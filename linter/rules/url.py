@@ -7,7 +7,6 @@ import logging
 import re
 
 import aiohttp
-import requests
 from cacheout import Cache
 from message import Level, Message
 
@@ -19,7 +18,7 @@ cache: Cache = Cache(maxsize=8192, ttl=0, default=None)
 timeout = aiohttp.ClientTimeout(
     total=None,
     sock_connect=10,
-    sock_read=10
+    sock_read=10,
 )
 client_args = dict(
     trust_env=True,
@@ -51,6 +50,7 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
     Raises
     ------
         None
+
     """
     global cache
 

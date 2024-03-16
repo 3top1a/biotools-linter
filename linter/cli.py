@@ -5,13 +5,13 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import copy
+import json
 import logging
 import os
 import sys
 from collections.abc import Sequence
 from queue import Queue
-import json
-import copy
 
 import colorlog
 from db import DatabaseConnection
@@ -28,6 +28,7 @@ def configure_logging(color: bool, log_level: str) -> None:
     ----
         color (bool): Show colors or not
         log_level (int): What level to log
+
     """
     logging.addLevelName(REPORT, "REPORT")
     logging.basicConfig(level=log_level, force=True)
@@ -79,6 +80,7 @@ def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
     Returns:
     -------
         argparse.Namespace: Output arguments
+
     """
     parser = argparse.ArgumentParser(
         description=__doc__,
@@ -176,9 +178,9 @@ async def main(argv: Sequence[str]) -> int:
     args: argparse.Namespace = parse_arguments(argv)
 
     exit_on_error: str = args.exit_on_error
-    database_credentials: str = (
-        args.db if not args.db == None else (
-            os.environ["DATABASE_URL"] if "DATABASE_URL" in os.environ else None)
+    database_credentials: str | None = (
+        args.db if args.db is not None else (
+            os.environ.get("DATABASE_URL", None))
     )
     biotoolsoutput: bool = args.biotools_format
     lint_all: str = args.lint_all
@@ -200,7 +202,7 @@ async def main(argv: Sequence[str]) -> int:
     if json_mode:
         input_json = "\n".join(sys.stdin.readlines())
         json_data = {"x": single_tool_to_search_json(json.loads(input_json))}
-        session = Session((json_data))
+        session = Session(json_data)
 
         if session.get_total_tool_count() != 1:
             logging.critical("Could not load JSON.")
@@ -219,7 +221,7 @@ async def main(argv: Sequence[str]) -> int:
         returned_at_least_one_error = db.insert_from_queue(message_queue)
 
         json_list = []
-        while not json_queue.qsize() == 0:
+        while json_queue.qsize() != 0:
             json_list.append(json_queue.get())
         json_list = [x.__dict__ for x in json_list if x.code != "LINT-F"]
 
@@ -231,7 +233,7 @@ async def main(argv: Sequence[str]) -> int:
                 errors = {}
                 for error in json_list:
                     errors.update(unflatten_json_from_single_dict(
-                        {error['location'].split("//")[1]: [error['body']]}
+                        {error["location"].split("//")[1]: [error["body"]]},
                     ))
 
                 print(json.dumps(errors))

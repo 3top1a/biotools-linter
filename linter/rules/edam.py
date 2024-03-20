@@ -55,21 +55,13 @@ class EdamFilter:
 
         """
         with open(filename) as csv_file:
-            csv_reader = csv.reader(csv_file)
-            next(csv_reader, None)  # skip the headers
-            for line in csv_reader:
-                if line:
-                    class_id, label, obsolete, obsolete_comment, not_recommended = (
-                        line[0],
-                        line[1],
-                        line[4] == "TRUE",
-                        line[11],
-                        line[75],
-                    )
-                    self.is_obsolete_dict[class_id] = obsolete
-                    self.label_dict[class_id] = label
-                    self.deprecation_comment_dict[class_id] = obsolete_comment
-                    self.not_recommended_dict[class_id] = not_recommended
+            csv_reader = csv.DictReader(csv_file)
+            for row in csv_reader:
+                class_id = row['Class ID']
+                self.label_dict[class_id] = row['Preferred Label']
+                self.is_obsolete_dict[class_id] = row['Obsolete'] == "TRUE"
+                self.deprecation_comment_dict[class_id] = row['deprecation_comment']
+                self.not_recommended_dict[class_id] = row['notRecommendedForAnnotation']
 
     async def filter_edam_key_value_pair(
         self: EdamFilter,
@@ -175,6 +167,7 @@ class EdamFilter:
             if not hasattr(edam_property, "property"):
                 continue
 
+            # TODO Replace with has_topic from CSV
             if edam_property.property == self.ontology["has_topic"]:
                 topic_name = edam_property.value.name
                 if topic_name not in json_topic_uris:
@@ -238,6 +231,7 @@ class EdamFilter:
         return reports
 
     async def filter_whole_json(self: EdamFilter, json: dict) -> list[Message] | None:
+        logging.debug("checking EDAM")
         reports = []
 
         pairs = flatten_json_to_single_dict(json, parent_key=json["name"] + "/")

@@ -258,7 +258,7 @@ async def test_messages():
     (await rules.filter_url("url", "also test"))[0].print_message(q)
     assert (
         q.get()
-        == "None: [URL_INVALID] URL also test at url does not match a valid URL (there may be hidden unicode)."
+        == "None: [URL_INVALID] The URL also test at url could not be parsed, possibly due to invisible Unicode characters"
     )
 
 

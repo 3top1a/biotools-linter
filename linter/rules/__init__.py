@@ -95,9 +95,9 @@ def filter_none(key: str, _value: str) -> Message | None:
         None
 
     """
-    for ik in IMPORTANT_KEYS:
-        if key.endswith(ik):
-            # Needs to be more specific, removed for now
-            pass
+    # Needs to be more specific, removed for now
+    #for ik in IMPORTANT_KEYS:
+    #    if key.endswith(ik):
+    #        pass
 
     return None

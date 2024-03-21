@@ -66,7 +66,7 @@ macro_rules! info_statement {
     };
 }
 
-static ERROR_CODES: [&str; 23] = [
+static ERROR_CODES: [&str; 24] = [
     "URL_INVALID",
     "URL_PERMANENT_REDIRECT",
     "URL_BAD_STATUS",
@@ -83,6 +83,7 @@ static ERROR_CODES: [&str; 23] = [
     "DOI_BUT_NOT_PMCID",
     "PMID_BUT_NOT_DOI",
     "PMCID_BUT_NOT_DOI",
+    "PMCID_BUT_NOT_PMID",
     "URL_TOO_MANY_REDIRECTS",
     "EDAM_TOPIC_DISCREPANCY",
     "EDAM_INPUT_DISCREPANCY",

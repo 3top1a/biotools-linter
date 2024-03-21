@@ -100,6 +100,17 @@ async def process_publication(json: dict, pub_index, publication: dict) -> list[
             ),
         )
 
+    if pmcid and not pmid and converted.pmid:
+        output.append(
+            Message(
+                "PMCID_BUT_NOT_PMID",
+                #f"Publication PMCID {pmcid} (https://pubmed.ncbi.nlm.nih.gov/{pmcid}) does not have a DOI in the database.",
+                f'Article {pmcid} has both PMCID and PMID ({converted.pmid}), but only PMCID is provided. Use NCBI AnyID Converter for verification.',
+                f"{location}/pmcid",
+                Level.ReportMedium,
+            ),
+        )
+
     # Check for publication discrepancy (two different publications were entered in one, may be due to a user error)
     for checked_id in TYPES:
         converted = await PublicationData.convert(locals()[checked_id])

@@ -3,7 +3,8 @@ import logging
 from queue import Queue
 
 from message import Level, Message
-
+import psycopg2
+from psycopg2.extensions import parse_dsn
 
 class DatabaseConnection:
 

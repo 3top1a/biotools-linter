@@ -12,8 +12,8 @@ from message import Level, Message
 
 # Initialize (here so it inits once)
 # Now only used by other filters
-user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.3 (Bio.tools linter, github.com/3top1a/biotools-linter)"
-cache: Cache = Cache(maxsize=8192, ttl=0, default=None)
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.3 (Bio.tools linter, github.com/3top1a/biotools-linter)"
+cache: Cache = Cache(maxsize=2**20, ttl=0, default=None)
 
 timeout = aiohttp.ClientTimeout(
     total=None,

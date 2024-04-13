@@ -310,10 +310,10 @@ content %}
                 title: `Error`,
                 render: function (data, type, row) {
                     const format = (data) => {
-                        if (data == "PMCID_BUT_NOT_DOI" || data == "PMID_BUT_NOT_DOI" || data == "DOI_BUT_NOT_PMCID" || data == "DOI_BUT_NOT_PMID") {
+                        if (data == "PMCID_BUT_NOT_DOI" || data == "PMID_BUT_NOT_DOI" || data == "DOI_BUT_NOT_PMCID" || data == "DOI_BUT_NOT_PMID" || data == "PMCID_BUT_NOT_PMID") {
                             return `<a target="_blank" href="/docs#PMID,_PMCID_and_DOI_conversion" rel="nofollow">${data}</a>`;
                         }
-                        if (data == "PMID_DISCREPANCY" || data == "PMCID_DISCREPANCY" || data == "DOI_DISCREPANCY" || data == "DOI_BUT_NOT_PMID") {
+                        if (data == "PMID_DISCREPANCY" || data == "PMCID_DISCREPANCY" || data == "DOI_DISCREPANCY") {
                             return `<a target="_blank" href="/docs#PMID,_PMCID_and_DOI_discrepancy" rel="nofollow">${data}</a>`;
                         }
                         return `<a target="_blank" href="/docs#${data}">${data}</a>`;

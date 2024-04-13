@@ -232,8 +232,14 @@ async def main(argv: Sequence[str]) -> int:
             else:
                 errors = {}
                 for error in json_list:
+                    slug = error['code']
+                    if slug in ["PMCID_BUT_NOT_DOI", "PMID_BUT_NOT_DOI", "DOI_BUT_NOT_PMCID", "DOI_BUT_NOT_PMID", "PMCID_BUT_NOT_PMID"]:
+                        slug = "PMID,_PMCID_and_DOI_conversion"
+                    if slug in ["PMID_DISCREPANCY", "PMCID_DISCREPANCY", "DOI_DISCREPANCY"]:
+                        slug = "PMID,_PMCID_and_DOI_discrepancy"
+                    error_docs_url = f"https://biotools-linter.biodata.ceitec.cz/docs#{slug}"
                     errors.update(unflatten_json_from_single_dict(
-                        {error["location"].split("//")[1]: [error["body"]]},
+                        {error["location"].split("//")[1]: [f'{error["body"]} <a href="{error_docs_url}">More info.</a>']},
                     ))
 
                 print(json.dumps(errors))

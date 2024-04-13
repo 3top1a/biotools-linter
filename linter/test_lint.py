@@ -281,6 +281,12 @@ async def test_publications():
     assert x3.doi == "10.1093/bioinformatics/btaa581"
     assert x3.pmid == "32573681"
 
+    x4 = await PublicationData.convert("")
+    assert x4 is None
+
+    x5 = await PublicationData.convert(None)
+    assert x5 is None
+
     # Test x_BUT_NOT_y
     json_bad = """
     {

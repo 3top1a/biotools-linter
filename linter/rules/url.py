@@ -168,6 +168,8 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                             ),
                         )  # Medium since your browser should auto-upgrade
 
+                session.close()
+
         # Timeout error>
         except asyncio.TimeoutError:
             reports.append(

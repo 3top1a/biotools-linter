@@ -149,6 +149,9 @@ class PublicationData:
         """Convert a given identifier (DOI, PMID, or PMCID) to the other formats."""
         if identifier in cache:
             return cache.get(identifier)
+        
+        if identifier is None or identifier == "None" or identifier == "":
+            return None
 
         try:
             url = f"https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/?tool=biotools-linter&email=251814@mail.muni.cz&ids={identifier}&format=json"

@@ -152,7 +152,7 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                             Message(
                                 "URL_NO_SSL",
                                 # f"URL {value} at {key} does not use SSL.",
-                                f'Target website lacks SSL encryption.',
+                                f'Website {value} at {key} lacks SSL encryption.',
                                 key,
                                 Level.ReportLow,
                             ),

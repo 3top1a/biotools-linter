@@ -136,7 +136,7 @@ content %}
             {
                 text: 'Download current',
                 action: function (e, dt, node, config) {
-                    if (umami) { umami.track('download-current') };
+                    if (typeof umami !== 'undefined') { umami.track('download-current') };
                     var value = $('.dataTables_filter input').val();
                     e.currentTarget.disabled = true;
                     download(`/api/download?query=${value}`, e.currentTarget);
@@ -145,7 +145,7 @@ content %}
             {
                 text: 'Download all',
                 action: function (e, dt, node, config) {
-                    if (umami) { umami.track('download-all') };
+                    if (typeof umami !== 'undefined') { umami.track('download-all') };
                     e.currentTarget.disabled = true;
                     download(`/api/download`, e.currentTarget);
                 }
@@ -198,7 +198,7 @@ content %}
                     "tool": buttonId.substring(7),
                 })
 
-                umami.track('relint', { name: buttonId.substring(7) });
+                if (typeof umami !== 'undefined') { umami.track('relint', { name: buttonId.substring(7) }) };
 
                 fetch(url, {
                     method: 'POST',

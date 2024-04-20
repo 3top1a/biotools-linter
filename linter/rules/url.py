@@ -224,7 +224,7 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
             Message(
                 "URL_LINTER_ERROR",
                 # f"Error: {e} at {key} while checking {value}",
-                f'Encountered an unhandled error while validating URL {value} at {key}. Manual review required.',
+                f'Encountered an unhandled error while validating URL {value} at {key}. Manual review required.\nError:{e}',
                 key,
                 Level.LinterError,
             ),

@@ -7,10 +7,10 @@ import logging
 import queue
 import sys
 import time
-from concurrent.futures import ThreadPoolExecutor
 from typing import ClassVar
 
 import requests
+from rules import url
 from message import Level, Message
 from requests.adapters import HTTPAdapter
 from rules import delegate_key_value_filter, delegate_whole_json_filter
@@ -53,7 +53,6 @@ class Session:
 
     # TODO Get rid of this, replace with function arguments
     json: dict = ClassVar[dict[dict]]
-    executor: None | ThreadPoolExecutor = None
 
     def __init__(
         self: Session,
@@ -293,7 +292,7 @@ class Session:
         self: Session,
         return_q: queue.Queue | None = None,
     ) -> None:
-        """Perform linting on all tools in cache. Uses multiple threads using a ThreadPoolExecutor.
+        """Perform linting on all tools in cache.
 
         Attributes
         ----------

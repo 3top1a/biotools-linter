@@ -141,6 +141,11 @@ def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
         action="store_false",
         help="Disable colored output in the console. By default, colored output is enabled.",
     )
+    parser.add_argument(
+        "--cprofile",
+        action="store_false",
+        help="Profile code.",
+    )
 
     args = parser.parse_args(arguments)
 
@@ -314,4 +319,21 @@ async def main(argv: Sequence[str]) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(asyncio.run(main(sys.argv[1:])))
+    if '--cprofile' in sys.argv[1:]:
+        import cProfile
+        import pstats
+        async def prf():
+            profiler = cProfile.Profile()
+            profiler.enable()
+            
+            await main(sys.argv[1:])
+
+            profiler.disable()
+            stats = pstats.Stats(profiler)
+            #stats.sort_stats(pstats.SortKey.TIME)
+            #stats.print_stats(50)
+            stats.dump_stats(filename="linter.prof")
+
+        asyncio.run(prf())
+    else:
+        sys.exit(asyncio.run(main(sys.argv[1:])))

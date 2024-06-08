@@ -2,7 +2,7 @@ argparse
 requests
 colorlog
 psycopg2
-colorlog
+Cython
 owlready2
 cacheout
 aiohttp

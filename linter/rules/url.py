@@ -26,7 +26,7 @@ client_args = dict(
     headers={"User-Agent": user_agent},
 )
 
-URL_REGEX = (
+URL_REGEX = re.compile(
     r"(http[s]?)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
 )
 REPORT = 15
@@ -75,7 +75,7 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
 
         # Exit if does not match URL or key doesn't end with url/uri
         if (
-            not re.match(URL_REGEX, value)
+            not URL_REGEX.match(value)
             and not key.endswith("url")
             and not key.endswith("uri")
         ):
@@ -92,7 +92,7 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
 
         # If the URL doesn't match the regex but is in a url/uri entry, throw an error
         # For example, this errors when invisible unicode characters are in the URL
-        if not re.match(URL_REGEX, value) and (key.endswith(("url", "uri"))):
+        if not URL_REGEX.match(value) and (key.endswith(("url", "uri"))):
             return [
                 Message(
                     "URL_INVALID",
@@ -113,6 +113,7 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                 response = await session.get(value, timeout=aiohttp.ClientTimeout(total=None,
                                                                                   sock_connect=5,
                                                                                   sock_read=5))
+                response.close()
 
                 # Check for redirect
                 # See https://docs.aiohttp.org/en/stable/client_advanced.html#redirection-history
@@ -138,14 +139,14 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                         ),
                     )
 
-                url_starts_with_https = value.startswith("https://")
-                if not url_starts_with_https:
+                if value.startswith("http://"):
                     # Try to request with SSL
                     try:
                         # Takes extreme amount of time if no such site exists, need to refactor
                         new_response = await session.get(
                             value.replace("http://", "https://"),
                         )
+                        new_response.close()
                     except aiohttp.ClientConnectorError:
                         # If it fails with ClientConnectorError, the site does not use SSL at all
                         reports.append(

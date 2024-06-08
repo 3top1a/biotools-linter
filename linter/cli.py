@@ -176,18 +176,10 @@ async def main(argv: Sequence[str]) -> int:
 
     """
     args: argparse.Namespace = parse_arguments(argv)
-
-    exit_on_error: str = args.exit_on_error
     database_credentials: str | None = (
         args.db if args.db is not None else (
             os.environ.get("DATABASE_URL", None))
     )
-    biotoolsoutput: bool = args.biotools_format
-    lint_all: str = args.lint_all
-    tool_name: str = args.name
-    json_mode: str = args.json
-    exact: str = args.exact
-    page: int = args.page
 
     # Configure logging
     configure_logging(args.no_color, args.log_level)
@@ -199,7 +191,7 @@ async def main(argv: Sequence[str]) -> int:
     returned_at_least_one_error: bool = False
 
     # Start linting, switch modes
-    if json_mode:
+    if args.json:
         input_json = "\n".join(sys.stdin.readlines())
         json_data = {"x": single_tool_to_search_json(json.loads(input_json))}
         session = Session(json_data)
@@ -225,7 +217,7 @@ async def main(argv: Sequence[str]) -> int:
             json_list.append(json_queue.get())
         json_list = [x.__dict__ for x in json_list if x.code != "LINT-F"]
 
-        if biotoolsoutput:
+        if args.biotools_format:
             # Mimic the way the bio.tools validate API works
             if json_list == []:
                 print(input_json)
@@ -248,16 +240,16 @@ async def main(argv: Sequence[str]) -> int:
 
         db.commit()
 
-    elif lint_all:
+    elif args.lint_all:
         # Try to lint all tools on bio.tools
-        page = page if page else 1
+        page = args.page if args.page else 1
         processed_tools = 10 * (page - 1)
 
         session.search_api("*", page)
         count = session.json["*"]["count"]
         logging.info(f"Linting {count} tools")
 
-        while session.next_page_exists() or page == 1:
+        while session.next_args.page_exists() or page == 1:
             # Dump cache so it doesn't OOM
             session.clear_cache()
 
@@ -279,15 +271,15 @@ async def main(argv: Sequence[str]) -> int:
             db.commit()
     else:
         # Lint specific tools(s)
-        if tool_name == "-":
+        if args.name == "-":
             # Pipe from stdin
             for line in sys.stdin:
                 if line.strip() != "":
-                    session.search_api(line.strip(), page)
-        elif exact:
-            session.search_api_exact_match(tool_name)
+                    session.search_api(line.strip(), args.page)
+        elif args.exact:
+            session.search_api_exact_match(args.name)
         else:
-            session.search_api(tool_name, page)
+            session.search_api(args.name, args.page)
 
         count = session.get_total_tool_count()
 
@@ -311,12 +303,12 @@ async def main(argv: Sequence[str]) -> int:
 
     if session.next_page_exists():
         logging.info(
-            f"You can also search the next page (page {int(page) + 1})")
+            f"You can also search the next page (page {int(args.page) + 1})")
     if session.previous_page_exists():
         logging.info(
-            f"You can also search the previous page (page {int(page) - 1})")
+            f"You can also search the previous page (page {int(args.page) - 1})")
 
-    if returned_at_least_one_error and exit_on_error:
+    if returned_at_least_one_error and args.exit_on_error:
         return 254
     return 0
 

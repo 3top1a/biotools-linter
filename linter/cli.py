@@ -254,7 +254,7 @@ async def main(argv: Sequence[str]) -> int:
         count = session.json["*"]["count"]
         logging.info(f"Linting {count} tools")
 
-        while session.next_args.page_exists() or page == 1:
+        while session.next_page_exists() or page == 1:
             # Dump cache so it doesn't OOM
             session.clear_cache()
 

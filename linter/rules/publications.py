@@ -161,9 +161,9 @@ class PublicationData:
                 # https://github.com/aio-libs/aiohttp/issues/3203
                 # AIOHTTP has an issue with timeouts appearing where they shouldn't be.
                 # Making a new timeout for each request seems to eliminate this issue
-                response = await session.get(url, timeout=aiohttp.ClientTimeout(total=None,
-                                                                                  sock_connect=5,
-                                                                                  sock_read=5))
+                response = await session.get(url, ssl=None, timeout=aiohttp.ClientTimeout(total=None,
+                                                                                  sock_connect=15,
+                                                                                  sock_read=15))
                 result = await response.json()
 
                 if not result or result.get("status") != "ok":

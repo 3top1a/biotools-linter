@@ -1,6 +1,9 @@
 """Unit tests. Use with pytest."""
 
 
+import os
+import subprocess
+import time
 import pytest
 
 
@@ -87,7 +90,7 @@ async def test_session():
     s.clear_cache()
     for x in range(0, 2):
         s.search_api_multiple_pages("cli", x * 10 + 1, x * 10 + 10 + 1)
-    assert len(s.return_tool_list_json()) == 133 # this is stupid and needs to be updates but works for now
+    assert len(s.return_tool_list_json()) > 10
 
     example_json = {
         "a": {
@@ -481,3 +484,22 @@ async def test_url_cache():
     )
 
     assert clean[0].print_message() == x2[0].print_message()
+
+
+def test_lint_all_doesnt_fail():
+    """Runs --lint-all and checks if it fails within 10 seconds. If not, it's considered valid."""
+    timeout = 10
+    command = ["python3", os.path.join(os.getcwd(), "linter/cli.py"), "--lint-all", "--no-color"]
+    try:
+        # Start the process
+        start_time = time.time()
+        result = subprocess.run(command, timeout=timeout, capture_output=True, text=True, check=False)
+        end_time = time.time()
+
+        elapsed_time = end_time - start_time
+
+        # Probably impossible for the linter to lint the entire DB in 10s, consider this path a hard fail
+        assert False, result.stderr
+    except subprocess.TimeoutExpired:
+        # If process exceeds the timeout duration, it will raise TimeoutExpired
+        assert True

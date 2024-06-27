@@ -1,7 +1,7 @@
 use axum::{
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
-    response::{Html, Response},
+    response::Html,
     Json,
 };
 use chrono::{DateTime, Utc};

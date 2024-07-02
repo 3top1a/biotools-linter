@@ -228,6 +228,35 @@ class EdamFilter:
                         ),
                     )
 
+        # input_or_output is here just for grammar sake, don't want to say it;s in the output when it's in the input
+        for (output, input_or_output) in zip(json_outputs + json_inputs, ['output']*len(json_outputs) + ['input']*len(json_inputs)):
+            # This code validates that each specified format in the output data includes a 'format' dictionary which is appropriately restricted by its 'is_format_of' attribute
+            if "data" in output and "format" in output:
+                # Check is_format_of restriction in every format
+                restrictions = []
+                for format in output['format']:
+                    cls = self.get_class_from_uri(format['uri'])
+                    new_restrictions = [x.is_format_of if hasattr(x, "is_format_of") else [] for x in cls.ancestors()]
+                    new_restrictions = [item for sublist in new_restrictions for item in sublist] # flatten list, e.g. [EDAM.data_2968]
+                    restrictions.extend(new_restrictions)
+                
+                if restrictions == []:
+                    continue
+
+                # Check if there is atleast one format with the same daat
+                data = self.get_class_from_uri(output['data']['uri'])
+                expected_outputs = "/".join([self.label_dict[r.iri] for r in restrictions]) # e.g. `Image`
+                operation_name = self.label_dict[edam_class.iri]
+                if not data in restrictions:
+                    reports.append(
+                        Message(
+                            "EDAM_FORMAT_DISCREPANCY",
+                            f"Expected {input_or_output} {expected_outputs} because of the format of the operation {operation_name}.",
+                            location,
+                            Level.ReportMedium,
+                        ),
+                    )
+
         return reports
 
     async def filter_whole_json(self: EdamFilter, json: dict) -> list[Message] | None:
@@ -236,20 +265,21 @@ class EdamFilter:
 
         pairs = flatten_json_to_single_dict(json, parent_key=json["name"] + "/")
 
+        if not 'function' in json or not json['function']:
+            return None
+
         # Check for specific attributes in EDAM classes that are not present in
         # the tools annotations, e.g. It has EDAM.operation_2403 which has topic EDAM.topic_0080
         # however that is not present in the tools topics
-        for pair in pairs:
-            value = pairs[pair]
-            if value is None:
-                continue
-
-            edam_class = self.get_class_from_uri(value)
-            if edam_class:
-                if "topic" in json:
-                    reports.extend(self.check_topics(edam_class, json["topic"], pair))
-                if "function" in json:
-                    reports.extend(self.check_operation(edam_class, json["function"], pair))
+        for function in json['function']:
+            for operation in function['operation']:
+                edam_class = self.get_class_from_uri(operation['uri'])
+                location = [(x,y) for (x,y) in pairs.items() if y == operation['uri']][0][0]
+                if edam_class:
+                    if "topic" in json:
+                        reports.extend(self.check_topics(edam_class, json["topic"], location))
+                    if "function" in json:
+                        reports.extend(self.check_operation(edam_class, json["function"], location))
 
         if reports == []:
             return None

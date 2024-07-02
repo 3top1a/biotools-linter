@@ -462,6 +462,43 @@ async def test_edam():
         2
     ].code == "EDAM_OUTPUT_DISCREPANCY"
 
+    input_with_data_format = """
+{
+  "name": "test",
+  "function": [
+    {
+      "operation": [
+        {
+          "uri": "http://edamontology.org/operation_4008",
+          "term": "Protein design"
+        }
+      ],
+      "input": [],
+      "output": [
+        {
+          "data": {
+            "term": "Expression data",
+            "uri": "http://edamontology.org/data_2603"
+          },
+          "format": [
+            {
+              "term": "PNG",
+              "uri": "http://edamontology.org/format_3603"
+            }
+          ]
+        }
+      ],
+      "note": "",
+      "cmd": ""
+    }
+  ]
+}
+    """
+
+    report = await f.filter_whole_json(json.loads(input_with_data_format))
+    assert len(report) == 1
+    assert report[0].code == "EDAM_FORMAT_DISCREPANCY"
+
 
 @pytest.mark.asyncio
 async def test_url_cache():

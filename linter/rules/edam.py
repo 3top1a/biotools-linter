@@ -228,25 +228,38 @@ class EdamFilter:
                         ),
                     )
 
-        # input_or_output is here just for grammar sake, don't want to say it;s in the output when it's in the input
+        # Iterate over both outputs and inputs
+        # input_or_output is used for grammatical correctness in error messages
         for (output, input_or_output) in zip(json_outputs + json_inputs, ['output']*len(json_outputs) + ['input']*len(json_inputs)):
-            # This code validates that each specified format in the output data includes a 'format' dictionary which is appropriately restricted by its 'is_format_of' attribute
+            # Validate that each specified format in the data includes a 'format' dictionary 
+            # which is appropriately restricted by its 'is_format_of' attribute
             if "data" in output and "format" in output:
                 # Check is_format_of restriction in every format
                 restrictions = []
                 for format in output['format']:
                     cls = self.get_class_from_uri(format['uri'])
+                    # Collect all 'is_format_of' restrictions from ancestor classes
                     new_restrictions = [x.is_format_of if hasattr(x, "is_format_of") else [] for x in cls.ancestors()]
-                    new_restrictions = [item for sublist in new_restrictions for item in sublist] # flatten list, e.g. [EDAM.data_2968]
+                    new_restrictions = [item for sublist in new_restrictions for item in sublist] # Flatten list
                     restrictions.extend(new_restrictions)
                 
+                # If no restrictions found, move to next output/input
                 if restrictions == []:
                     continue
 
-                # Check if there is atleast one format with the same daat
+                restrictions = list(set(restrictions)) # Remove duplicates
+
+                # Add children/subclasses of restricted formats
+                children = [list(r.subclasses()) for r in restrictions]
+                children = [item for sublist in children for item in sublist] # Flatten list
+                restrictions.extend(children)
+
+                # Check if there is at least one format with the same data type
                 data = self.get_class_from_uri(output['data']['uri'])
                 expected_outputs = "/".join([self.label_dict[r.iri] for r in restrictions]) # e.g. `Image`
                 operation_name = self.label_dict[edam_class.iri]
+                
+                # If the data type doesn't match any of the allowed formats, report an error
                 if not data in restrictions:
                     reports.append(
                         Message(

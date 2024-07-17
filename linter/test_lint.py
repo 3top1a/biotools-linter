@@ -256,12 +256,12 @@ async def test_messages():
     assert msg.level == Level.LinterError
     assert msg.tool is None  # Should be set in lib.py
     msg.print_message(q)
-    assert q.get() == "None: [001] Test message"
+    assert q.get() == "None [001]: Test message"
 
     (await rules.filter_url("url", "also test"))[0].print_message(q)
     assert (
         q.get()
-        == "None: [URL_INVALID] The URL also test at url could not be parsed, possibly due to invisible Unicode characters"
+        == "None [URL_INVALID]: The URL also test at url could not be parsed, possibly due to invisible Unicode characters"
     )
 
 
@@ -273,16 +273,16 @@ async def test_publications():
     # Test converter
     x1: PublicationData = await PublicationData.convert("10.1093/BIOINFORMATICS/BTAA581")
     assert x1
-    assert x1.pmid == "32573681"
-    assert x1.pmcid == "PMC8034561"
+    assert x1.pmid == ["32573681"]
+    assert x1.pmcid == ["PMC8034561"]
 
     x2: PublicationData = await PublicationData.convert("test")
     assert x2 == None
 
     x3: PublicationData = await PublicationData.convert("PMC8034561")
     assert x3
-    assert x3.doi == "10.1093/bioinformatics/btaa581"
-    assert x3.pmid == "32573681"
+    assert x3.doi == ["10.1093/bioinformatics/btaa581"]
+    assert x3.pmid == ["32573681"]
 
     x4 = await PublicationData.convert("")
     assert x4 is None

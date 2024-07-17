@@ -120,14 +120,14 @@ async def process_publication(json: dict, pub_index, publication: dict) -> list[
 
             original_id: str = locals()[checking_id].strip().lower()
             if checking_id in converted.__dict__ and converted.__dict__[checking_id] is not None:
-                converted_id: str = converted.__dict__[checking_id].strip().lower()
-                if original_id != converted_id:
+                converted_ids: str = [id.strip().lower() for id in converted.__dict__[checking_id]]
+                if original_id not in converted_ids:
                     output.append(
                         Message(
                             # Can be DOI_DISCREPANCY, PMID_DISCREPANCY, PMCID_DISCREPANCY
                             f"{checking_id.upper()}_DISCREPANCY",
                             #f"Converting {checked_id.upper()} {locals()[checked_id]} led to a different {checking_id.upper()} ({converted_id}) than in annotation ({original_id})",
-                            f"{checked_id.upper()} ({locals()[checked_id]}) and {checking_id.upper()} ({converted_id}) do not correspond to the same publication.",
+                            f"{checked_id.upper()} ({locals()[checked_id]}) and {checking_id.upper()} ({", ".join(converted_ids)}) do not correspond to the same publication.",
                             f"{location}/{checked_id.lower()}",
                             Level.ReportHigh,
                         ),
@@ -140,9 +140,9 @@ class PublicationData:
 
     """A class to handle conversions between DOI, PMID, and PMCID."""
 
-    doi: Optional[str] | None = None
-    pmid: Optional[str] | None = None
-    pmcid: Optional[str] | None = None
+    doi: Optional[list[str]] | None = None
+    pmid: Optional[list[str]] | None = None
+    pmcid: Optional[list[str]] | None = None
 
     @staticmethod
     async def convert(identifier: str) -> PublicationData | None:
@@ -169,14 +169,22 @@ class PublicationData:
                 if not result or result.get("status") != "ok":
                     return None
 
-                pub = result["records"][0]
-                if pub.get("live") == "false":
-                    return None
+                doi = []
+                pmid = []
+                pmcid = []
+
+                for pub in result["records"]:
+                    if pub.get("live") == "false" or pub.get("status") == "error":
+                        return None
+                    
+                    doi.append(pub.get("doi"))
+                    pmid.append(pub.get("pmid"))
+                    pmcid.append(pub.get("pmcid"))
 
                 pub_data = PublicationData(
-                    doi=pub.get("doi"),
-                    pmid=pub.get("pmid"),
-                    pmcid=pub.get("pmcid"),
+                    doi=doi,
+                    pmid=pmid,
+                    pmcid=pmcid,
                 )
                 cache.set(identifier, pub_data)
                 return pub_data

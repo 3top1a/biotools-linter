@@ -56,56 +56,61 @@ async def process_publication(json: dict, pub_index, publication: dict) -> list[
 
     # Other IDs not present in DB
     if doi and not pmid and converted.pmid:
+        pmid_text = ", ".join(converted.pmid)
         output.append(
             Message(
                 "DOI_BUT_NOT_PMID",
                 #f"Publication DOI {doi} (https://www.doi.org/{doi}) does not have a PMID in the database.",
                 # TODO: Add links to articles for all error messages
-                f'Article {doi} has both DOI and PMID ({", ".join(converted.pmid)}), but only DOI is provided. Use NCBI AnyID Converter for verification.',
+                f'Article {doi} has both DOI and PMID ({pmid_text}), but only DOI is provided. Use NCBI AnyID Converter for verification.',
                 f"{location}/doi",
                 Level.ReportMedium,
             ),
         )
 
     if doi and not pmcid and converted.pmcid:
+        pmcid_text = ", ".join(converted.pmcid)
         output.append(
             Message(
                 "DOI_BUT_NOT_PMCID",
                 #f"Publication DOI {doi} (https://www.doi.org/{doi}) does not have a PMCID in the database.",
-                f'Article {doi} has both DOI and PMCID ({", ".join(converted.pmcid)}), but only DOI is provided. Use NCBI AnyID Converter for verification.',
+                f'Article {doi} has both DOI and PMCID ({pmcid_text}), but only DOI is provided. Use NCBI AnyID Converter for verification.',
                 f"{location}/doi",
                 Level.ReportMedium,
             ),
         )
 
     if pmid and not doi and converted.doi:
+        doi_text = ", ".join(converted.doi)
         output.append(
             Message(
                 "PMID_BUT_NOT_DOI",
                 #"Publication PMID {pmid} (https://pubmed.ncbi.nlm.nih.gov/{pmid}) does not have a DOI in the database.",
-                f'Article {pmid} has both PMID and DOI ({", ".join(converted.doi)}), but only PMID is provided. Use NCBI AnyID Converter for verification.',
+                f'Article {pmid} has both PMID and DOI ({doi_text}), but only PMID is provided. Use NCBI AnyID Converter for verification.',
                 f"{location}/pmid",
                 Level.ReportMedium,
             ),
         )
 
     if pmcid and not doi and converted.doi:
+        doi_text = ", ".join(converted.doi)
         output.append(
             Message(
                 "PMCID_BUT_NOT_DOI",
                 #f"Publication PMCID {pmcid} (https://pubmed.ncbi.nlm.nih.gov/{pmcid}) does not have a DOI in the database.",
-                f'Article {pmcid} has both PMCID and DOI ({", ".join(converted.doi)}), but only PMCID is provided. Use NCBI AnyID Converter for verification.',
+                f'Article {pmcid} has both PMCID and DOI ({doi_text}), but only PMCID is provided. Use NCBI AnyID Converter for verification.',
                 f"{location}/pmcid",
                 Level.ReportMedium,
             ),
         )
 
     if pmcid and not pmid and converted.pmid:
+        pmid_text = ", ".join(converted.pmid)
         output.append(
             Message(
                 "PMCID_BUT_NOT_PMID",
                 #f"Publication PMCID {pmcid} (https://pubmed.ncbi.nlm.nih.gov/{pmcid}) does not have a DOI in the database.",
-                f'Article {pmcid} has both PMCID and PMID ({", ".join(converted.pmid)}), but only PMCID is provided. Use NCBI AnyID Converter for verification.',
+                f'Article {pmcid} has both PMCID and PMID ({pmid_text}), but only PMCID is provided. Use NCBI AnyID Converter for verification.',
                 f"{location}/pmcid",
                 Level.ReportMedium,
             ),
@@ -122,12 +127,13 @@ async def process_publication(json: dict, pub_index, publication: dict) -> list[
             if checking_id in converted.__dict__ and converted.__dict__[checking_id] is not None:
                 converted_ids: str = [id.strip().lower() for id in converted.__dict__[checking_id]]
                 if original_id not in converted_ids:
+                    ids_text = ", ".join(converted_ids)
                     output.append(
                         Message(
                             # Can be DOI_DISCREPANCY, PMID_DISCREPANCY, PMCID_DISCREPANCY
                             f"{checking_id.upper()}_DISCREPANCY",
                             #f"Converting {checked_id.upper()} {locals()[checked_id]} led to a different {checking_id.upper()} ({converted_id}) than in annotation ({original_id})",
-                            f"{checked_id.upper()} ({locals()[checked_id]}) and {checking_id.upper()} ({", ".join(converted_ids)}) do not correspond to the same publication.",
+                            f"{checked_id.upper()} ({locals()[checked_id]}) and {checking_id.upper()} ({ids_text}) do not correspond to the same publication.",
                             f"{location}/{checked_id.lower()}",
                             Level.ReportHigh,
                         ),

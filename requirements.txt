@@ -6,3 +6,4 @@ Cython
 owlready2
 cacheout
 aiohttp
+aiolimiter

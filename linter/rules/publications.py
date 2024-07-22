@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 import aiohttp
+from aiolimiter import AsyncLimiter
 from cacheout import Cache
 from message import Level, Message
 from utils import array_without_value
@@ -13,6 +14,10 @@ from utils import array_without_value
 from .url import client_args
 
 cache: Cache = Cache(maxsize=8192, ttl=0, default=None)
+
+# allow for 100 concurrent entries within a 60 second window
+# NCBI recommends a maximum of 3 requests per second
+rate_limit = AsyncLimiter(160, 60)
 
 TYPES = ["doi", "pmid", "pmcid"]
 
@@ -162,38 +167,39 @@ class PublicationData:
         try:
             url = f"https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/?tool=biotools-linter&email=251814@mail.muni.cz&ids={identifier}&format=json"
 
-            # TODO Move session into singleton (needs to be initialized in async run loop)
-            async with aiohttp.ClientSession(**client_args) as session:
-                # https://github.com/aio-libs/aiohttp/issues/3203
-                # AIOHTTP has an issue with timeouts appearing where they shouldn't be.
-                # Making a new timeout for each request seems to eliminate this issue
-                response = await session.get(url, ssl=None, timeout=aiohttp.ClientTimeout(total=None,
-                                                                                  sock_connect=15,
-                                                                                  sock_read=15))
-                result = await response.json()
+            async with rate_limit:
+                # TODO Move session into singleton (needs to be initialized in async run loop)
+                async with aiohttp.ClientSession(**client_args) as session:
+                    # https://github.com/aio-libs/aiohttp/issues/3203
+                    # AIOHTTP has an issue with timeouts appearing where they shouldn't be.
+                    # Making a new timeout for each request seems to eliminate this issue
+                    response = await session.get(url, ssl=None, timeout=aiohttp.ClientTimeout(total=None,
+                                                                                    sock_connect=15,
+                                                                                    sock_read=15))
+                    result = await response.json()
 
-                if not result or result.get("status") != "ok":
-                    return None
-
-                doi = []
-                pmid = []
-                pmcid = []
-
-                for pub in result["records"]:
-                    if pub.get("live") == "false" or pub.get("status") == "error":
+                    if not result or result.get("status") != "ok":
                         return None
-                    
-                    doi.append(pub.get("doi")) if pub.get("doi") is not None else None
-                    pmid.append(pub.get("pmid")) if pub.get("pmid") is not None else None
-                    pmcid.append(pub.get("pmcid")) if pub.get("pmcid") is not None else None
 
-                pub_data = PublicationData(
-                    doi=doi,
-                    pmid=pmid,
-                    pmcid=pmcid,
-                )
-                cache.set(identifier, pub_data)
-                return pub_data
+                    doi = []
+                    pmid = []
+                    pmcid = []
+
+                    for pub in result["records"]:
+                        if pub.get("live") == "false" or pub.get("status") == "error":
+                            return None
+                        
+                        doi.append(pub.get("doi")) if pub.get("doi") is not None else None
+                        pmid.append(pub.get("pmid")) if pub.get("pmid") is not None else None
+                        pmcid.append(pub.get("pmcid")) if pub.get("pmcid") is not None else None
+
+                    pub_data = PublicationData(
+                        doi=doi,
+                        pmid=pmid,
+                        pmcid=pmcid,
+                    )
+                    cache.set(identifier, pub_data)
+                    return pub_data
 
         except Exception as e:
             logging.critical(

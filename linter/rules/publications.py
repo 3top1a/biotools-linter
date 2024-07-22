@@ -183,9 +183,9 @@ class PublicationData:
                     if pub.get("live") == "false" or pub.get("status") == "error":
                         return None
                     
-                    doi.append(pub.get("doi"))
-                    pmid.append(pub.get("pmid"))
-                    pmcid.append(pub.get("pmcid"))
+                    doi.append(pub.get("doi")) if pub.get("doi") is not None else None
+                    pmid.append(pub.get("pmid")) if pub.get("pmid") is not None else None
+                    pmcid.append(pub.get("pmcid")) if pub.get("pmcid") is not None else None
 
                 pub_data = PublicationData(
                     doi=doi,

@@ -288,6 +288,7 @@ async def test_publications():
     x4 = await PublicationData.convert("")
     assert x4 is None
 
+    # noinspection PyTypeChecker
     x5 = await PublicationData.convert(None)
     assert x5 is None
 
@@ -503,7 +504,7 @@ async def test_edam():
 
 @pytest.mark.asyncio
 async def test_url_cache():
-    # Tests if the URL cache returns the same results as a uncached result
+    # Tests if the URL cache returns the same results as an uncached result
     import rules.url as url
 
     url.clear_cache()

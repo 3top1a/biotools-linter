@@ -7,6 +7,7 @@ import logging
 import re
 
 import aiohttp
+from aiolimiter import AsyncLimiter
 from cacheout import Cache
 from message import Level, Message
 
@@ -26,8 +27,11 @@ client_args = dict(
     headers={"User-Agent": user_agent},
 )
 
+# Rate limit - allow for 160 requests within a 60-second window
+rate_limit = AsyncLimiter(160, 60)
+
 URL_REGEX = re.compile(
-    r"(http[s]?)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+    r"(http[s]?)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*(),]|%[0-9a-fA-F][0-9a-fA-F])+"
 )
 REPORT = 15
 # Timeouts cause a lot of slowness in the linter so this value is quite low (the aiohttp default is 5m)
@@ -69,11 +73,11 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
             return hits
         return None
 
+    reports: list[Message] = []
     # Wrap it in one big try block in case anything errors
     try:
-        reports: list[Message] = []
 
-        # Exit if does not match URL or key doesn't end with url/uri
+        # Exit if it does not match URL or key doesn't end with url/uri
         if (
             not URL_REGEX.match(value)
             and not key.endswith("url")
@@ -91,7 +95,7 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
             return None
 
         # If the URL doesn't match the regex but is in a url/uri entry, throw an error
-        # For example, this errors when invisible unicode characters are in the URL
+        # For example, this throws an errors when invisible Unicode characters are in the URL
         if not URL_REGEX.match(value) and (key.endswith(("url", "uri"))):
             return [
                 Message(
@@ -105,71 +109,72 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
         # Make a request
         # It streams it and then closes it so it doesn't download the file. Better than HEAD requests.
         try:
-            # TODO Move session into singleton (needs to be initialized in async run loop)
-            async with aiohttp.ClientSession(**client_args) as session:
-                # https://github.com/aio-libs/aiohttp/issues/3203
-                # AIOHTTP has an issue with timeouts appearing where they shouldn't be.
-                # Making a new timeout for each request seems to eliminate this issue
-                response = await session.get(value, timeout=aiohttp.ClientTimeout(total=None,
-                                                                                  sock_connect=5,
-                                                                                  sock_read=5))
-                response.close()
+            async with rate_limit:
+                # TODO Move session into singleton (needs to be initialized in async run loop)
+                async with aiohttp.ClientSession(**client_args) as session:
+                    # https://github.com/aio-libs/aiohttp/issues/3203
+                    # AIOHTTP has an issue with timeouts appearing where they shouldn't be.
+                    # Making a new timeout for each request seems to eliminate this issue
+                    response = await session.get(value, timeout=aiohttp.ClientTimeout(total=None,
+                                                                                      sock_connect=5,
+                                                                                      sock_read=5))
+                    response.close()
 
-                # Check for redirect
-                # See https://docs.aiohttp.org/en/stable/client_advanced.html#redirection-history
-                if len(response.history) != 0:
-                    reports.append(
-                        Message(
-                            "URL_PERMANENT_REDIRECT",
-                            f'URL {value} at {key} permanently redirected',
-                            key,
-                            Level.ReportLow,
-                        ),
-                    )
-
-                # Status is not between 200 and 400
-                if not response.ok:
-                    reports.append(
-                        Message(
-                            "URL_BAD_STATUS",
-                            # f"URL {value} at {key} doesn't return ok status (>399).",
-                            f'URL {value} at {key} returned a non-2xx status code, indicating failure',
-                            key,
-                            Level.ReportMedium,
-                        ),
-                    )
-
-                if value.startswith("http://"):
-                    # Try to request with SSL
-                    try:
-                        # Takes extreme amount of time if no such site exists, need to refactor
-                        new_response = await session.get(
-                            value.replace("http://", "https://"),
-                        )
-                        new_response.close()
-                    except aiohttp.ClientConnectorError:
-                        # If it fails with ClientConnectorError, the site does not use SSL at all
+                    # Check for redirect
+                    # See https://docs.aiohttp.org/en/stable/client_advanced.html#redirection-history
+                    if len(response.history) != 0:
                         reports.append(
                             Message(
-                                "URL_NO_SSL",
-                                # f"URL {value} at {key} does not use SSL.",
-                                f'Website {value} at {key} lacks SSL encryption.',
+                                "URL_PERMANENT_REDIRECT",
+                                f'URL {value} at {key} permanently redirected',
                                 key,
                                 Level.ReportLow,
                             ),
-                        )  # Medium as it's hard to fix without owning the website
-                    else:
-                        # If it succeeds, the site can use SSL but the URL is just wrong
+                        )
+
+                    # Status is not between 200 and 400
+                    if not response.ok:
                         reports.append(
                             Message(
-                                "URL_UNUSED_SSL",
-                                f'Website {value} at {key} supports HTTPS but the provided URL uses HTTP.',
+                                "URL_BAD_STATUS",
+                                # f"URL {value} at {key} doesn't return ok status (>399).",
+                                f'URL {value} at {key} returned a non-2xx status code, indicating failure',
                                 key,
                                 Level.ReportMedium,
                             ),
-                        )  # Medium since your browser should auto-upgrade
+                        )
 
-                await session.close()
+                    if value.startswith("http://"):
+                        # Try to request with SSL
+                        try:
+                            # Takes extreme amount of time if no such site exists, need to refactor
+                            new_response = await session.get(
+                                value.replace("http://", "https://"),
+                            )
+                            new_response.close()
+                        except aiohttp.ClientConnectorError:
+                            # If it fails with ClientConnectorError, the site does not use SSL at all
+                            reports.append(
+                                Message(
+                                    "URL_NO_SSL",
+                                    # f"URL {value} at {key} does not use SSL.",
+                                    f'Website {value} at {key} lacks SSL encryption.',
+                                    key,
+                                    Level.ReportLow,
+                                ),
+                            )  # Medium as it's hard to fix without owning the website
+                        else:
+                            # If it succeeds, the site can use SSL but the URL is just wrong
+                            reports.append(
+                                Message(
+                                    "URL_UNUSED_SSL",
+                                    f'Website {value} at {key} supports HTTPS but the provided URL uses HTTP.',
+                                    key,
+                                    Level.ReportMedium,
+                                ),
+                            )  # Medium since your browser should auto-upgrade
+
+                    await session.close()
 
         # Timeout error>
         except asyncio.TimeoutError:

@@ -36,13 +36,13 @@ async def delegate_key_value_filter(key: str, value: str) -> list[Message] | Non
         None
 
     """
-    # logging.debug(f"Checking {key}: {value!s}") Only makes noisy output, theres logging at every rule submodule
+    # logging.debug(f"Checking {key}: {value!s}") # Only makes noisy output, there's logging at every rule submodule
 
     output = []
 
-    none = filter_none(key, value)
+    # none = filter_none(key, value)
     if value is None or value == [] or value == "":
-        output.append(none)
+        # output.append(none)
         # We can't check anything else as it will error
         return output
 
@@ -55,7 +55,7 @@ async def delegate_key_value_filter(key: str, value: str) -> list[Message] | Non
     results = await asyncio.gather(*futures)
     [output.extend(x) if x is not None else None for x in results]
 
-    if output is []:
+    if not output:
         return None
     return output
 
@@ -63,20 +63,17 @@ async def delegate_key_value_filter(key: str, value: str) -> list[Message] | Non
 async def delegate_whole_json_filter(json: dict) -> list[Message] | None:
     """Delegate to separate filter functions that filter the whole json, not just one key value pair."""
     output = []
-    futures = []
-
-    futures.append(filter_pub(json))
-    futures.append(edam_filter.filter_whole_json(json))
+    futures = [filter_pub(json), edam_filter.filter_whole_json(json)]
 
     results = await asyncio.gather(*futures)
     [output.extend(x) if x is not None else None for x in results]
 
-    if output is []:
+    if not output:
         return None
     return output
 
 
-def filter_none(key: str, _value: str) -> Message | None:
+def filter_none(key: str, _value: str) -> None:
     """Filter the key-value pair if the value is None or empty.
 
     Attributes

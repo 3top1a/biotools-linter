@@ -26,19 +26,13 @@ class Level(IntEnum):
 class Message:
     """Message returned by the linter upwards to lib and cli."""
 
-    tool: str  # Tool (biotools id) will be filled-in in lib/lint_specific_tool
-    level: Level
-    code: str
-    body: str
-    location: str
-
     def __init__(
         self: Message,
         code: str,
         body: str,
         location: str,
         level: Level = Level.Report,
-    ) -> Message:
+    ):
         """Init a new message."""
         self.code = code
         self.body = body
@@ -47,7 +41,7 @@ class Message:
         self.tool = None
 
     def print_message(self: Message, message_queue: None | queue.Queue = None) -> str:
-        """Print the message as a report, and put it into the message queue. Returns outputed string."""
+        """Print the message as a report, and put it into the message queue. Also returns string."""
         message = f"{self.tool} [{self.code}]: {self.body}"
 
         logging.log(REPORT, message)

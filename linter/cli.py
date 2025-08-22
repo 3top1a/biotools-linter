@@ -228,7 +228,7 @@ async def main(argv: Sequence[str]) -> int:
 
         if args.biotools_format:
             # Mimic the way the bio.tools validate API works
-            if json_list == []:
+            if not json_list:
                 print(input_json)
             else:
                 errors = {}

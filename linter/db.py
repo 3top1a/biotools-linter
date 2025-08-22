@@ -10,10 +10,6 @@ from psycopg2.extensions import parse_dsn
 class DatabaseConnection:
     """A class for managing the database. Allows for a mock and early returns in every function."""
 
-    connection: None  #: psycopg2.extensions.connection
-    cursor: None  #: psycopg2.extensions.cursor
-    mock: bool = False
-
     def __init__(self, creds: str | None, mock: bool = False) -> None:
         """Initialize the database connection.
 
@@ -73,7 +69,7 @@ class DatabaseConnection:
         if not self.mock:
             logging.info("Sending messages to database")
 
-        returned_atleast_one_value = False
+        returned_at_least_one_value = False
 
         while not queue.empty():
             item: Message = queue.get()
@@ -81,7 +77,7 @@ class DatabaseConnection:
             if item.level == Level.LinterInternal:
                 continue
 
-            returned_atleast_one_value = True
+            returned_at_least_one_value = True
 
             if self.mock:
                 continue
@@ -98,7 +94,7 @@ class DatabaseConnection:
             )
             self.cursor.execute(insert_query, data)
 
-        return returned_atleast_one_value
+        return returned_at_least_one_value
 
     def commit(self) -> None:
         """Commit changes to database."""

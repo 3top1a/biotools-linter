@@ -15,12 +15,12 @@ from utils import flatten_json_to_single_dict
 
 class EdamFilter:
     ontology: owlready2.Ontology
-    
+
     is_obsolete_dict: dict[str, bool]
     not_recommended_dict: dict[str, str]
     deprecation_comment_dict: dict[str, str]
     label_dict: dict[str, str]
-    
+
     def __init__(self: EdamFilter) -> None:
         """Initialize EDAM filter. Returns early if already initialized. Parses local files if they are already downloaded, otherwise downloads them."""
         # Simple dicts, replace?
@@ -28,8 +28,7 @@ class EdamFilter:
         self.not_recommended_dict: dict[str, str] = {}
         self.deprecation_comment_dict: dict[str, str] = {}
         self.label_dict: dict[str, str] = {}
-        
-        self.download_file("EDAM.csv", "https://edamontology.org/EDAM.csv")
+
         self.download_file("EDAM.owl", "https://edamontology.org/EDAM.owl")
 
         self.ontology = owlready2.get_ontology("EDAM.owl").load()
@@ -48,13 +47,8 @@ class EdamFilter:
                 file.write(response.text)
 
     def parse_csv(self: EdamFilter, filename: str) -> None:
-        """Parse EDAM CSV.
-
-        Args:
-        ----
-            filename (str): CSV file location
-
-        """
+        # """Parse EDAM CSV.        """
+        # No longer used, CSV is outdated.
         with open(filename) as csv_file:
             csv_reader = csv.DictReader(csv_file)
             for row in csv_reader:
@@ -68,9 +62,9 @@ class EdamFilter:
         for cls in self.ontology.classes():
             iri = cls.iri
             self.label_dict[iri] = cls.label[0] if cls.label else cls.name
-            self.is_obsolete_dict[iri] = hasattr(cls, "is_obsolete") and cls.is_obsolete[0]
+            self.is_obsolete_dict[iri] = hasattr(cls, "deprecated") and cls.deprecated != [] and cls.deprecated[0]
+            self.not_recommended_dict[iri] = hasattr(cls, "notRecommendedForAnnotation") and cls.notRecommendedForAnnotation != [] and cls.notRecommendedForAnnotation[0]
             self.deprecation_comment_dict[iri] = cls.deprecation_comment[0] if hasattr(cls, "deprecation_comment") and cls.deprecation_comment != [] else None
-            self.not_recommended_dict[iri] = hasattr(cls, "not_recommended_for_annotation") and cls.not_recommended_for_annotation[0]
 
 
     async def filter_edam_key_value_pair(
@@ -121,7 +115,7 @@ class EdamFilter:
                 ),
             )
 
-        if reports == []:
+        if not reports:
             return None
         return reports
 
@@ -252,9 +246,9 @@ class EdamFilter:
                     new_restrictions = [x.is_format_of if hasattr(x, "is_format_of") else [] for x in cls.ancestors()]
                     new_restrictions = [item for sublist in new_restrictions for item in sublist] # Flatten list
                     restrictions.extend(new_restrictions)
-                
+
                 # If no restrictions found, move to next output/input
-                if restrictions == []:
+                if not restrictions:
                     continue
 
                 restrictions = list(set(restrictions)) # Remove duplicates
@@ -268,7 +262,7 @@ class EdamFilter:
                 data = self.get_class_from_uri(output['data']['uri'])
                 expected_outputs = "/".join([self.label_dict[r.iri] for r in restrictions]) # e.g. `Image`
                 operation_name = self.label_dict[edam_class.iri]
-                
+
                 # If the data type doesn't match any of the allowed formats, report an error
                 if not data in restrictions:
                     reports.append(
@@ -304,7 +298,7 @@ class EdamFilter:
                     if "function" in json:
                         reports.extend(self.check_operation(edam_class, json["function"], location))
 
-        if reports == []:
+        if not reports:
             return None
         return reports
 

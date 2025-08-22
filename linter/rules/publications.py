@@ -15,7 +15,7 @@ from .url import client_args
 
 cache: Cache = Cache(maxsize=8192, ttl=0, default=None)
 
-# allow for 100 concurrent entries within a 60 second window
+# allow for 100 concurrent entries within a 60-second window
 # NCBI recommends a maximum of 3 requests per second
 rate_limit = AsyncLimiter(160, 60)
 

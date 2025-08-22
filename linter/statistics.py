@@ -111,7 +111,7 @@ def main() -> int:
 
     # Get severity
     for sev_id_dict in SEVERITY_LEVELS:
-        SEVERITY_LEVELS[sev_id_dict] = count_severity(SEVERITY_LEVELS[sev_id_dict])
+        SEVERITY_LEVELS[sev_id_dict] = count_severity(str(SEVERITY_LEVELS[sev_id_dict]))
         logging.info(f"{sev_id_dict}: {SEVERITY_LEVELS[sev_id_dict]}")
 
     with open(output_file) as json_file:

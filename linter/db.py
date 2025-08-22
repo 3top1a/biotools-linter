@@ -6,12 +6,12 @@ from message import Level, Message
 import psycopg2
 from psycopg2.extensions import parse_dsn
 
-class DatabaseConnection:
 
+class DatabaseConnection:
     """A class for managing the database. Allows for a mock and early returns in every function."""
 
-    connection: None#: psycopg2.extensions.connection
-    cursor: None#: psycopg2.extensions.cursor
+    connection: None  #: psycopg2.extensions.connection
+    cursor: None  #: psycopg2.extensions.cursor
     mock: bool = False
 
     def __init__(self, creds: str | None, mock: bool = False) -> None:

@@ -32,8 +32,9 @@ class EdamFilter:
         self.download_file("EDAM.csv", "https://edamontology.org/EDAM.csv")
         self.download_file("EDAM.owl", "https://edamontology.org/EDAM.owl")
 
-        self.parse_csv("EDAM.csv")
         self.ontology = owlready2.get_ontology("EDAM.owl").load()
+        # self.parse_csv("EDAM.csv")
+        self.create_dictionaries_from_owl()
 
     def download_file(self: EdamFilter, filename: str, url: str) -> None:
         """Download file helper."""
@@ -62,6 +63,15 @@ class EdamFilter:
                 self.is_obsolete_dict[class_id] = row['Obsolete'] == "TRUE"
                 self.deprecation_comment_dict[class_id] = row['deprecation_comment']
                 self.not_recommended_dict[class_id] = row['notRecommendedForAnnotation']
+
+    def create_dictionaries_from_owl(self):
+        for cls in self.ontology.classes():
+            iri = cls.iri
+            self.label_dict[iri] = cls.label[0] if cls.label else cls.name
+            self.is_obsolete_dict[iri] = hasattr(cls, "is_obsolete") and cls.is_obsolete[0]
+            self.deprecation_comment_dict[iri] = cls.deprecation_comment[0] if hasattr(cls, "deprecation_comment") and cls.deprecation_comment != [] else None
+            self.not_recommended_dict[iri] = hasattr(cls, "not_recommended_for_annotation") and cls.not_recommended_for_annotation[0]
+
 
     async def filter_edam_key_value_pair(
         self: EdamFilter,

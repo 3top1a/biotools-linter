@@ -153,6 +153,7 @@ async def check(json):
     session.return_tool_list_json()
     await session.lint_all_tools(return_q=None)
 
+
 def remove_elements(input_dict, collected_dicts=None, path=None):
     """Recursively navigates through a given dictionary, creating variations of it by removing
     one key at a time, including keys from nested dictionaries. Each modified dictionary is
@@ -195,6 +196,7 @@ def remove_elements(input_dict, collected_dicts=None, path=None):
 
     return collected_dicts
 
+
 def replace_values(input_dict, value):
     """Recursively navigates through a given JSON-like dictionary, replacing all values with `None`
     for non-dictionary values, and with an empty list `[]` for dictionary values that are emptied.
@@ -220,20 +222,24 @@ def replace_values(input_dict, value):
         if isinstance(input_dict[key], dict):
             # If the value is a dictionary, recurse and then check if it's empty
             input_dict[key] = replace_values(input_dict[key], value)
-            if not input_dict[key]:  # If the dictionary is now empty, replace it with []
+            if not input_dict[
+                key
+            ]:  # If the dictionary is now empty, replace it with []
                 input_dict[key] = []
         else:
             # Replace non-dictionary values with None
             input_dict[key] = None
     return input_dict
 
+
 @pytest.mark.asyncio()
 async def test_remove_elements():
 
     # Remove elements
-    for (new_json, x) in remove_elements(SCHEMA):
+    for new_json, x in remove_elements(SCHEMA):
         logging.info(f"Removing {x}")
         await check(new_json)
+
 
 @pytest.mark.asyncio()
 async def test_replace_values():

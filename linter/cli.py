@@ -153,7 +153,8 @@ def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
     # Require name or --lint-all
     if args.name is None and args.lint_all is False and args.json is False:
         logging.critical(
-            "Please specify tools name, pass in --lint-all or --json to continue.")
+            "Please specify tools name, pass in --lint-all or --json to continue."
+        )
         sys.exit(1)
 
     # Require page > 0
@@ -173,7 +174,7 @@ async def main(argv: Sequence[str]) -> int:
 
     Returns
     -------
-        int: Status code. 0 means success, non zero values signify failiure.
+        int: Status code. 0 means success, non-zero values signify failure.
 
     Raises
     ------
@@ -182,8 +183,7 @@ async def main(argv: Sequence[str]) -> int:
     """
     args: argparse.Namespace = parse_arguments(argv)
     database_credentials: str | None = (
-        args.db if args.db is not None else (
-            os.environ.get("DATABASE_URL", None))
+        args.db if args.db is not None else (os.environ.get("DATABASE_URL", None))
     )
 
     # Configure logging
@@ -191,7 +191,11 @@ async def main(argv: Sequence[str]) -> int:
 
     session = Session()
     db = DatabaseConnection(
-        database_credentials, database_credentials is None or not database_credentials or database_credentials == "ignore")
+        database_credentials,
+        database_credentials is None
+        or not database_credentials
+        or database_credentials == "ignore",
+    )
     message_queue = Queue()
     returned_at_least_one_error: bool = False
 
@@ -229,15 +233,33 @@ async def main(argv: Sequence[str]) -> int:
             else:
                 errors = {}
                 for error in json_list:
-                    slug = error['code']
-                    if slug in ["PMCID_BUT_NOT_DOI", "PMID_BUT_NOT_DOI", "DOI_BUT_NOT_PMCID", "DOI_BUT_NOT_PMID", "PMCID_BUT_NOT_PMID"]:
+                    slug = error["code"]
+                    if slug in [
+                        "PMCID_BUT_NOT_DOI",
+                        "PMID_BUT_NOT_DOI",
+                        "DOI_BUT_NOT_PMCID",
+                        "DOI_BUT_NOT_PMID",
+                        "PMCID_BUT_NOT_PMID",
+                    ]:
                         slug = "PMID,_PMCID_and_DOI_conversion"
-                    if slug in ["PMID_DISCREPANCY", "PMCID_DISCREPANCY", "DOI_DISCREPANCY"]:
+                    if slug in [
+                        "PMID_DISCREPANCY",
+                        "PMCID_DISCREPANCY",
+                        "DOI_DISCREPANCY",
+                    ]:
                         slug = "PMID,_PMCID_and_DOI_discrepancy"
-                    error_docs_url = f"https://biotools-linter.biodata.ceitec.cz/docs#{slug}"
-                    errors.update(unflatten_json_from_single_dict(
-                        {error["location"].split("//")[1]: [f'{error["body"]} <a href="{error_docs_url}">More info.</a>']},
-                    ))
+                    error_docs_url = (
+                        f"https://biotools-linter.biodata.ceitec.cz/docs#{slug}"
+                    )
+                    errors.update(
+                        unflatten_json_from_single_dict(
+                            {
+                                error["location"].split("//")[1]: [
+                                    f'{error["body"]} <a href="{error_docs_url}">More info.</a>'
+                                ]
+                            },
+                        )
+                    )
 
                 print(json.dumps(errors))
         else:
@@ -251,7 +273,9 @@ async def main(argv: Sequence[str]) -> int:
         processed_tools = 10 * (page - 1)
 
         session.search_api("*", page)
-        count = session.json["*"]["count"]
+        count = (
+            session.return_total()
+        )  # TODO Difference between return total and get_total_tool_count?
         logging.info(f"Linting {count} tools")
 
         while session.next_page_exists() or page == 1:
@@ -307,11 +331,11 @@ async def main(argv: Sequence[str]) -> int:
     db.close()
 
     if session.next_page_exists():
-        logging.info(
-            f"You can also search the next page (page {int(args.page) + 1})")
+        logging.info(f"You can also search the next page (page {int(args.page) + 1})")
     if session.previous_page_exists():
         logging.info(
-            f"You can also search the previous page (page {int(args.page) - 1})")
+            f"You can also search the previous page (page {int(args.page) - 1})"
+        )
 
     if returned_at_least_one_error and args.exit_on_error:
         return 254
@@ -319,19 +343,20 @@ async def main(argv: Sequence[str]) -> int:
 
 
 if __name__ == "__main__":
-    if '--cprofile' in sys.argv[1:]:
+    if "--cprofile" in sys.argv[1:]:
         import cProfile
         import pstats
+
         async def prf():
             profiler = cProfile.Profile()
             profiler.enable()
-            
+
             await main(sys.argv[1:])
 
             profiler.disable()
             stats = pstats.Stats(profiler)
-            #stats.sort_stats(pstats.SortKey.TIME)
-            #stats.print_stats(50)
+            # stats.sort_stats(pstats.SortKey.TIME)
+            # stats.print_stats(50)
             stats.dump_stats(filename="linter.prof")
 
         asyncio.run(prf())

@@ -53,14 +53,12 @@ def flatten_json_to_single_dict(
             index = json_data.index(x)
 
             out.update(
-                flatten_json_to_single_dict(
-                    x, f"{parent_key}{separator}{index}"),
+                flatten_json_to_single_dict(x, f"{parent_key}{separator}{index}"),
             )
     elif isinstance(json_data, dict):
         for key, value in json_data.items():
             out.update(
-                flatten_json_to_single_dict(
-                    value, f"{parent_key}{separator}{key}"),
+                flatten_json_to_single_dict(value, f"{parent_key}{separator}{key}"),
             )
     else:
         value = str(json_data)

@@ -1,4 +1,5 @@
 """Message module."""
+
 from __future__ import annotations
 
 import logging
@@ -9,7 +10,6 @@ REPORT = 15
 
 
 class Level(IntEnum):
-
     """Level for message."""
 
     Report = 1  # Obsolete
@@ -24,7 +24,6 @@ class Level(IntEnum):
 
 
 class Message:
-
     """Message returned by the linter upwards to lib and cli."""
 
     tool: str  # Tool (biotools id) will be filled-in in lib/lint_specific_tool

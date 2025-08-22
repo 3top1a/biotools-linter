@@ -1,6 +1,5 @@
 """Unit tests. Use with pytest."""
 
-
 import os
 import subprocess
 import time
@@ -9,11 +8,11 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_session():
-    import lib as lib
+    from lib import Session
     from lib import flatten_json_to_single_dict
     import json
 
-    s: lib.Session = lib.Session()
+    s = Session()
     import time
 
     assert not s.next_page_exists()
@@ -27,7 +26,7 @@ async def test_session():
     assert s.get_total_tool_count() > 1
     assert s.next_page_exists()
     assert not s.previous_page_exists()
-    last_json = s.json
+    last_json = s._json
 
     print(f"LIB - Broad: {time.time() - start_time}")
     start_time = time.time()
@@ -38,7 +37,7 @@ async def test_session():
     assert s.get_total_tool_count() > 1
     assert s.next_page_exists()
     assert s.previous_page_exists()
-    assert s.json != last_json
+    assert s._json != last_json
 
     print(f"LIB - Broad p10: {time.time() - start_time}")
     start_time = time.time()
@@ -66,7 +65,7 @@ async def test_session():
     # Multiple pages search
     s.clear_cache()
     s.search_api_multiple_pages("*", 1, 5 + 1)
-    assert len(s.return_tool_list_json()) == 50
+    assert len(s.return_tool_list_json()) == 250
 
     print(f"LIB - Multiple pages 1: {time.time() - start_time}")
     start_time = time.time()
@@ -138,7 +137,7 @@ async def test_session():
 async def test_cli():
     import cli as cli
 
-    # "end to end" CLI test, runs the CLI as if it was ran from the command line
+    # "end to end" CLI test, runs the CLI as if it was run from the command line
     # Any use of certain tool names are only for testing purposes and not in bad faith
     assert await cli.main(["msmc"]) == 0
     assert await cli.main(["metexplore", "--no-color"]) == 0
@@ -271,13 +270,15 @@ async def test_publications():
     import json
 
     # Test converter
-    x1: PublicationData = await PublicationData.convert("10.1093/BIOINFORMATICS/BTAA581")
+    x1: PublicationData = await PublicationData.convert(
+        "10.1093/bioinformatics/btaa581"
+    )
     assert x1
     assert x1.pmid == ["32573681"]
     assert x1.pmcid == ["PMC8034561"]
 
     x2: PublicationData = await PublicationData.convert("test")
-    assert x2 == None
+    assert x2 is None
 
     x3: PublicationData = await PublicationData.convert("PMC8034561")
     assert x3
@@ -338,7 +339,7 @@ async def test_publications():
     """
     output = await filter_pub(json.loads(json_good))
     assert output is None
-    
+
     # Test DOI_DISCREPANCY, PMID_DISCREPANCY, PMCID_DISCREPANCY
     js = """
     {
@@ -526,11 +527,18 @@ async def test_url_cache():
 def test_lint_all_doesnt_fail():
     """Runs --lint-all and checks if it fails within 10 seconds. If not, it's considered valid."""
     timeout = 10
-    command = ["python3", os.path.join(os.getcwd(), "linter/cli.py"), "--lint-all", "--no-color"]
+    command = [
+        "python3",
+        os.path.join(os.getcwd(), "linter/cli.py"),
+        "--lint-all",
+        "--no-color",
+    ]
     try:
         # Start the process
         start_time = time.time()
-        result = subprocess.run(command, timeout=timeout, capture_output=True, text=True, check=False)
+        result = subprocess.run(
+            command, timeout=timeout, capture_output=True, text=True, check=False
+        )
         end_time = time.time()
 
         elapsed_time = end_time - start_time

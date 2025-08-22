@@ -80,7 +80,7 @@ def main() -> int:
     # Get the total tools on biotools
     session = lib.Session()
     session.search_api("*", 1)
-    total_count_on_biotools = session.json["*"]["count"]
+    total_count_on_biotools = session.return_total()
     logging.info(f"Total on biotools: {total_count_on_biotools}")
 
     # Get total errors

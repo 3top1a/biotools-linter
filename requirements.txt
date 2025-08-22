@@ -1,7 +1,7 @@
 argparse
 requests
 colorlog
-psycopg2
+psycopg2 # or install psycopg2-binary
 Cython
 owlready2
 cacheout

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+REPORT = 25 # Report log level is between debug and info
 
 def flatten_json_to_single_dict(
     json_data: dict,

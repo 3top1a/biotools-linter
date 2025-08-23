@@ -6,7 +6,7 @@ import logging
 import queue
 from enum import IntEnum
 
-REPORT = 15
+from utils import REPORT
 
 
 class Level(IntEnum):
@@ -27,13 +27,14 @@ class Message:
     """Message returned by the linter upwards to lib and cli."""
 
     def __init__(
-        self: Message,
-        code: str,
-        body: str,
-        location: str,
-        level: Level = Level.Report,
+            self: Message,
+            code: str,
+            body: str,
+            location: str,
+            level: Level = Level.Report,
     ):
         """Init a new message."""
+
         self.code = code
         self.body = body
         self.level = level

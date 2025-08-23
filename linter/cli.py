@@ -16,9 +16,7 @@ from queue import Queue
 import colorlog
 from db import DatabaseConnection
 from lib import Session, single_tool_to_search_json
-from utils import unflatten_json_from_single_dict
-
-REPORT = 15
+from utils import unflatten_json_from_single_dict, REPORT
 
 
 def configure_logging(color: bool, log_level: str) -> None:
@@ -95,6 +93,7 @@ def parse_arguments(arguments: Sequence[str]) -> argparse.Namespace:
         "--log-level",
         "-l",
         choices=["DEBUG", "INFO", "REPORT", "WARNING", "ERROR"],
+        type=lambda s: s.upper(), # make it case-insensitive
         default="REPORT",
         help="Choose the logging level. 'REPORT' is the default.",
     )
@@ -270,7 +269,9 @@ async def main(argv: Sequence[str]) -> int:
     elif args.lint_all:
         # Try to lint all tools on bio.tools
         page = args.page if args.page else 1
-        processed_tools = 10 * (page - 1)
+        page_size = 50 # Number of entries per page
+        processed_tools = page_size * (page - 1)
+        page_increment = 1
 
         session.search_api("*", page)
         count = (
@@ -282,10 +283,10 @@ async def main(argv: Sequence[str]) -> int:
             # Dump cache so it doesn't OOM
             session.clear_cache()
 
-            session.search_api_multiple_pages("*", page, page + 10)
-            processed_tools += 10
+            session.search_api_multiple_pages("*", page, page + page_increment)
+            processed_tools += page_size
             logging.info(
-                f"Page: {page} => {page + 10}, Progress: {processed_tools / count}%",
+                f"Page: {page} => {page + page_increment}, Progress: {processed_tools / count}%",
             )
 
             # Delete old entries from table
@@ -294,7 +295,7 @@ async def main(argv: Sequence[str]) -> int:
                 db.drop_rows_with_tool_name(name)
 
             await session.lint_all_tools(return_q=message_queue)
-            page += 10
+            page += page_increment
             returned_at_least_one_error = db.insert_from_queue(message_queue)
 
             db.commit()

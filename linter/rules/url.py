@@ -2,19 +2,18 @@
 
 from __future__ import annotations
 
+import aiohttp
 import asyncio
 import logging
 import re
-
-import aiohttp
 from aiolimiter import AsyncLimiter
 from cacheout import Cache
 from message import Level, Message
 
 # Initialize (here so it inits once)
 # Now only used by other filters
-user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.3 (Bio.tools linter, github.com/3top1a/biotools-linter)"
-cache: Cache = Cache(maxsize=2**20, ttl=0, default=None)
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.3 Bio.tools linter (github.com/3top1a/biotools-linter; email: 251814@muni.cz)"
+cache: Cache = Cache(maxsize=2 ** 16, ttl=3600, default=None)
 
 timeout = aiohttp.ClientTimeout(
     total=None,
@@ -25,15 +24,17 @@ client_args = dict(
     trust_env=True,
     timeout=timeout,
     headers={"User-Agent": user_agent},
+    # Fixes error "Request header is too long"
+    max_line_size=8190 * 2,
+    max_field_size=8190 * 2,
 )
 
-# Rate limit - allow for 160 requests within a 60-second window
+# Rate limit - allow for 160 requests within a 60-second window (globally, not per site)
 rate_limit = AsyncLimiter(160, 60)
 
 URL_REGEX = re.compile(
     r"(http[s]?)://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*(),]|%[0-9a-fA-F][0-9a-fA-F])+"
 )
-REPORT = 15
 # Timeouts cause a lot of slowness in the linter so this value is quite low (the aiohttp default is 5m)
 TIMEOUT = 30
 
@@ -79,9 +80,9 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
 
         # Exit if it does not match URL or key doesn't end with url/uri
         if (
-            not URL_REGEX.match(value)
-            and not key.endswith("url")
-            and not key.endswith("uri")
+                not URL_REGEX.match(value)
+                and not key.endswith("url")
+                and not key.endswith("uri")
         ):
             return None
 
@@ -138,9 +139,9 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                             Message(
                                 "URL_BAD_STATUS",
                                 # f"URL {value} at {key} doesn't return ok status (>399).",
-                                f'URL {value} at {key} returned a non-2xx status code, indicating failure',
+                                f'URL {value} at {key} returned {response.status} status code, indicating failure',
                                 key,
-                                Level.ReportMedium,
+                                Level.ReportHigh,  # High as it's inaccessible
                             ),
                         )
 
@@ -170,9 +171,9 @@ async def filter_url(key: str, value: str) -> list[Message] | None:
                                     "URL_UNUSED_SSL",
                                     f'Website {value} at {key} supports HTTPS but the provided URL uses HTTP.',
                                     key,
-                                    Level.ReportMedium,
+                                    Level.ReportLow,
                                 ),
-                            )  # Medium since your browser should auto-upgrade
+                            )  # Low since your browser should auto-upgrade
 
                     await session.close()
 

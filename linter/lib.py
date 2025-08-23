@@ -20,7 +20,6 @@ from utils import (
     single_tool_to_search_json,
 )
 
-REPORT: int = 15  # Report log level is between debug and info
 TIMEOUT = (
     60  # Custom timeout for biotools API, it's longer so it doesn't silently crash
 )

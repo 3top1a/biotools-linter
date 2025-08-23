@@ -165,7 +165,7 @@ class PublicationData:
             return None
 
         try:
-            url = f"https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/?tool=biotools-linter&email=251814@mail.muni.cz&ids={identifier}&format=json"
+            url = f"https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/?tool=biotools-linter&email=251814@mail.muni.cz&format=json&ids={identifier}"
 
             async with rate_limit:
                 # TODO Move session into singleton (needs to be initialized in async run loop)
